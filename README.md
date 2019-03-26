@@ -4,3 +4,7 @@
 
 # openIMIS Backend Insuree reference module
 This repository holds the files of the openIMIS Backend Insuree reference module.
+
+Current version provides the following ORM mapping:
+* tblGender > Gender
+* tblInsuree > Insuree (missing fks to tblFamilies, tblPhotos, tblRelations, tblProfessions, tblEducations, tblIndentificationTypes)
