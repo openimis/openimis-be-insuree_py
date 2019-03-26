@@ -41,7 +41,7 @@ class Insuree(models.Model):
     current_village = models.IntegerField(
         db_column='CurrentVillage', blank=True, null=True)
     # photoid = models.ForeignKey('Tblphotos', models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
-    # photo_date = fields.DateField(db_column='PhotoDate', blank=True, null=True)
+    photo_date = fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
 
     # relationship = models.ForeignKey('Tblrelations', models.DO_NOTHING, db_column='Relationship', blank=True, null=True)
@@ -58,7 +58,7 @@ class Insuree(models.Model):
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
-    row_id = models.TextField(db_column='RowID', blank=True, null=True)
+    row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
     class Meta:
         managed = False
