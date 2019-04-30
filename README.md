@@ -13,3 +13,8 @@ It is dedicated to be deployed as a module of [openimis-be_py](https://github.co
 Current version provides the following ORM mapping:
 * tblGender > Gender
 * tblInsuree > Insuree (missing fks to tblFamilies, tblPhotos, tblRelations, tblProfessions, tblEducations, tblIndentificationTypes)
+
+## Dependencies
+
+This module depends on the following modules and entities:
+* location.HealthFacility
