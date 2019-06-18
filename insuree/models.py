@@ -2,19 +2,57 @@ from django.db import models
 from core import fields
 from location import models as location_models
 
+
 class Gender(models.Model):
-    code = models.CharField(db_column='Code', primary_key=True, max_length=1)  
-    gender = models.CharField(db_column='Gender', max_length=50, blank=True, null=True)  
-    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)  
-    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  
+    code = models.CharField(db_column='Code', primary_key=True, max_length=1)
+    gender = models.CharField(
+        db_column='Gender', max_length=50, blank=True, null=True)
+    alt_language = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+    sort_order = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'tblGender'
 
+
+class Family(models.Model):
+    id = models.AutoField(db_column='FamilyID', primary_key=True)
+    legacy_id = models.IntegerField(
+        db_column='LegacyID', blank=True, null=True)
+    insuree = models.ForeignKey(
+        'Insuree', models.DO_NOTHING, db_column='InsureeID')
+    location = models.ForeignKey(
+        location_models.Location, models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
+    poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
+    validity_from = models.DateTimeField(db_column='ValidityFrom')
+    validity_to = models.DateTimeField(
+        db_column='ValidityTo', blank=True, null=True)
+
+    # type = models.ForeignKey('Tblfamilytypes', models.DO_NOTHING, db_column='FamilyType', blank=True, null=True)
+    address = models.CharField(
+        db_column='FamilyAddress', max_length=200, blank=True, null=True)
+    is_offline = models.BooleanField(
+        db_column='isOffline', blank=True, null=True)
+    ethnicity = models.CharField(
+        db_column='Ethnicity', max_length=1, blank=True, null=True)
+    confirmation_no = models.CharField(
+        db_column='ConfirmationNo', max_length=12, blank=True, null=True)
+    # confirmation_type = models.ForeignKey(Tblconfirmationtypes, models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True)
+
+    audit_user_id = models.IntegerField(db_column='AuditUserID')
+    # rowid = models.TextField(db_column='RowID', blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblFamilies'
+
+
 class Insuree(models.Model):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
-    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
+    legacy_id = models.IntegerField(
+        db_column='LegacyID', blank=True, null=True)
 
     # familyid = models.ForeignKey(Tblfamilies, models.DO_NOTHING, db_column='FamilyID')
     chf_id = models.CharField(
@@ -22,7 +60,8 @@ class Insuree(models.Model):
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
-    gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True)
+    gender = models.ForeignKey(
+        Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True)
     dob = fields.DateField(db_column='DOB')
 
     head = models.BooleanField(db_column='IsHead')
@@ -50,7 +89,7 @@ class Insuree(models.Model):
 
     # typeofid = models.ForeignKey(Tblidentificationtypes, models.DO_NOTHING, db_column='TypeOfId', blank=True, null=True)
     health_facility = models.ForeignKey(location_models.HealthFacility, models.DO_NOTHING,
-                              db_column='HFID', blank=True, null=True)
+                                        db_column='HFID', blank=True, null=True)
 
     validity_from = fields.DateTimeField(db_column='ValidityFrom')
     validity_to = fields.DateTimeField(
@@ -58,7 +97,7 @@ class Insuree(models.Model):
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
-    row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
+    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
     class Meta:
         managed = False
