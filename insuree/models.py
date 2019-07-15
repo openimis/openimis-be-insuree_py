@@ -2,15 +2,17 @@ from django.db import models
 from core import fields
 from location import models as location_models
 
+
 class Gender(models.Model):
-    code = models.CharField(db_column='Code', primary_key=True, max_length=1)  
-    gender = models.CharField(db_column='Gender', max_length=50, blank=True, null=True)  
-    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)  
-    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  
+    code = models.CharField(db_column='Code', primary_key=True, max_length=1)
+    gender = models.CharField(db_column='Gender', max_length=50, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'tblGender'
+
 
 class Insuree(models.Model):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
