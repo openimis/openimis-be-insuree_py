@@ -5,48 +5,30 @@ from location import models as location_models
 
 class Gender(models.Model):
     code = models.CharField(db_column='Code', primary_key=True, max_length=1)
-    gender = models.CharField(
-        db_column='Gender', max_length=50, blank=True, null=True)
-    alt_language = models.CharField(
-        db_column='AltLanguage', max_length=50, blank=True, null=True)
-    sort_order = models.IntegerField(
-        db_column='SortOrder', blank=True, null=True)
+    gender = models.CharField(db_column='Gender', max_length=50, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'tblGender'
 
-
-class Family(models.Model):
-    id = models.AutoField(db_column='FamilyID', primary_key=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
-    insuree = models.ForeignKey(
-        'Insuree', models.DO_NOTHING, db_column='InsureeID')
-    location = models.ForeignKey(
-        location_models.Location, models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
-    poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
-    validity_from = models.DateTimeField(db_column='ValidityFrom')
-    validity_to = models.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
-
-    # type = models.ForeignKey('Tblfamilytypes', models.DO_NOTHING, db_column='FamilyType', blank=True, null=True)
-    address = models.CharField(
-        db_column='FamilyAddress', max_length=200, blank=True, null=True)
-    is_offline = models.BooleanField(
-        db_column='isOffline', blank=True, null=True)
-    ethnicity = models.CharField(
-        db_column='Ethnicity', max_length=1, blank=True, null=True)
-    confirmation_no = models.CharField(
-        db_column='ConfirmationNo', max_length=12, blank=True, null=True)
-    # confirmation_type = models.ForeignKey(Tblconfirmationtypes, models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True)
-
-    audit_user_id = models.IntegerField(db_column='AuditUserID')
-    # rowid = models.TextField(db_column='RowID', blank=True, null=True)
+class Photo(models.Model):
+    id = models.AutoField(db_column='PhotoID', primary_key=True)  # Field name made lowercase.
+    insuree_id = models.IntegerField(db_column='InsureeID', blank=True, null=True)  # Field name made lowercase.
+    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)  # Field name made lowercase.
+    folder = models.CharField(db_column='PhotoFolder', max_length=255)  # Field name made lowercase.
+    filename = models.CharField(db_column='PhotoFileName', max_length=250, blank=True, null=True)  # Field name made lowercase.
+    officer_id = models.IntegerField(db_column='OfficerID')  # Field name made lowercase.
+    date = fields.DateField(db_column='PhotoDate')  # Field name made lowercase.
+    validity_from = fields.DateTimeField(db_column='ValidityFrom')  # Field name made lowercase.
+    validity_to = fields.DateTimeField(db_column='ValidityTo', blank=True, null=True)  # Field name made lowercase.
+    audit_user_id = models.IntegerField(db_column='AuditUserID', blank=True, null=True)  # Field name made lowercase.
+    # rowid = models.TextField(db_column='RowID', blank=True, null=True)  # Field name made lowercase. This field type is a guess.
 
     class Meta:
         managed = False
-        db_table = 'tblFamilies'
+        db_table = 'tblPhotos'        
 
 
 class Insuree(models.Model):
@@ -79,7 +61,7 @@ class Insuree(models.Model):
         db_column='GeoLocation', max_length=250, blank=True, null=True)
     current_village = models.IntegerField(
         db_column='CurrentVillage', blank=True, null=True)
-    # photoid = models.ForeignKey('Tblphotos', models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
+    photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
     photo_date = fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
 
