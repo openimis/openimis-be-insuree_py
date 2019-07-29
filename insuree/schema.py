@@ -47,10 +47,13 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     def _resolve_insuree(info, **kwargs):
-        return Insuree.objects.get(
-            Q(chf_id=kwargs.get('chfId')),
-            *core.utils.filter_validity(**kwargs)
-        )
+        try:
+            return Insuree.objects.get(
+                Q(chf_id=kwargs.get('chfId')),
+                *core.utils.filter_validity(**kwargs)
+            )
+        except Insuree.DoesNotExist:
+            return None
 
     def resolve_insuree(self, info, **kwargs):
         return Query._resolve_insuree(info=info, **kwargs)
