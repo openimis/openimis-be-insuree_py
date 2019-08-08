@@ -2,45 +2,53 @@ import re
 from django.db.models import Q
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
+
 from .models import Insuree, Photo, Gender, Family, FamilyType
 import core
 
 
-class GenderGraphQLType(DjangoObjectType):
+class GenderGQLType(DjangoObjectType):
     class Meta:
         model = Gender
 
 
-class PhotoGraphQLType(DjangoObjectType):
+class PhotoGQLType(DjangoObjectType):
     class Meta:
         model = Photo
 
 
-class FamilyTypeGraphQLType(DjangoObjectType):
+class FamilyTypeGQLType(DjangoObjectType):
     class Meta:
         model = FamilyType
 
 
-class FamilyGraphQLType(DjangoObjectType):
+class FamilyGQLType(DjangoObjectType):
     class Meta:
         model = Family
 
 
-class InsureeGraphQLType(DjangoObjectType):
+class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
 
     class Meta:
         model = Insuree
+        filter_fields = {
+            "id": ["exact"],
+            "last_name": ["exact", "istartswith", "icontains", "iexact"],
+            "other_names": ["exact", "istartswith", "icontains", "iexact"],
+        }
+        interfaces = (graphene.relay.Node,)
 
 
 class Query(graphene.ObjectType):
-    insuree = graphene.Field(
-        InsureeGraphQLType,
+    insuree = graphene.relay.node.Field(
+        InsureeGQLType,
         chfId=graphene.String(required=True),
         validity=graphene.String()
     )
-    insuree_family_members = graphene.List(
-        InsureeGraphQLType,
+    insuree_family_members = DjangoFilterConnectionField(
+        InsureeGQLType,
         chfId=graphene.String(required=True),
         validity=graphene.String()
     )
