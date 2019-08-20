@@ -5,7 +5,7 @@ from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 
 from .models import Insuree, Photo, Gender, Family, FamilyType
-from core import filter_validity
+from core import filter_validity, ExtendedConnection
 
 
 class GenderGQLType(DjangoObjectType):
@@ -34,15 +34,17 @@ class InsureeGQLType(DjangoObjectType):
     class Meta:
         model = Insuree
         filter_fields = {
-            "chf_id": ["exact"],
+            "chf_id": ["exact", "istartswith"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
             "gender": ["exact"]
         }
         interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
 
 
 class Query(graphene.ObjectType):
+    insurees = DjangoFilterConnectionField(InsureeGQLType)
     insuree = graphene.relay.node.Field(
         InsureeGQLType,
         chfId=graphene.String(required=True),
