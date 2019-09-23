@@ -77,7 +77,7 @@ class Family(models.Model):
     validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
     validity_to = core.fields.DateTimeField(
         db_column='ValidityTo', blank=True, null=True)
-    audituser_id = models.IntegerField(db_column='AuditUserID')
+    audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
 
     class Meta:
@@ -100,13 +100,18 @@ class Insuree(models.Model):
         Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True)
     dob = core.fields.DateField(db_column='DOB')
 
-    @property
-    def age(self):
+    def age(self, reference_date=None):
         if self.dob:
-            today = core.datetime.date.today()
+            today = core.datetime.date.today() if reference_date is None else reference_date
             before_birthday = (today.month, today.day) < (
                 self.dob.month, self.dob.day)
             return today.year - self.dob.year - before_birthday
+        else:
+            return None
+
+    def is_adult(self, reference_date=None):
+        if self.dob:
+            return self.age() >= core.age_of_majority
         else:
             return None
 
