@@ -155,3 +155,27 @@ class Insuree(models.Model):
     class Meta:
         managed = False
         db_table = 'tblInsuree'
+
+
+class InsureePolicy(models.Model):
+    id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
+    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
+
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId')
+    policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId')
+
+    enrollment_date = core.fields.DateField(db_column='EnrollmentDate', blank=True, null=True)
+    start_date = core.fields.DateField(db_column='StartDate', blank=True, null=True)
+    effective_date = core.fields.DateField(db_column='EffectiveDate', blank=True, null=True)
+    expiry_date = core.fields.DateField(db_column='ExpiryDate', blank=True, null=True)
+
+    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
+    validity_to = core.fields.DateTimeField(db_column='ValidityTo', blank=True, null=True)
+
+    offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
+    audit_user_id = models.IntegerField(db_column='AuditUserID')
+    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblInsureePolicy'
