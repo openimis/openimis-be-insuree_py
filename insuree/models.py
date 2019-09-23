@@ -87,12 +87,10 @@ class Family(models.Model):
 
 class Insuree(models.Model):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
+    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
 
     family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID')
-    chf_id = models.CharField(
-        db_column='CHFID', max_length=12, blank=True, null=True)
+    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
@@ -116,24 +114,16 @@ class Insuree(models.Model):
             return None
 
     head = models.BooleanField(db_column='IsHead')
-    marital = models.CharField(
-        db_column='Marital', max_length=1, blank=True, null=True)
+    marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)
-    phone = models.CharField(
-        db_column='Phone', max_length=50, blank=True, null=True)
-    email = models.CharField(
-        db_column='Email', max_length=100, blank=True, null=True)
-    current_address = models.CharField(
-        db_column='CurrentAddress', max_length=200, blank=True, null=True)
-    geolocation = models.CharField(
-        db_column='GeoLocation', max_length=250, blank=True, null=True)
-    current_village = models.IntegerField(
-        db_column='CurrentVillage', blank=True, null=True)
-    photo = models.ForeignKey(Photo, models.DO_NOTHING,
-                              db_column='PhotoID', blank=True, null=True)
-    photo_date = core.fields.DateField(
-        db_column='PhotoDate', blank=True, null=True)
+    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)
+    email = models.CharField(db_column='Email', max_length=100, blank=True, null=True)
+    current_address = models.CharField(db_column='CurrentAddress', max_length=200, blank=True, null=True)
+    geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
+    current_village = models.IntegerField(db_column='CurrentVillage', blank=True, null=True)
+    photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
+    photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
 
     # relationship = models.ForeignKey('Tblrelations', models.DO_NOTHING, db_column='Relationship', blank=True, null=True)
