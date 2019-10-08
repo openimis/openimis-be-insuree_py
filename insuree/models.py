@@ -93,7 +93,7 @@ class Insuree(models.Model):
     uuid = models.UUIDField(db_column='InsureeUUID', default=uuid.uuid4, unique = True)
     legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
 
-    family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID')
+    family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID', related_name="members")
     chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
@@ -155,8 +155,9 @@ class InsureePolicy(models.Model):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
     legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
 
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId')
-    policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId')
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
+    policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId',
+                               related_name="insuree_policies")
 
     enrollment_date = core.fields.DateField(db_column='EnrollmentDate', blank=True, null=True)
     start_date = core.fields.DateField(db_column='StartDate', blank=True, null=True)
