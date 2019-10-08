@@ -1,5 +1,6 @@
 from django.db import models
 import core
+import uuid
 from location import models as location_models
 
 
@@ -19,6 +20,7 @@ class Gender(models.Model):
 
 class Photo(models.Model):
     id = models.AutoField(db_column='PhotoID', primary_key=True)
+    uuid = models.UUIDField(db_column='PhotoUUID', default=uuid.uuid4, unique = True)
     insuree_id = models.IntegerField(
         db_column='InsureeID', blank=True, null=True)
     chf_id = models.CharField(
@@ -56,6 +58,7 @@ class FamilyType(models.Model):
 
 class Family(models.Model):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
+    uuid = models.UUIDField(db_column='FamilyUUID', default=uuid.uuid4, unique = True)
     legacy_id = models.IntegerField(
         db_column='LegacyID', blank=True, null=True)
     head_insuree = models.OneToOneField(
@@ -87,6 +90,7 @@ class Family(models.Model):
 
 class Insuree(models.Model):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
+    uuid = models.UUIDField(db_column='InsureeUUID', default=uuid.uuid4, unique = True)
     legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
 
     family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID')
