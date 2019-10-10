@@ -20,7 +20,8 @@ class Gender(models.Model):
 
 class Photo(models.Model):
     id = models.AutoField(db_column='PhotoID', primary_key=True)
-    uuid = models.CharField(db_column='PhotoUUID', max_length=36, default=uuid.uuid4, unique = True)
+    uuid = models.CharField(db_column='PhotoUUID',
+                            max_length=36, default=uuid.uuid4, unique=True)
     insuree_id = models.IntegerField(
         db_column='InsureeID', blank=True, null=True)
     chf_id = models.CharField(
@@ -58,7 +59,8 @@ class FamilyType(models.Model):
 
 class Family(models.Model):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
-    uuid = models.CharField(db_column='FamilyUUID', max_length=36, default=uuid.uuid4, unique = True)
+    uuid = models.CharField(db_column='FamilyUUID',
+                            max_length=36, default=uuid.uuid4, unique=True)
     legacy_id = models.IntegerField(
         db_column='LegacyID', blank=True, null=True)
     head_insuree = models.OneToOneField(
@@ -90,11 +92,14 @@ class Family(models.Model):
 
 class Insuree(models.Model):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
-    uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique = True)
-    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
+    uuid = models.CharField(db_column='InsureeUUID',
+                            max_length=36, default=uuid.uuid4, unique=True)
+    legacy_id = models.IntegerField(
+        db_column='LegacyID', blank=True, null=True)
 
     family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID')
-    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
+    chf_id = models.CharField(
+        db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
@@ -118,16 +123,24 @@ class Insuree(models.Model):
             return None
 
     head = models.BooleanField(db_column='IsHead')
-    marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
+    marital = models.CharField(
+        db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)
-    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)
-    email = models.CharField(db_column='Email', max_length=100, blank=True, null=True)
-    current_address = models.CharField(db_column='CurrentAddress', max_length=200, blank=True, null=True)
-    geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
-    current_village = models.IntegerField(db_column='CurrentVillage', blank=True, null=True)
-    photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
-    photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
+    phone = models.CharField(
+        db_column='Phone', max_length=50, blank=True, null=True)
+    email = models.CharField(
+        db_column='Email', max_length=100, blank=True, null=True)
+    current_address = models.CharField(
+        db_column='CurrentAddress', max_length=200, blank=True, null=True)
+    geolocation = models.CharField(
+        db_column='GeoLocation', max_length=250, blank=True, null=True)
+    current_village = models.IntegerField(
+        db_column='CurrentVillage', blank=True, null=True)
+    photo = models.ForeignKey(Photo, models.DO_NOTHING,
+                              db_column='PhotoID', blank=True, null=True)
+    photo_date = core.fields.DateField(
+        db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
 
     # relationship = models.ForeignKey('Tblrelations', models.DO_NOTHING, db_column='Relationship', blank=True, null=True)
@@ -146,6 +159,9 @@ class Insuree(models.Model):
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
+    def __str__(self):
+        return self.chf_id + " " + self.last_name + " " + self.other_names
+
     class Meta:
         managed = False
         db_table = 'tblInsuree'
@@ -153,18 +169,26 @@ class Insuree(models.Model):
 
 class InsureePolicy(models.Model):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
-    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
+    legacy_id = models.IntegerField(
+        db_column='LegacyID', blank=True, null=True)
 
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId')
-    policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId')
+    insuree = models.ForeignKey(
+        Insuree, models.DO_NOTHING, db_column='InsureeId')
+    policy = models.ForeignKey(
+        "policy.Policy", models.DO_NOTHING, db_column='PolicyId')
 
-    enrollment_date = core.fields.DateField(db_column='EnrollmentDate', blank=True, null=True)
-    start_date = core.fields.DateField(db_column='StartDate', blank=True, null=True)
-    effective_date = core.fields.DateField(db_column='EffectiveDate', blank=True, null=True)
-    expiry_date = core.fields.DateField(db_column='ExpiryDate', blank=True, null=True)
+    enrollment_date = core.fields.DateField(
+        db_column='EnrollmentDate', blank=True, null=True)
+    start_date = core.fields.DateField(
+        db_column='StartDate', blank=True, null=True)
+    effective_date = core.fields.DateField(
+        db_column='EffectiveDate', blank=True, null=True)
+    expiry_date = core.fields.DateField(
+        db_column='ExpiryDate', blank=True, null=True)
 
     validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(db_column='ValidityTo', blank=True, null=True)
+    validity_to = core.fields.DateTimeField(
+        db_column='ValidityTo', blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
