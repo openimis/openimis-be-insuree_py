@@ -68,8 +68,13 @@ class Query(graphene.ObjectType):
             *filter_validity(**kwargs)
         )
 
-    def resolve_insuree(self, info, **kwargs):
+    def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+            raise PermissionDenied(_("unauthorized"))
+        pass
+
+    def resolve_insuree(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
             return Query._resolve_insuree(info=info, **kwargs)
