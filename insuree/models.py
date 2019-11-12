@@ -65,7 +65,9 @@ class Family(models.Model):
         db_column='LegacyID', blank=True, null=True)
     head_insuree = models.OneToOneField(
         'Insuree', models.DO_NOTHING, db_column='InsureeID', related_name='head_of')
-    # locationid = models.ForeignKey('Tbllocations', models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
+    location = models.ForeignKey(location_models.Location,
+                                 models.DO_NOTHING, db_column='LocationId',
+                                 blank=True, null=True)
     poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
     family_type = models.ForeignKey(
         FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True)
