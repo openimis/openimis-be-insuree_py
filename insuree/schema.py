@@ -45,6 +45,11 @@ class InsureeGQLType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        queryset = queryset.filter(*filter_validity())
+        return queryset
+
 
 class Query(graphene.ObjectType):
     insurees = DjangoFilterConnectionField(InsureeGQLType)
