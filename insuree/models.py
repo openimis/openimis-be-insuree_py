@@ -57,6 +57,21 @@ class FamilyType(models.Model):
         db_table = 'tblFamilyTypes'
 
 
+class ConfirmationType(models.Model):
+    code = models.CharField(
+        db_column='ConfirmationTypeCode', primary_key=True, max_length=3)
+    confirmationtype = models.CharField(
+        db_column='ConfirmationType', max_length=50)
+    sortorder = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
+    altlanguage = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblConfirmationTypes'
+
+
 class Family(models.Model):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
@@ -64,13 +79,15 @@ class Family(models.Model):
     legacy_id = models.IntegerField(
         db_column='LegacyID', blank=True, null=True)
     head_insuree = models.OneToOneField(
-        'Insuree', models.DO_NOTHING, db_column='InsureeID', related_name='head_of')
-    location = models.ForeignKey(location_models.Location,
-                                 models.DO_NOTHING, db_column='LocationId',
-                                 blank=True, null=True)
+        'Insuree', models.DO_NOTHING, db_column='InsureeID',
+        related_name='head_of')
+    location = models.ForeignKey(
+        location_models.Location,
+        models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
     poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
     family_type = models.ForeignKey(
-        FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True)
+        FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True,
+        related_name='families')
     address = models.CharField(
         db_column='FamilyAddress', max_length=200, blank=True, null=True)
     is_offline = models.BooleanField(
@@ -79,8 +96,10 @@ class Family(models.Model):
         db_column='Ethnicity', max_length=1, blank=True, null=True)
     confirmation_no = models.CharField(
         db_column='ConfirmationNo', max_length=12, blank=True, null=True)
-    # confirmation_type = models.ForeignKey(
-    #     Tblconfirmationtypes, models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True)
+    confirmation_type = models.ForeignKey(
+        ConfirmationType,
+        models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True,
+        related_name='families')
     validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
     validity_to = core.fields.DateTimeField(
         db_column='ValidityTo', blank=True, null=True)
@@ -90,6 +109,45 @@ class Family(models.Model):
     class Meta:
         managed = False
         db_table = 'tblFamilies'
+
+
+class Profession(models.Model):
+    id = models.SmallIntegerField(db_column='ProfessionId', primary_key=True)
+    profession = models.CharField(db_column='Profession', max_length=50)
+    sortorder = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
+    altlanguage = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblProfessions'
+
+
+class Education(models.Model):
+    id = models.SmallIntegerField(db_column='EducationId', primary_key=True)
+    education = models.CharField(db_column='Education', max_length=50)
+    sortorder = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
+    altlanguage = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblEducations'
+
+
+class Relation(models.Model):
+    id = models.SmallIntegerField(db_column='RelationId', primary_key=True)
+    relation = models.CharField(db_column='Relation', max_length=50)
+    sortorder = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
+    altlanguage = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblRelations'
 
 
 class Insuree(models.Model):
@@ -107,7 +165,8 @@ class Insuree(models.Model):
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
     gender = models.ForeignKey(
-        Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True)
+        Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
+        related_name='insurees')
     dob = core.fields.DateField(db_column='DOB')
 
     def age(self, reference_date=None):
@@ -145,14 +204,21 @@ class Insuree(models.Model):
     photo_date = core.fields.DateField(
         db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
-
-    # relationship = models.ForeignKey('Tblrelations', models.DO_NOTHING, db_column='Relationship', blank=True, null=True)
-    # profession = models.ForeignKey('Tblprofessions', models.DO_NOTHING, db_column='Profession', blank=True, null=True)
-    # education = models.ForeignKey(Tbleducations, models.DO_NOTHING, db_column='Education', blank=True, null=True)
+    relationship = models.ForeignKey(
+        Relation, models.DO_NOTHING, db_column='Relationship', blank=True, null=True,
+        related_name='insurees')
+    profession = models.ForeignKey(
+        Profession, models.DO_NOTHING, db_column='Profession', blank=True, null=True,
+        related_name='insurees')
+    education = models.ForeignKey(
+        Education, models.DO_NOTHING, db_column='Education', blank=True, null=True,
+        related_name='insurees')
 
     # typeofid = models.ForeignKey(Tblidentificationtypes, models.DO_NOTHING, db_column='TypeOfId', blank=True, null=True)
-    health_facility = models.ForeignKey(location_models.HealthFacility, models.DO_NOTHING,
-                                        db_column='HFID', blank=True, null=True)
+    health_facility = models.ForeignKey(
+        location_models.HealthFacility,
+        models.DO_NOTHING, db_column='HFID', blank=True, null=True,
+        related_name='insurees')
 
     validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
     validity_to = core.fields.DateTimeField(
