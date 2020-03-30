@@ -180,7 +180,7 @@ class Insuree(models.Model):
 
     def is_adult(self, reference_date=None):
         if self.dob:
-            return self.age() >= core.age_of_majority
+            return self.age(reference_date) >= core.age_of_majority
         else:
             return None
 
@@ -230,6 +230,13 @@ class Insuree(models.Model):
 
     def __str__(self):
         return self.chf_id + " " + self.last_name + " " + self.other_names
+
+    @classmethod
+    def filter_queryset(cls, queryset=None):
+        if queryset is None:
+            queryset = cls.objects.all()
+        queryset = queryset.filter(*core.filter_validity())
+        return queryset
 
     class Meta:
         managed = False
