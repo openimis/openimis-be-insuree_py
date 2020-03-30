@@ -42,7 +42,8 @@ class InsureeGQLType(DjangoObjectType):
             "chf_id": ["exact", "istartswith"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
-            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields),                    }
+            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
+        }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
 
