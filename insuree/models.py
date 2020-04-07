@@ -1,7 +1,12 @@
-from django.db import models
-import core
 import uuid
+
+import core
+from django.conf import settings
+from django.db import models
+from graphql import ResolveInfo
 from location import models as location_models
+from core import models as core_models
+from location.models import UserDistrict
 
 
 class Gender(models.Model):
@@ -150,12 +155,10 @@ class Relation(models.Model):
         db_table = 'tblRelations'
 
 
-class Insuree(models.Model):
+class Insuree(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
 
     family = models.ForeignKey(
         Family, models.DO_NOTHING, db_column='FamilyID', related_name="members")
@@ -220,10 +223,6 @@ class Insuree(models.Model):
         models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
 
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
-
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
@@ -238,15 +237,29 @@ class Insuree(models.Model):
         queryset = queryset.filter(*core.filter_validity())
         return queryset
 
+    @classmethod
+    def get_queryset(cls, queryset, user):
+        queryset = cls.filter_queryset(queryset)
+        # GraphQL calls with an info object while Rest calls with the user itself
+        if isinstance(user, ResolveInfo):
+            user = user.context.user
+        if settings.ROW_SECURITY and user.is_anonymous:
+            return queryset.filter(id=-1)
+        # TODO: filter visible insurees, but how ?
+        # if settings.ROW_SECURITY:
+        #     dist = UserDistrict.get_user_districts(user._u)
+        #     return queryset.filter(
+        #         health_facility__location_id__in=[l.location.id for l in dist]
+        #     )
+        return queryset
+
     class Meta:
         managed = False
         db_table = 'tblInsuree'
 
 
-class InsureePolicy(models.Model):
+class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
 
     insuree = models.ForeignKey(
         Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
@@ -262,9 +275,6 @@ class InsureePolicy(models.Model):
     expiry_date = core.fields.DateField(
         db_column='ExpiryDate', blank=True, null=True)
 
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')

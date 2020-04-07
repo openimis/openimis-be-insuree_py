@@ -49,8 +49,7 @@ class InsureeGQLType(DjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        queryset = queryset.filter(*filter_validity())
-        return queryset
+        return Insuree.filter_queryset(queryset)
 
 
 class Query(graphene.ObjectType):
