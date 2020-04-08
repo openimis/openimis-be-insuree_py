@@ -1,7 +1,12 @@
-from django.db import models
-import core
 import uuid
+
+import core
+from django.conf import settings
+from django.db import models
+from graphql import ResolveInfo
 from location import models as location_models
+from core import models as core_models
+from location.models import UserDistrict
 
 
 class Gender(models.Model):
@@ -150,23 +155,17 @@ class Relation(models.Model):
         db_table = 'tblRelations'
 
 
-class Insuree(models.Model):
+class Insuree(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
-    uuid = models.CharField(db_column='InsureeUUID',
-                            max_length=36, default=uuid.uuid4, unique=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
+    uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
 
-    family = models.ForeignKey(
-        Family, models.DO_NOTHING, db_column='FamilyID', related_name="members")
-    chf_id = models.CharField(
-        db_column='CHFID', max_length=12, blank=True, null=True)
+    family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID', related_name="members")
+    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
-    gender = models.ForeignKey(
-        Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
-        related_name='insurees')
+    gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
+                               related_name='insurees')
     dob = core.fields.DateField(db_column='DOB')
 
     def age(self, reference_date=None):
@@ -185,24 +184,16 @@ class Insuree(models.Model):
             return None
 
     head = models.BooleanField(db_column='IsHead')
-    marital = models.CharField(
-        db_column='Marital', max_length=1, blank=True, null=True)
+    marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)
-    phone = models.CharField(
-        db_column='Phone', max_length=50, blank=True, null=True)
-    email = models.CharField(
-        db_column='Email', max_length=100, blank=True, null=True)
-    current_address = models.CharField(
-        db_column='CurrentAddress', max_length=200, blank=True, null=True)
-    geolocation = models.CharField(
-        db_column='GeoLocation', max_length=250, blank=True, null=True)
-    current_village = models.IntegerField(
-        db_column='CurrentVillage', blank=True, null=True)
-    photo = models.ForeignKey(Photo, models.DO_NOTHING,
-                              db_column='PhotoID', blank=True, null=True)
-    photo_date = core.fields.DateField(
-        db_column='PhotoDate', blank=True, null=True)
+    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)
+    email = models.CharField(db_column='Email', max_length=100, blank=True, null=True)
+    current_address = models.CharField(db_column='CurrentAddress', max_length=200, blank=True, null=True)
+    geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
+    current_village = models.IntegerField(db_column='CurrentVillage', blank=True, null=True)
+    photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
+    photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
     relationship = models.ForeignKey(
         Relation, models.DO_NOTHING, db_column='Relationship', blank=True, null=True,
@@ -216,13 +207,8 @@ class Insuree(models.Model):
 
     # typeofid = models.ForeignKey(Tblidentificationtypes, models.DO_NOTHING, db_column='TypeOfId', blank=True, null=True)
     health_facility = models.ForeignKey(
-        location_models.HealthFacility,
-        models.DO_NOTHING, db_column='HFID', blank=True, null=True,
+        location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
-
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
@@ -238,33 +224,38 @@ class Insuree(models.Model):
         queryset = queryset.filter(*core.filter_validity())
         return queryset
 
+    @classmethod
+    def get_queryset(cls, queryset, user):
+        queryset = cls.filter_queryset(queryset)
+        # GraphQL calls with an info object while Rest calls with the user itself
+        if isinstance(user, ResolveInfo):
+            user = user.context.user
+        if settings.ROW_SECURITY and user.is_anonymous:
+            return queryset.filter(id=-1)
+        # TODO: filter visible insurees, but how ?
+        # if settings.ROW_SECURITY:
+        #     dist = UserDistrict.get_user_districts(user._u)
+        #     return queryset.filter(
+        #         health_facility__location_id__in=[l.location.id for l in dist]
+        #     )
+        return queryset
+
     class Meta:
         managed = False
         db_table = 'tblInsuree'
 
 
-class InsureePolicy(models.Model):
+class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
 
-    insuree = models.ForeignKey(
-        Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
     policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId',
                                related_name="insuree_policies")
 
-    enrollment_date = core.fields.DateField(
-        db_column='EnrollmentDate', blank=True, null=True)
-    start_date = core.fields.DateField(
-        db_column='StartDate', blank=True, null=True)
-    effective_date = core.fields.DateField(
-        db_column='EffectiveDate', blank=True, null=True)
-    expiry_date = core.fields.DateField(
-        db_column='ExpiryDate', blank=True, null=True)
-
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
+    enrollment_date = core.fields.DateField(db_column='EnrollmentDate', blank=True, null=True)
+    start_date = core.fields.DateField(db_column='StartDate', blank=True, null=True)
+    effective_date = core.fields.DateField(db_column='EffectiveDate', blank=True, null=True)
+    expiry_date = core.fields.DateField(db_column='ExpiryDate', blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
