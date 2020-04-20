@@ -7,14 +7,16 @@ from graphene_django.filter import DjangoFilterConnectionField
 
 from .models import Insuree, Photo, Gender, Family, FamilyType
 from .apps import InsureeConfig
-from core import filter_validity, ExtendedConnection
+from core import prefix_filterset, filter_validity, ExtendedConnection
 from django.utils.translation import gettext as _
 
 
 class GenderGQLType(DjangoObjectType):
     class Meta:
         model = Gender
-
+        filter_fields = {
+            "code": ["exact"]
+        }
 
 class PhotoGQLType(DjangoObjectType):
     class Meta:
@@ -40,15 +42,14 @@ class InsureeGQLType(DjangoObjectType):
             "chf_id": ["exact", "istartswith"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
-            "gender": ["exact"]
+            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        queryset = queryset.filter(*filter_validity())
-        return queryset
+        return Insuree.filter_queryset(queryset)
 
 
 class Query(graphene.ObjectType):
