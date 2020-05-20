@@ -6,8 +6,7 @@ from django.db import models
 from graphql import ResolveInfo
 from location import models as location_models
 from core import models as core_models
-from location.models import UserDistrict
-
+    
 
 class Gender(models.Model):
     code = models.CharField(db_column='Code', primary_key=True, max_length=1)
