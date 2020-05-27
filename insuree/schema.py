@@ -17,6 +17,7 @@ class GenderGQLType(DjangoObjectType):
             "code": ["exact"]
         }
 
+
 class PhotoGQLType(DjangoObjectType):
     class Meta:
         model = Photo
@@ -76,7 +77,6 @@ class Query(graphene.ObjectType):
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
-        pass
 
     def resolve_insuree(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
