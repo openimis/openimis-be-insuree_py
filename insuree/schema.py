@@ -1,4 +1,3 @@
-import re
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 import graphene
@@ -17,6 +16,7 @@ class GenderGQLType(DjangoObjectType):
         filter_fields = {
             "code": ["exact"]
         }
+
 
 class PhotoGQLType(DjangoObjectType):
     class Meta:
@@ -77,7 +77,6 @@ class Query(graphene.ObjectType):
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
-        pass
 
     def resolve_insuree(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):

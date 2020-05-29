@@ -1,12 +1,11 @@
 import uuid
 
-import core
+import core  # lgtm [py/import-and-import-from] needed for calendar injection
 from django.conf import settings
 from django.db import models
 from graphql import ResolveInfo
 from location import models as location_models
 from core import models as core_models
-from location.models import UserDistrict
 
 
 class Gender(models.Model):
