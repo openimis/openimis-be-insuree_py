@@ -89,7 +89,8 @@ class Family(models.Model):
     location = models.ForeignKey(
         location_models.Location,
         models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
-    poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
+    # Need to be NullBooleanField (BooleanField + null=True is not enough) for Graphene to map properly
+    poverty = models.NullBooleanField(db_column='Poverty', blank=True, null=True)
     family_type = models.ForeignKey(
         FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True,
         related_name='families')
@@ -110,6 +111,13 @@ class Family(models.Model):
         db_column='ValidityTo', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
+
+    @classmethod
+    def filter_queryset(cls, queryset=None):
+        if queryset is None:
+            queryset = cls.objects.all()
+        queryset = queryset.filter(*core.filter_validity())
+        return queryset
 
     class Meta:
         managed = False

@@ -1,56 +1,14 @@
-import re
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
-import graphene
-from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 
-from .models import Insuree, Photo, Gender, Family, FamilyType
 from .apps import InsureeConfig
-from core import prefix_filterset, filter_validity, ExtendedConnection
 from django.utils.translation import gettext as _
+from location.apps import LocationConfig
 
-
-class GenderGQLType(DjangoObjectType):
-    class Meta:
-        model = Gender
-        filter_fields = {
-            "code": ["exact"]
-        }
-
-class PhotoGQLType(DjangoObjectType):
-    class Meta:
-        model = Photo
-
-
-class FamilyTypeGQLType(DjangoObjectType):
-    class Meta:
-        model = FamilyType
-
-
-class FamilyGQLType(DjangoObjectType):
-    class Meta:
-        model = Family
-
-
-class InsureeGQLType(DjangoObjectType):
-    age = graphene.Int(source='age')
-
-    class Meta:
-        model = Insuree
-        filter_fields = {
-            "chf_id": ["exact", "istartswith"],
-            "last_name": ["exact", "istartswith", "icontains", "iexact"],
-            "other_names": ["exact", "istartswith", "icontains", "iexact"],
-            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
-        }
-        interfaces = (graphene.relay.Node,)
-        connection_class = ExtendedConnection
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        return Insuree.filter_queryset(queryset)
-
+# We do need all queries and mutations in the namespace here.
+from .gql_queries import *  # lgtm [py/polluting-import]
+from .gql_mutations import *  # lgtm [py/polluting-import]
 
 class Query(graphene.ObjectType):
     insurees = DjangoFilterConnectionField(InsureeGQLType)
@@ -63,6 +21,11 @@ class Query(graphene.ObjectType):
         InsureeGQLType,
         chfId=graphene.String(required=True),
         validity=graphene.Date()
+    )
+    families = DjangoFilterConnectionField(
+        FamilyGQLType,
+        parent_location=graphene.String(),
+        parent_location_level=graphene.Int()
     )
 
     @staticmethod
@@ -95,3 +58,22 @@ class Query(graphene.ObjectType):
             Q(family=insuree.family),
             *filter_validity(**kwargs)
         ).order_by('-head')
+
+    def resolve_families(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
+        filters = []
+        parent_location = kwargs.get('parent_location')
+        if parent_location is not None:
+            parent_location_level = kwargs.get('parent_location_level')
+            kwargs.pop('parent_location')
+            kwargs.pop('parent_location_level')
+            if parent_location_level is None:
+                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+            f = "uuid"
+            for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
+                f = "parent__" + f
+            f = "location__" + f
+            filters += [Q(**{f: parent_location})]
+        return Family.objects.filter(*filters)
+
