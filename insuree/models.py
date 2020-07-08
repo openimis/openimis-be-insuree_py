@@ -96,7 +96,7 @@ class Family(models.Model):
         related_name='families')
     address = models.CharField(
         db_column='FamilyAddress', max_length=200, blank=True, null=True)
-    is_offline = models.BooleanField(
+    is_offline = models.NullBooleanField(
         db_column='isOffline', blank=True, null=True)
     ethnicity = models.CharField(
         db_column='Ethnicity', max_length=1, blank=True, null=True)
