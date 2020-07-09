@@ -13,6 +13,7 @@ from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
 
 class Query(graphene.ObjectType):
+    insuree_genders = graphene.List(GenderGQLType)
     insurees = DjangoFilterConnectionField(InsureeGQLType)
     insuree = graphene.relay.node.Field(
         InsureeGQLType,
@@ -24,6 +25,8 @@ class Query(graphene.ObjectType):
         chfId=graphene.String(required=True),
         validity=graphene.Date()
     )
+    family_types = graphene.List(FamilyTypeGQLType)
+    confirmation_types = graphene.List(ConfirmationTypeGQLType)
     families = OrderedDjangoFilterConnectionField(
         FamilyGQLType,
         null_as_false_poverty=graphene.Boolean(),
@@ -32,6 +35,13 @@ class Query(graphene.ObjectType):
         parent_location_level=graphene.Int(),
         orderBy=graphene.List(of_type=graphene.String)
     )
+    family_members = graphene.List(
+        InsureeGQLType,
+        family_uuid=graphene.String(required=True)
+    )
+
+    def resolve_insuree_genders(selfself, info, **kwargs):
+        return Gender.objects.order_by('sort_order').all()
 
     @staticmethod
     def _resolve_insuree(info, **kwargs):
@@ -63,6 +73,21 @@ class Query(graphene.ObjectType):
             Q(family=insuree.family),
             *filter_validity(**kwargs)
         ).order_by('-head')
+
+    def resolve_family_members(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+            raise PermissionDenied(_("unauthorized"))
+        family = Family.objects.get(Q(uuid=kwargs.get('family_uuid')))
+        return Insuree.objects.filter(
+            Q(family=family),
+            *filter_validity(**kwargs)
+        ).order_by('-head')
+
+    def resolve_confirmation_types(selfself, info, **kwargs):
+        return ConfirmationType.objects.order_by('sort_order').all()
+
+    def resolve_family_types(selfself, info, **kwargs):
+        return FamilyType.objects.order_by('sort_order').all()
 
     def resolve_families(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):

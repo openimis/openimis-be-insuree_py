@@ -1,6 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Insuree, Photo, Gender, Family, FamilyType
+from .models import Insuree, Photo, Gender, Family, FamilyType, ConfirmationType
 from location.schema import LocationGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
 
@@ -19,7 +19,16 @@ class PhotoGQLType(DjangoObjectType):
 class FamilyTypeGQLType(DjangoObjectType):
     class Meta:
         model = FamilyType
+        filter_fields = {
+            "code": ["exact"]
+        }
 
+class ConfirmationTypeGQLType(DjangoObjectType):
+    class Meta:
+        model = ConfirmationType
+        filter_fields = {
+            "code": ["exact"]
+        }
 
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
@@ -48,6 +57,7 @@ class FamilyGQLType(DjangoObjectType):
     class Meta:
         model = Family
         filter_fields = {
+            "uuid": ["exact"],
             "poverty": ["exact", "isnull"],
             "confirmation_no": ["exact", "istartswith", "icontains", "iexact"],
             "confirmation_type": ["exact"],

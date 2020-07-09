@@ -67,7 +67,7 @@ class ConfirmationType(models.Model):
         db_column='ConfirmationTypeCode', primary_key=True, max_length=3)
     confirmationtype = models.CharField(
         db_column='ConfirmationType', max_length=50)
-    sortorder = models.IntegerField(
+    sort_order = models.IntegerField(
         db_column='SortOrder', blank=True, null=True)
     altlanguage = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
