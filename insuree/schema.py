@@ -72,7 +72,7 @@ class Query(graphene.ObjectType):
         return Insuree.objects.filter(
             Q(family=insuree.family),
             *filter_validity(**kwargs)
-        ).order_by('-head')
+        ).order_by('-head', 'dob')
 
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -81,7 +81,7 @@ class Query(graphene.ObjectType):
         return Insuree.objects.filter(
             Q(family=family),
             *filter_validity(**kwargs)
-        ).order_by('-head')
+        ).order_by('-head', 'dob')
 
     def resolve_confirmation_types(selfself, info, **kwargs):
         return ConfirmationType.objects.order_by('sort_order').all()
