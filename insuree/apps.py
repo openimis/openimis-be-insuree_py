@@ -21,7 +21,7 @@ class InsureeConfig(AppConfig):
     def _configure_permissions(self, cfg):
         InsureeConfig.gql_query_insurees_perms = cfg[
             "gql_query_insurees_perms"]
-        InsureeConfig.gql_query_insurees_perms = cfg[
+        InsureeConfig.gql_query_insuree_perms = cfg[
             "gql_query_insuree_perms"]
         InsureeConfig.gql_insuree_family_members = cfg[
             "gql_insuree_family_members"]

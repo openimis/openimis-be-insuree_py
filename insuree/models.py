@@ -69,7 +69,7 @@ class ConfirmationType(models.Model):
         db_column='ConfirmationType', max_length=50)
     sort_order = models.IntegerField(
         db_column='SortOrder', blank=True, null=True)
-    altlanguage = models.CharField(
+    alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
@@ -127,9 +127,9 @@ class Family(models.Model):
 class Profession(models.Model):
     id = models.SmallIntegerField(db_column='ProfessionId', primary_key=True)
     profession = models.CharField(db_column='Profession', max_length=50)
-    sortorder = models.IntegerField(
+    sort_order = models.IntegerField(
         db_column='SortOrder', blank=True, null=True)
-    altlanguage = models.CharField(
+    alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
@@ -140,9 +140,9 @@ class Profession(models.Model):
 class Education(models.Model):
     id = models.SmallIntegerField(db_column='EducationId', primary_key=True)
     education = models.CharField(db_column='Education', max_length=50)
-    sortorder = models.IntegerField(
+    sort_order = models.IntegerField(
         db_column='SortOrder', blank=True, null=True)
-    altlanguage = models.CharField(
+    alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
@@ -153,9 +153,9 @@ class Education(models.Model):
 class Relation(models.Model):
     id = models.SmallIntegerField(db_column='RelationId', primary_key=True)
     relation = models.CharField(db_column='Relation', max_length=50)
-    sortorder = models.IntegerField(
+    sort_order = models.IntegerField(
         db_column='SortOrder', blank=True, null=True)
-    altlanguage = models.CharField(
+    alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
