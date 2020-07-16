@@ -15,16 +15,14 @@ from .gql_mutations import *  # lgtm [py/polluting-import]
 class Query(graphene.ObjectType):
     insuree_genders = graphene.List(GenderGQLType)
     insurees = DjangoFilterConnectionField(InsureeGQLType)
-    insuree = graphene.relay.node.Field(
-        InsureeGQLType,
-        chfId=graphene.String(required=True),
-        validity=graphene.Date()
-    )
     insuree_family_members = graphene.List(
         InsureeGQLType,
         chfId=graphene.String(required=True),
         validity=graphene.Date()
     )
+    identification_types = graphene.List(IdentificationTypeGQLType)
+    educations = graphene.List(EducationGQLType)
+    professions = graphene.List(ProfessionGQLType)
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
     families = OrderedDjangoFilterConnectionField(
@@ -43,32 +41,18 @@ class Query(graphene.ObjectType):
     def resolve_insuree_genders(selfself, info, **kwargs):
         return Gender.objects.order_by('sort_order').all()
 
-    @staticmethod
-    def _resolve_insuree(info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
-            raise PermissionDenied(_("unauthorized"))
-        return Insuree.objects.get(
-            Q(chf_id=kwargs.get('chfId')),
-            *filter_validity(**kwargs)
-        )
-
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         return Insuree.objects.filter(*filter_validity(**kwargs))
 
-    def resolve_insuree(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
-            raise PermissionDenied(_("unauthorized"))
-        try:
-            return Query._resolve_insuree(info=info, **kwargs)
-        except Insuree.DoesNotExist:
-            return None
-
     def resolve_insuree_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
-        insuree = Query._resolve_insuree(info=info, **kwargs)
+        insuree = Insuree.objects.get(
+            Q(chf_id=kwargs.get('chfId')),
+            *filter_validity(**kwargs)
+        )
         return Insuree.objects.filter(
             Q(family=insuree.family),
             *filter_validity(**kwargs)
@@ -82,6 +66,15 @@ class Query(graphene.ObjectType):
             Q(family=family),
             *filter_validity(**kwargs)
         ).order_by('-head', 'dob')
+
+    def resolve_educations(selfself, info, **kwargs):
+        return Education.objects.order_by('sort_order').all()
+
+    def resolve_professions(selfself, info, **kwargs):
+        return Profession.objects.order_by('sort_order').all()
+
+    def resolve_identification_types(selfself, info, **kwargs):
+        return IdentificationType.objects.order_by('sort_order').all()
 
     def resolve_confirmation_types(selfself, info, **kwargs):
         return ConfirmationType.objects.order_by('sort_order').all()

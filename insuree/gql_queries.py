@@ -1,8 +1,10 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Insuree, Photo, Gender, Family, FamilyType, ConfirmationType
+from .models import Insuree, Photo, Education, Profession, Gender, IdentificationType, \
+    Family, FamilyType, ConfirmationType
 from location.schema import LocationGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
+
 
 class GenderGQLType(DjangoObjectType):
     class Meta:
@@ -11,9 +13,34 @@ class GenderGQLType(DjangoObjectType):
             "code": ["exact"]
         }
 
+
 class PhotoGQLType(DjangoObjectType):
     class Meta:
         model = Photo
+
+
+class IdentificationTypeGQLType(DjangoObjectType):
+    class Meta:
+        model = IdentificationType
+        filter_fields = {
+            "code": ["exact"]
+        }
+
+
+class EducationGQLType(DjangoObjectType):
+    class Meta:
+        model = Education
+        filter_fields = {
+            "id": ["exact"]
+        }
+
+
+class ProfessionGQLType(DjangoObjectType):
+    class Meta:
+        model = Profession
+        filter_fields = {
+            "id": ["exact"]
+        }
 
 
 class FamilyTypeGQLType(DjangoObjectType):
@@ -23,6 +50,7 @@ class FamilyTypeGQLType(DjangoObjectType):
             "code": ["exact"]
         }
 
+
 class ConfirmationTypeGQLType(DjangoObjectType):
     class Meta:
         model = ConfirmationType
@@ -30,19 +58,21 @@ class ConfirmationTypeGQLType(DjangoObjectType):
             "code": ["exact"]
         }
 
+
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
 
     class Meta:
         model = Insuree
         filter_fields = {
+            "uuid": ["exact"],
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
             "email": ["exact", "istartswith", "icontains", "iexact"],
             "phone": ["exact", "istartswith", "icontains", "iexact"],
             "dob": ["exact", "lt", "lte", "gt", "gte"],
-            "gender":  ["exact"],
+            "gender": ["exact"],
             **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)

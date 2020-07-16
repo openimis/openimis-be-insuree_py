@@ -149,6 +149,15 @@ class Education(models.Model):
         managed = False
         db_table = 'tblEducations'
 
+class IdentificationType(models.Model):
+    code = models.CharField(db_column='IdentificationCode', primary_key=True, max_length=1)  # Field name made lowercase.
+    identification_type = models.CharField(db_column='IdentificationTypes', max_length=50)  # Field name made lowercase.
+    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'tblIdentificationTypes'
 
 class Relation(models.Model):
     id = models.SmallIntegerField(db_column='RelationId', primary_key=True)
@@ -199,7 +208,8 @@ class Insuree(core_models.VersionedModel):
     email = models.CharField(db_column='Email', max_length=100, blank=True, null=True)
     current_address = models.CharField(db_column='CurrentAddress', max_length=200, blank=True, null=True)
     geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
-    current_village = models.IntegerField(db_column='CurrentVillage', blank=True, null=True)
+    current_village = models.ForeignKey(
+        location_models.Location, models.DO_NOTHING, db_column='CurrentVillage', blank=True, null=True)
     photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
     photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
@@ -212,8 +222,8 @@ class Insuree(core_models.VersionedModel):
     education = models.ForeignKey(
         Education, models.DO_NOTHING, db_column='Education', blank=True, null=True,
         related_name='insurees')
-
-    # typeofid = models.ForeignKey(Tblidentificationtypes, models.DO_NOTHING, db_column='TypeOfId', blank=True, null=True)
+    type_of_id = models.ForeignKey(
+        IdentificationType, models.DO_NOTHING, db_column='TypeOfId', blank=True, null=True)
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
