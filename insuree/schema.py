@@ -14,7 +14,13 @@ from .gql_mutations import *  # lgtm [py/polluting-import]
 
 class Query(graphene.ObjectType):
     insuree_genders = graphene.List(GenderGQLType)
-    insurees = DjangoFilterConnectionField(InsureeGQLType)
+    insurees = OrderedDjangoFilterConnectionField(
+        InsureeGQLType,
+        show_history=graphene.Boolean(),
+        parent_location=graphene.String(),
+        parent_location_level=graphene.Int(),
+        orderBy=graphene.List(of_type=graphene.String)
+    )
     insuree_family_members = graphene.List(
         InsureeGQLType,
         chfId=graphene.String(required=True),
@@ -33,7 +39,7 @@ class Query(graphene.ObjectType):
         parent_location_level=graphene.Int(),
         orderBy=graphene.List(of_type=graphene.String)
     )
-    family_members = graphene.List(
+    family_members = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
         family_uuid=graphene.String(required=True)
     )
@@ -44,7 +50,11 @@ class Query(graphene.ObjectType):
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
-        return Insuree.objects.filter(*filter_validity(**kwargs))
+        filters = []
+        show_history = kwargs.get('show_history', False)
+        if not show_history:
+            filters += filter_validity(**kwargs)
+        gql_optimizer.query(Family.objects.filter(*filters).all(), info)
 
     def resolve_insuree_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):

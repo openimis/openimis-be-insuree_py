@@ -69,10 +69,14 @@ class InsureeGQLType(DjangoObjectType):
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
-            "email": ["exact", "istartswith", "icontains", "iexact"],
-            "phone": ["exact", "istartswith", "icontains", "iexact"],
-            "dob": ["exact", "lt", "lte", "gt", "gte"],
-            "gender": ["exact"],
+            "email": ["exact", "istartswith", "icontains", "iexact", "isnull"],
+            "phone": ["exact", "istartswith", "icontains", "iexact", "isnull"],
+            "dob": ["exact", "lt", "lte", "gt", "gte", "isnull"],
+            "head": ["exact"],
+            "photo": ["isnull"],
+            "passport": ["exact", "istartswith", "icontains", "iexact", "isnull"],
+            "gender__code": ["exact", "isnull"],
+            "marital": ["exact", "isnull"],
             **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)
