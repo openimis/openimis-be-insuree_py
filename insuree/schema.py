@@ -19,12 +19,13 @@ class Query(graphene.ObjectType):
         show_history=graphene.Boolean(),
         parent_location=graphene.String(),
         parent_location_level=graphene.Int(),
-        orderBy=graphene.List(of_type=graphene.String)
+        orderBy=graphene.List(of_type=graphene.String),
     )
     insuree_family_members = graphene.List(
         InsureeGQLType,
         chfId=graphene.String(required=True),
-        validity=graphene.Date()
+        validity=graphene.Date(),
+        orderBy=graphene.List(of_type=graphene.String),
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
@@ -37,11 +38,12 @@ class Query(graphene.ObjectType):
         show_history=graphene.Boolean(),
         parent_location=graphene.String(),
         parent_location_level=graphene.Int(),
-        orderBy=graphene.List(of_type=graphene.String)
+        orderBy=graphene.List(of_type=graphene.String),
     )
     family_members = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
-        family_uuid=graphene.String(required=True)
+        family_uuid=graphene.String(required=True),
+        orderBy=graphene.List(of_type=graphene.String),
     )
 
     def resolve_insuree_genders(selfself, info, **kwargs):
