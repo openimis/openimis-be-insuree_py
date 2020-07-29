@@ -114,5 +114,6 @@ class Query(graphene.ObjectType):
                 f = "parent__" + f
             f = "location__" + f
             filters += [Q(**{f: parent_location})]
-        return gql_optimizer.query(Family.objects.filter(*filters).all(), info)
+        # distinct necessary when searching on members... (don't know why)
+        return gql_optimizer.query(Family.objects.filter(*filters).distinct(), info)
 

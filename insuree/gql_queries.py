@@ -100,7 +100,8 @@ class FamilyGQLType(DjangoObjectType):
             "ethnicity": ["exact"],
             "is_offline": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
-            **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields)
+            **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
+            ** prefix_filterset("members__", InsureeGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
