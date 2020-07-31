@@ -1,9 +1,11 @@
+from core.schema import signal_mutation_module_validate
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 
 from .apps import InsureeConfig
+from .models import Family, FamilyMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField
@@ -11,6 +13,33 @@ from core.schema import OrderedDjangoFilterConnectionField
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
+
+
+def family_fk(arg):
+    return arg.startswith("members_") or arg.startswith("head_insuree_")
+
+
+class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
+    @classmethod
+    def resolve_queryset(
+            cls, connection, iterable, info, args, filtering_args, filterset_class
+    ):
+        qs = super(FamiliesConnectionField, cls).resolve_queryset(
+            connection, iterable, info,
+            {k: args[k] for k in args.keys() if not k.startswith("members_") and not k.startswith("head_insuree_")},
+            filtering_args,
+            filterset_class
+        )
+        head_insuree_filters = {k: args[k] for k in args.keys() if k.startswith("head_insuree__")}
+        members_filters = {k: args[k] for k in args.keys() if k.startswith("members__")}
+        if len(head_insuree_filters) or len(members_filters):
+            qs = qs._next_is_sticky()
+        if len(head_insuree_filters):
+            qs = qs.filter(Q(head_insuree__validity_to__isnull=True), **head_insuree_filters)
+        if len(members_filters):
+            qs = qs.filter(Q(members__validity_to__isnull=True), **members_filters)
+        return OrderedDjangoFilterConnectionField.orderBy(qs, args)
+
 
 class Query(graphene.ObjectType):
     insuree_genders = graphene.List(GenderGQLType)
@@ -32,7 +61,7 @@ class Query(graphene.ObjectType):
     professions = graphene.List(ProfessionGQLType)
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
-    families = OrderedDjangoFilterConnectionField(
+    families = FamiliesConnectionField(
         FamilyGQLType,
         null_as_false_poverty=graphene.Boolean(),
         show_history=graphene.Boolean(),
@@ -114,6 +143,23 @@ class Query(graphene.ObjectType):
                 f = "parent__" + f
             f = "location__" + f
             filters += [Q(**{f: parent_location})]
-        # distinct necessary when searching on members... (don't know why)
-        return gql_optimizer.query(Family.objects.filter(*filters).distinct(), info)
+        return gql_optimizer.query(Family.objects.filter(*filters).all(), info)
 
+
+class Mutation(graphene.ObjectType):
+    create_family = CreateFamilyMutation.Field()
+    # update_family = UpdateFamilyMutation.Field()
+
+
+def on_insuree_mutation(sender, **kwargs):
+    uuid = kwargs['data'].get('uuid', None)
+    if not uuid:
+        return []
+    impacted_family = Family.objects.get(Q(uuid=uuid))
+    FamilyMutation.objects.create(
+         family=impacted_family, mutation_id=kwargs['mutation_log_id'])
+    return []
+
+
+def bind_signals():
+    signal_mutation_module_validate["insuree"].connect(on_insuree_mutation)

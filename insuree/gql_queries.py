@@ -77,6 +77,8 @@ class InsureeGQLType(DjangoObjectType):
             "passport": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "gender__code": ["exact", "isnull"],
             "marital": ["exact", "isnull"],
+            "validity_from": ["exact", "lt", "lte", "gt", "gte", "isnull"],
+            "validity_to": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)

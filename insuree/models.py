@@ -77,12 +77,10 @@ class ConfirmationType(models.Model):
         db_table = 'tblConfirmationTypes'
 
 
-class Family(models.Model):
+class Family(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
     head_insuree = models.OneToOneField(
         'Insuree', models.DO_NOTHING, db_column='InsureeID',
         related_name='head_of')
@@ -106,9 +104,6 @@ class Family(models.Model):
         ConfirmationType,
         models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True,
         related_name='families')
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
 
@@ -172,11 +167,12 @@ class Relation(models.Model):
         db_table = 'tblRelations'
 
 
-class Insuree(core_models.VersionedModel):
+class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
 
-    family = models.ForeignKey(Family, models.DO_NOTHING, db_column='FamilyID', related_name="members")
+    family = models.ForeignKey(Family, models.DO_NOTHING, blank=True, null=True,
+                               db_column='FamilyID', related_name="members")
     chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
@@ -282,3 +278,25 @@ class InsureePolicy(core_models.VersionedModel):
     class Meta:
         managed = False
         db_table = 'tblInsureePolicy'
+
+
+class InsureeMutation(core_models.UUIDModel):
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING,
+                                related_name='mutations')
+    mutation = models.ForeignKey(
+        core_models.MutationLog, models.DO_NOTHING, related_name='insurees')
+
+    class Meta:
+        managed = True
+        db_table = "insuree_InsureeMutation"
+
+
+class FamilyMutation(core_models.UUIDModel):
+    family = models.ForeignKey(Family, models.DO_NOTHING,
+                               related_name='mutations')
+    mutation = models.ForeignKey(
+        core_models.MutationLog, models.DO_NOTHING, related_name='families')
+
+    class Meta:
+        managed = True
+        db_table = "insuree_FamilyMutation"
