@@ -5,7 +5,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 
 from .apps import InsureeConfig
-from .models import Family, FamilyMutation
+from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField
@@ -149,17 +149,34 @@ class Query(graphene.ObjectType):
 class Mutation(graphene.ObjectType):
     create_family = CreateFamilyMutation.Field()
     # update_family = UpdateFamilyMutation.Field()
+    create_insuree = CreateInsureeMutation.Field()
+    # update_insuree = UpdateInsureeMutation.Field()
 
 
-def on_insuree_mutation(sender, **kwargs):
-    uuid = kwargs['data'].get('uuid', None)
-    if not uuid:
+def on_family_mutation(kwargs):
+    family_uuid = kwargs['data'].get('uuid', None)
+    if not family_uuid:
         return []
-    impacted_family = Family.objects.get(Q(uuid=uuid))
-    FamilyMutation.objects.create(
-         family=impacted_family, mutation_id=kwargs['mutation_log_id'])
+    impacted_family = Family.objects.get(Q(uuid=family_uuid))
+    FamilyMutation.objects.create(family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
 
 
+def on_insuree_mutation(kwargs):
+    insuree_uuid = kwargs['data'].get('uuid', None)
+    if not insuree_uuid:
+        return []
+    impacted_insuree = Insuree.objects.get(Q(uuid=insuree_uuid))
+    InsureeMutation.objects.create(insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
+    return []
+
+
+def on_mutation(sender, **kwargs):
+    return {
+        CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
+        CreateInsureeMutation._mutation_class: lambda x: on_insuree_mutation(x),
+    }.get(sender._mutation_class, lambda x: [])(kwargs)
+
+
 def bind_signals():
-    signal_mutation_module_validate["insuree"].connect(on_insuree_mutation)
+    signal_mutation_module_validate["insuree"].connect(on_mutation)
