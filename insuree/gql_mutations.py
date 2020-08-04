@@ -28,7 +28,7 @@ class InsureeBase:
     chf_id = graphene.String(max_length=12, required=False)
     last_name = graphene.String(max_length=100, required=True)
     other_names = graphene.String(max_length=100, required=True)
-    gender_code = graphene.String(max_length=1, required=False)
+    gender_id = graphene.String(max_length=1, required=False)
     dob = graphene.Date(required=True)
     head = graphene.Boolean(required=False)
     marital = graphene.String(max_length=1, required=False)
@@ -44,13 +44,17 @@ class InsureeBase:
     relationship_id = graphene.Int(required=False)
     profession_id = graphene.Int(required=False)
     education_id = graphene.Int(required=False)
-    type_of_id_code = graphene.String(max_length=1, required=False)
+    type_of_id_id = graphene.String(max_length=1, required=False)
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
+    pass
+
+
+class UpdateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
     pass
 
 
@@ -63,12 +67,12 @@ class FamilyBase:
     uuid = graphene.String(required=False)
     location_id = graphene.Int(required=False)
     poverty = graphene.Boolean(required=False)
-    family_type_id = graphene.Int(required=False)
+    family_type_id = graphene.String(max_length=1, required=False)
     address = graphene.String(max_length=200, required=False)
     is_offline = graphene.Boolean(required=False)
     ethnicity = graphene.String(max_length=1, required=False)
     confirmation_no = graphene.String(max_length=12, required=False)
-    confirmation_type_id = graphene.Int(required=False)
+    confirmation_type_id = graphene.String(max_length=3, required=False)
     json_ext = graphene.types.json.JSONString(required=False)
 
     head_insuree = graphene.Field(FamilyHeadInsureeInputType, required=False)
@@ -81,6 +85,9 @@ class FamilyInputType(FamilyBase, OpenIMISMutation.Input):
 class CreateFamilyInputType(FamilyInputType):
     pass
 
+
+class UpdateFamilyInputType(FamilyInputType):
+    pass
 
 def reset_insuree_before_update(insuree):
     insuree.family = None
@@ -198,6 +205,34 @@ class CreateFamilyMutation(OpenIMISMutation):
             ]
 
 
+class UpdateFamilyMutation(OpenIMISMutation):
+    """
+    Update an existing family, with its head insuree
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "UpdateFamilyMutation"
+
+    class Input(UpdateFamilyInputType):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            if type(user) is AnonymousUser or not user.id:
+                raise ValidationError(
+                    _("mutation.authentication_required"))
+            if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+                raise PermissionDenied(_("unauthorized"))
+            data['audit_user_id'] = user.id_for_audit
+            update_or_create_family(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("insuree.mutation.failed_to_create_family"),
+                'detail': str(exc)}
+            ]
+
+
 class CreateInsureeMutation(OpenIMISMutation):
     """
     Create a new insuree
@@ -219,6 +254,34 @@ class CreateInsureeMutation(OpenIMISMutation):
             data['audit_user_id'] = user.id_for_audit
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
+            update_or_create_insuree(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("insuree.mutation.failed_to_create_insuree"),
+                'detail': str(exc)}
+            ]
+
+
+class UpdateInsureeMutation(OpenIMISMutation):
+    """
+    Update an existing insuree
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "UpdateInsureeMutation"
+
+    class Input(CreateInsureeInputType):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            if type(user) is AnonymousUser or not user.id:
+                raise ValidationError(
+                    _("mutation.authentication_required"))
+            if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
+                raise PermissionDenied(_("unauthorized"))
+            data['audit_user_id'] = user.id_for_audit
             update_or_create_insuree(data, user)
             return None
         except Exception as exc:

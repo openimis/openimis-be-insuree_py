@@ -148,9 +148,9 @@ class Query(graphene.ObjectType):
 
 class Mutation(graphene.ObjectType):
     create_family = CreateFamilyMutation.Field()
-    # update_family = UpdateFamilyMutation.Field()
+    update_family = UpdateFamilyMutation.Field()
     create_insuree = CreateInsureeMutation.Field()
-    # update_insuree = UpdateInsureeMutation.Field()
+    update_insuree = UpdateInsureeMutation.Field()
 
 
 def on_family_mutation(kwargs):
@@ -174,7 +174,9 @@ def on_insuree_mutation(kwargs):
 def on_mutation(sender, **kwargs):
     return {
         CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
+        UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         CreateInsureeMutation._mutation_class: lambda x: on_insuree_mutation(x),
+        UpdateInsureeMutation._mutation_class: lambda x: on_insuree_mutation(x),
     }.get(sender._mutation_class, lambda x: [])(kwargs)
 
 

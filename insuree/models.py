@@ -144,6 +144,7 @@ class Education(models.Model):
         managed = False
         db_table = 'tblEducations'
 
+
 class IdentificationType(models.Model):
     code = models.CharField(db_column='IdentificationCode', primary_key=True, max_length=1)  # Field name made lowercase.
     identification_type = models.CharField(db_column='IdentificationTypes', max_length=50)  # Field name made lowercase.
@@ -153,6 +154,7 @@ class IdentificationType(models.Model):
     class Meta:
         managed = False
         db_table = 'tblIdentificationTypes'
+
 
 class Relation(models.Model):
     id = models.SmallIntegerField(db_column='RelationId', primary_key=True)
