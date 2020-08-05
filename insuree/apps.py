@@ -10,7 +10,8 @@ DEFAULT_CFG = {
     "gql_mutation_create_families_perms": ["101002"],
     "gql_mutation_update_families_perms": ["101003"],
     "gql_mutation_create_insurees_perms": ["101102"],
-    "gql_mutation_update_insurees_perms": ["101103"]
+    "gql_mutation_update_insurees_perms": ["101103"],
+    "gql_mutation_delete_insurees_perms": ["101104"],
 }
 
 
@@ -25,6 +26,7 @@ class InsureeConfig(AppConfig):
     gql_mutation_update_families_perms = []
     gql_mutation_create_insurees_perms = []
     gql_mutation_update_insurees_perms = []
+    gql_mutation_delete_insurees_perms = []
 
     def _configure_permissions(self, cfg):
         InsureeConfig.gql_query_insurees_perms = cfg[
@@ -46,6 +48,9 @@ class InsureeConfig(AppConfig):
         ]
         InsureeConfig.gql_mutation_update_insurees_perms = cfg[
             "gql_mutation_update_insurees_perms"
+        ]
+        InsureeConfig.gql_mutation_delete_insurees_perms = cfg[
+            "gql_mutation_delete_insurees_perms"
         ]
 
     def ready(self):

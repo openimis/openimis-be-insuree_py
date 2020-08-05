@@ -41,6 +41,7 @@ class InsureeBase:
     photo_id = graphene.Int(required=False)
     photo_date = graphene.Date(required=False)
     card_issued = graphene.Boolean(required=False)
+    family_id = graphene.Int(required=False)
     relationship_id = graphene.Int(required=False)
     profession_id = graphene.Int(required=False)
     education_id = graphene.Int(required=False)
@@ -289,3 +290,48 @@ class UpdateInsureeMutation(OpenIMISMutation):
                 'message': _("insuree.mutation.failed_to_create_insuree"),
                 'detail': str(exc)}
             ]
+
+
+def set_insuree_deleted(insuree):
+    try:
+        insuree.delete_history()
+        return []
+    except Exception as exc:
+        return {
+            'title': insuree.chf_id,
+            'list': [{
+                'message': _("insuree.mutation.failed_to_delete_insuree") % {'chfid': insuree.chfid},
+                'detail': insuree.uuid}]
+        }
+
+
+class DeleteInsureesMutation(OpenIMISMutation):
+    """
+    Delete one or several insurees.
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "DeleteInsureesMutation"
+
+    class Input(OpenIMISMutation.Input):
+        uuids = graphene.List(graphene.String)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        if not user.has_perms(InsureeConfig.gql_mutation_delete_insurees_perms):
+            raise PermissionDenied(_("unauthorized"))
+        errors = []
+        for insuree_uuid in data["uuids"]:
+            insuree = Insuree.objects \
+                .filter(uuid=insuree_uuid) \
+                .first()
+            if insuree is None:
+                errors += {
+                    'title': insuree_uuid,
+                    'list': [{'message': _(
+                        "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
+                }
+                continue
+            errors += set_insuree_deleted(insuree)
+        if len(errors) == 1:
+            errors = errors[0]['list']
+        return errors

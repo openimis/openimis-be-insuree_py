@@ -61,6 +61,7 @@ class Query(graphene.ObjectType):
     professions = graphene.List(ProfessionGQLType)
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
+    relations = graphene.List(RelationGQLType)
     families = FamiliesConnectionField(
         FamilyGQLType,
         null_as_false_poverty=graphene.Boolean(),
@@ -120,6 +121,9 @@ class Query(graphene.ObjectType):
     def resolve_confirmation_types(selfself, info, **kwargs):
         return ConfirmationType.objects.order_by('sort_order').all()
 
+    def resolve_relations(selfself, info, **kwargs):
+        return Relation.objects.order_by('sort_order').all()
+
     def resolve_family_types(selfself, info, **kwargs):
         return FamilyType.objects.order_by('sort_order').all()
 
@@ -151,6 +155,7 @@ class Mutation(graphene.ObjectType):
     update_family = UpdateFamilyMutation.Field()
     create_insuree = CreateInsureeMutation.Field()
     update_insuree = UpdateInsureeMutation.Field()
+    delete_insurees = DeleteInsureesMutation.Field()
 
 
 def on_family_mutation(kwargs):
@@ -162,21 +167,26 @@ def on_family_mutation(kwargs):
     return []
 
 
-def on_insuree_mutation(kwargs):
-    insuree_uuid = kwargs['data'].get('uuid', None)
-    if not insuree_uuid:
+def on_insurees_mutation(kwargs):
+    uuids = kwargs['data'].get('uuids', [])
+    if not uuids:
+        uuid = kwargs['data'].get('uuid', None)
+        uuids = [uuid] if uuid else []
+    if not uuids:
         return []
-    impacted_insuree = Insuree.objects.get(Q(uuid=insuree_uuid))
-    InsureeMutation.objects.create(insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
+    impacted_insurees = Insuree.objects.filter(uuid__in=uuids).all()
+    for insuree in impacted_insurees:
+        InsureeMutation.objects.create(
+            insuree=insuree, mutation_id=kwargs['mutation_log_id'])
     return []
-
 
 def on_mutation(sender, **kwargs):
     return {
         CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
-        CreateInsureeMutation._mutation_class: lambda x: on_insuree_mutation(x),
-        UpdateInsureeMutation._mutation_class: lambda x: on_insuree_mutation(x),
+        CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
+        UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
+        DeleteInsureesMutation._mutation_class: lambda x: on_insurees_mutation(x),
     }.get(sender._mutation_class, lambda x: [])(kwargs)
 
 
