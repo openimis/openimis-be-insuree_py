@@ -67,6 +67,7 @@ class RelationGQLType(DjangoObjectType):
 
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
+    client_mutation_id = graphene.String()
 
     class Meta:
         model = Insuree
@@ -90,12 +91,19 @@ class InsureeGQLType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
 
+    def resolve_client_mutation_id(self, info):
+        insuree_mutation = self.mutations.select_related(
+            'mutation').filter(mutation__status=0).first()
+        return insuree_mutation.mutation.client_mutation_id if insuree_mutation else None
+
     @classmethod
     def get_queryset(cls, queryset, info):
         return Insuree.filter_queryset(queryset)
 
 
 class FamilyGQLType(DjangoObjectType):
+    client_mutation_id = graphene.String()
+
     class Meta:
         model = Family
         filter_fields = {
@@ -113,3 +121,8 @@ class FamilyGQLType(DjangoObjectType):
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
+
+    def resolve_client_mutation_id(self, info):
+        family_mutation = self.mutations.select_related(
+            'mutation').filter(mutation__status=0).first()
+        return family_mutation.mutation.client_mutation_id if family_mutation else None
