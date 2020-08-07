@@ -11,7 +11,7 @@ It is dedicated to be deployed as a module of [openimis-be_py](https://github.co
 
 ## ORM mapping:
 * tblGender > Gender (including alt_language)
-* tblPhotos > Photo
+* tblPhotos > InsureePhoto
 * tblFamilyTypes > FamilyType
 * tblFamilies > Family
 * tblInsuree > Insuree (partially mapped)

@@ -1,6 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Insuree, Photo, Education, Profession, Gender, IdentificationType, \
+from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
     Family, FamilyType, ConfirmationType, Relation
 from location.schema import LocationGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -16,7 +16,10 @@ class GenderGQLType(DjangoObjectType):
 
 class PhotoGQLType(DjangoObjectType):
     class Meta:
-        model = Photo
+        model = InsureePhoto
+        filter_fields = {
+            "id": ["exact"]
+        }
 
 
 class IdentificationTypeGQLType(DjangoObjectType):
@@ -80,12 +83,13 @@ class InsureeGQLType(DjangoObjectType):
             "phone": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "dob": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             "head": ["exact"],
-            "photo": ["isnull"],
             "passport": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "gender__code": ["exact", "isnull"],
             "marital": ["exact", "isnull"],
             "validity_from": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             "validity_to": ["exact", "lt", "lte", "gt", "gte", "isnull"],
+            **prefix_filterset("photo__", PhotoGQLType._meta.filter_fields),
+            "photo": ["isnull"],
             **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)

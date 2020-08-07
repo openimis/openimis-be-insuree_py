@@ -23,22 +23,23 @@ class Gender(models.Model):
         db_table = 'tblGender'
 
 
-class Photo(models.Model):
+class InsureePhoto(core_models.VersionedModel):
     id = models.AutoField(db_column='PhotoID', primary_key=True)
     uuid = models.CharField(db_column='PhotoUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
-    insuree_id = models.IntegerField(
+
+    insuree = models.ForeignKey('insuree.Insuree', models.DO_NOTHING,
         db_column='InsureeID', blank=True, null=True)
     chf_id = models.CharField(
         db_column='CHFID', max_length=12, blank=True, null=True)
     folder = models.CharField(db_column='PhotoFolder', max_length=255)
     filename = models.CharField(
         db_column='PhotoFileName', max_length=250, blank=True, null=True)
+    # Support of BinaryField is database-related: prefer to stick to b64-encoded
+    photo = models.TextField(blank=True, null=True)
+    # No FK in database (so value may not be an existing officer.id !)
     officer_id = models.IntegerField(db_column='OfficerID')
     date = core.fields.DateField(db_column='PhotoDate')
-    validity_from = core.fields.DateTimeField(db_column='ValidityFrom')
-    validity_to = core.fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
     audit_user_id = models.IntegerField(
         db_column='AuditUserID', blank=True, null=True)
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
@@ -208,7 +209,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
     current_village = models.ForeignKey(
         location_models.Location, models.DO_NOTHING, db_column='CurrentVillage', blank=True, null=True)
-    photo = models.ForeignKey(Photo, models.DO_NOTHING, db_column='PhotoID', blank=True, null=True)
+    photo = models.ForeignKey(InsureePhoto, models.DO_NOTHING,
+                              db_column='PhotoID', blank=True, null=True, related_name='insuree_photo')
     photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
     relationship = models.ForeignKey(

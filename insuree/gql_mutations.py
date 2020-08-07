@@ -5,20 +5,14 @@ import base64
 from copy import copy
 import graphene
 from .apps import InsureeConfig
-from claim.validations import validate_claim, get_claim_category, validate_assign_prod_to_claimitems_and_services, \
-    process_dedrem, approved_amount
 from core import filter_validity, assert_string_length
 from core.schema import TinyInt, SmallInt, OpenIMISMutation
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
-from django.db.models import CharField
-from django.db.models.functions import Cast
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
-from location.schema import UserDistrict
-from .models import Family, Insuree
-from product.models import ProductItemOrService
+from .models import Family, Insuree, InsureePhoto
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +134,9 @@ def update_or_create_insuree(data, user):
     # doesn't work because of explicit attempt to set null to uuid!
     if insuree_uuid:
         insuree = Insuree.objects.get(uuid=insuree_uuid)
+        # if settings.ROW_SECURITY:
+        #  TODO...
+        #
         insuree.save_history()
         # reset the non required fields
         # (each update is 'complete', necessary to be able to set 'null')
@@ -325,6 +322,9 @@ class DeleteInsureesMutation(OpenIMISMutation):
             insuree = Insuree.objects \
                 .filter(uuid=insuree_uuid) \
                 .first()
+            # if settings.ROW_SECURITY:
+            #  TODO...
+            #
             if insuree is None:
                 errors += {
                     'title': insuree_uuid,
@@ -372,6 +372,9 @@ class RemoveInsureesMutation(OpenIMISMutation):
             insuree = Insuree.objects \
                 .filter(uuid=insuree_uuid) \
                 .first()
+            # if settings.ROW_SECURITY:
+            #  TODO...
+            #
             if insuree is None:
                 errors += {
                     'title': insuree_uuid,
@@ -402,6 +405,9 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         try:
             family = Family.objects.get(uuid=data['uuid'])
             insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
+            # if settings.ROW_SECURITY:
+            #  TODO...
+            #
             family.save_history()
             prev_head = family.head_insuree
             if prev_head:
@@ -411,7 +417,7 @@ class SetFamilyHeadMutation(OpenIMISMutation):
             family.head_insuree = insuree
             family.save()
             insuree.save_history()
-            insuree.head= True
+            insuree.head = True
             insuree.save()
             return None
         except Exception as exc:
@@ -419,3 +425,131 @@ class SetFamilyHeadMutation(OpenIMISMutation):
                 'message': _("insuree.mutation.failed_to_set_head_insuree"),
                 'detail': str(exc)}
             ]
+
+
+class BasePhoto:
+    id = graphene.String(required=False, read_only=True)
+    date = graphene.Date(required=False)
+    folder = graphene.String(required=False)
+    filename = graphene.String(required=False)
+
+
+class BaseInsureePhotoInputType(BasePhoto, OpenIMISMutation.Input):
+    """
+    Insuree photo (without the photo), used on its own
+    """
+    insuree_uuid = graphene.String(required=True)
+
+
+class Photo(BasePhoto):
+    photo = graphene.String(required=False)
+
+
+class InsureePhotoInputType(Photo, InputObjectType):
+    """
+    Insuree photo, used nested in insuree object
+    """
+    pass
+
+
+class PhotoInputType(Photo, OpenIMISMutation.Input):
+    """
+    Insuree photo, used on its own
+    """
+    insuree_uuid = graphene.String(required=True)
+
+def create_file(date, insuree_id, photo):
+    date_iso = date.isoformat()
+    root = InsureeConfig.insuree_photo_root_path
+    file_dir = '%s/%s/%s/%s' % (
+        date_iso[0:4],
+        date_iso[5:7],
+        date_iso[8:10],
+        insuree_id
+    )
+    file_name = uuid.uuid4()
+    file_path = '%s/%s' % (file_dir, file_name)
+    pathlib.Path('%s/%s' % (root, file_dir)).mkdir(parents=True, exist_ok=True)
+    f = open('%s/%s' % (root, file_path), "xb")
+    f.write(base64.b64decode(photo))
+    f.close()
+    return file_dir, file_name
+
+def create_photo(insuree_id, data):
+    data["insuree_id"] = insuree_id
+    from core import datetime
+    now = datetime.datetime.now()
+    data['validity_from'] = now
+    data['date'] = now
+    if InsureeConfig.insuree_photos_root_path:
+        (file_dir, file_name) = create_file(now, insuree_id, data.pop('photo'))
+        data["folder"] = file_dir
+        data["filename"] = file_name
+    InsureePhoto.objects.create(**data)
+
+class SetInsureePhotoMutation(OpenIMISMutation):
+    _mutation_module = "insuree"
+    _mutation_class = "CreateInsureePhotoMutation"
+
+    class Input(PhotoInputType):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            if user.is_anonymous or not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
+                raise PermissionDenied(_("unauthorized"))
+            if "client_mutation_id" in data:
+                data.pop('client_mutation_id')
+            if "client_mutation_label" in data:
+                data.pop('client_mutation_label')
+            insuree_uuid = data.pop("insuree_uuid")
+            queryset = Insuree.objects.filter(*filter_validity())
+            # if settings.ROW_SECURITY:
+            #     dist = UserDistrict.get_user_districts(user._u)
+            #     queryset = queryset.filter(
+            #     TODO
+            #     )
+            insuree = queryset.filter(uuid=insuree_uuid).first()
+            if not insuree:
+                raise PermissionDenied(_("unauthorized"))
+            create_photo(insuree.id, data)
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("insuree.mutation.failed_to_set_photo") % {'chfid': insuree.chf_id},
+                'detail': str(exc)}]
+
+
+class DeleteInsureePhotoMutation(OpenIMISMutation):
+    _mutation_module = "insuree"
+    _mutation_class = "DeleteInsureePhotoMutation"
+
+    class Input(OpenIMISMutation.Input):
+        id = graphene.String()
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            if not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
+                raise PermissionDenied(_("unauthorized"))
+            queryset = InsureePhoto.objects.filter(*filter_validity())
+            # if settings.ROW_SECURITY:
+            #     from location.models import UserDistrict
+            #     dist = UserDistrict.get_user_districts(user._u)
+            #     queryset = queryset.filter(
+            #     TODO
+            #     )
+            insuree_photo = queryset \
+                .filter(id=data['id']) \
+                .first()
+            if not insuree_photo:
+                raise PermissionDenied(_("unauthorized"))
+            insuree_photo.delete_history()
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("claim.mutation.failed_to_delete_insuree_photo") % {
+                    'code': insuree_photo.insuree.chf_id
+                },
+                'detail': str(exc)}]

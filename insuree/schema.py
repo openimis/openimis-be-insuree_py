@@ -8,7 +8,7 @@ from .apps import InsureeConfig
 from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
-from core.schema import OrderedDjangoFilterConnectionField
+from core.schema import OrderedDjangoFilterConnectionField, OfficerGQLType
 
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
@@ -69,6 +69,7 @@ class Query(graphene.ObjectType):
         family_uuid=graphene.String(required=True),
         orderBy=graphene.List(of_type=graphene.String),
     )
+    insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
 
     def resolve_insuree_genders(selfself, info, **kwargs):
         return Gender.objects.order_by('sort_order').all()
@@ -131,6 +132,9 @@ class Query(graphene.ObjectType):
             filters += [Q(**{f: parent_location})]
         return gql_optimizer.query(Family.objects.filter(*filters).all(), info)
 
+    def resolve_insuree_officers(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
+            raise PermissionDenied(_("unauthorized"))
 
 class Mutation(graphene.ObjectType):
     create_family = CreateFamilyMutation.Field()
@@ -140,6 +144,8 @@ class Mutation(graphene.ObjectType):
     delete_insurees = DeleteInsureesMutation.Field()
     remove_insurees = RemoveInsureesMutation.Field()
     set_family_head = SetFamilyHeadMutation.Field()
+    set_insuree_photo = SetInsureePhotoMutation.Field()
+    delete_insuree_photo = DeleteInsureePhotoMutation.Field()
 
 
 def on_family_mutation(kwargs):
@@ -174,6 +180,8 @@ def on_mutation(sender, **kwargs):
         UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
         UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
+        SetInsureePhotoMutation._mutation_class: lambda x: on_insurees_mutation(x),
+        DeleteInsureePhotoMutation._mutation_class: lambda x: on_insurees_mutation(x),
         DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
         RemoveInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
         SetFamilyHeadMutation._mutation_class: lambda x: on_family_mutation(x),
