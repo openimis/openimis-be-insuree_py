@@ -50,12 +50,6 @@ class Query(graphene.ObjectType):
         parent_location_level=graphene.Int(),
         orderBy=graphene.List(of_type=graphene.String),
     )
-    insuree_family_members = graphene.List(
-        InsureeGQLType,
-        chfId=graphene.String(required=True),
-        validity=graphene.Date(),
-        orderBy=graphene.List(of_type=graphene.String),
-    )
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
     professions = graphene.List(ProfessionGQLType)
@@ -87,18 +81,6 @@ class Query(graphene.ObjectType):
         if not show_history:
             filters += filter_validity(**kwargs)
         gql_optimizer.query(Family.objects.filter(*filters).all(), info)
-
-    def resolve_insuree_family_members(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
-            raise PermissionDenied(_("unauthorized"))
-        insuree = Insuree.objects.get(
-            Q(chf_id=kwargs.get('chfId')),
-            *filter_validity(**kwargs)
-        )
-        return Insuree.objects.filter(
-            Q(family=insuree.family),
-            *filter_validity(**kwargs)
-        ).order_by('-head', 'dob')
 
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -156,6 +138,8 @@ class Mutation(graphene.ObjectType):
     create_insuree = CreateInsureeMutation.Field()
     update_insuree = UpdateInsureeMutation.Field()
     delete_insurees = DeleteInsureesMutation.Field()
+    remove_insurees = RemoveInsureesMutation.Field()
+    set_family_head = SetFamilyHeadMutation.Field()
 
 
 def on_family_mutation(kwargs):
@@ -165,7 +149,6 @@ def on_family_mutation(kwargs):
     impacted_family = Family.objects.get(Q(uuid=family_uuid))
     FamilyMutation.objects.create(family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
-
 
 def on_insurees_mutation(kwargs):
     uuids = kwargs['data'].get('uuids', [])
@@ -180,13 +163,20 @@ def on_insurees_mutation(kwargs):
             insuree=insuree, mutation_id=kwargs['mutation_log_id'])
     return []
 
+def on_family_and_insurees_mutation(kwargs):
+    family = on_family_mutation(kwargs)
+    insurees = on_insurees_mutation(kwargs)
+    return family + insurees
+
 def on_mutation(sender, **kwargs):
     return {
         CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
         UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        DeleteInsureesMutation._mutation_class: lambda x: on_insurees_mutation(x),
+        DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
+        RemoveInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
+        SetFamilyHeadMutation._mutation_class: lambda x: on_family_mutation(x),
     }.get(sender._mutation_class, lambda x: [])(kwargs)
 
 

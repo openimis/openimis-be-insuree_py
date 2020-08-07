@@ -313,6 +313,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
     _mutation_class = "DeleteInsureesMutation"
 
     class Input(OpenIMISMutation.Input):
+        uuid = graphene.String()
         uuids = graphene.List(graphene.String)
 
     @classmethod
@@ -335,3 +336,86 @@ class DeleteInsureesMutation(OpenIMISMutation):
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
+
+
+def remove_insuree(insuree):
+    try:
+        insuree.save_history()
+        insuree.family = None
+        insuree.save()
+        return []
+    except Exception as exc:
+        return {
+            'title': insuree.chf_id,
+            'list': [{
+                'message': _("insuree.mutation.failed_to_remove_insuree") % {'chfid': insuree.chfid},
+                'detail': insuree.uuid}]
+        }
+
+class RemoveInsureesMutation(OpenIMISMutation):
+    """
+    Delete one or several insurees.
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "RemoveInsureesMutation"
+
+    class Input(OpenIMISMutation.Input):
+        uuid = graphene.String()
+        uuids = graphene.List(graphene.String)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        if not user.has_perms(InsureeConfig.gql_mutation_delete_insurees_perms):
+            raise PermissionDenied(_("unauthorized"))
+        errors = []
+        for insuree_uuid in data["uuids"]:
+            insuree = Insuree.objects \
+                .filter(uuid=insuree_uuid) \
+                .first()
+            if insuree is None:
+                errors += {
+                    'title': insuree_uuid,
+                    'list': [{'message': _(
+                        "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
+                }
+                continue
+            errors += remove_insuree(insuree)
+        if len(errors) == 1:
+            errors = errors[0]['list']
+        return errors
+
+class SetFamilyHeadMutation(OpenIMISMutation):
+    """
+    Set (change) the family head insuree
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "SetFamilyHeadMutation"
+
+    class Input(OpenIMISMutation.Input):
+        uuid = graphene.String()
+        insuree_uuid = graphene.String()
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+            raise PermissionDenied(_("unauthorized"))
+        try:
+            family = Family.objects.get(uuid=data['uuid'])
+            insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
+            family.save_history()
+            prev_head = family.head_insuree
+            if prev_head:
+                prev_head.save_history()
+                prev_head.head = False
+                prev_head.save()
+            family.head_insuree = insuree
+            family.save()
+            insuree.save_history()
+            insuree.head= True
+            insuree.save()
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("insuree.mutation.failed_to_set_head_insuree"),
+                'detail': str(exc)}
+            ]
