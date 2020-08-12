@@ -12,7 +12,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL('ALTER TABLE tblPhotos ADD LegacyID [int] NULL, photo [TEXT]'),
+        migrations.RunSQL('ALTER TABLE tblPhotos ADD LegacyID [int] NULL, photo [TEXT] null'),
+        migrations.RunSQL('ALTER TABLE tblPhotos ALTER COLUMN PhotoFolder nvarchar(255) NULL'),
+        migrations.RunSQL('ALTER TABLE tblPhotos ALTER COLUMN PhotoFileName nvarchar(255) NULL'),
         migrations.CreateModel(
             name='InsureePhoto',
             fields=[

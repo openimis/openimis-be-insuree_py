@@ -32,7 +32,7 @@ class InsureePhoto(core_models.VersionedModel):
         db_column='InsureeID', blank=True, null=True)
     chf_id = models.CharField(
         db_column='CHFID', max_length=12, blank=True, null=True)
-    folder = models.CharField(db_column='PhotoFolder', max_length=255)
+    folder = models.CharField(db_column='PhotoFolder', max_length=255, blank=True, null=True)
     filename = models.CharField(
         db_column='PhotoFileName', max_length=250, blank=True, null=True)
     # Support of BinaryField is database-related: prefer to stick to b64-encoded

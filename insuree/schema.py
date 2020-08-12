@@ -144,8 +144,6 @@ class Mutation(graphene.ObjectType):
     delete_insurees = DeleteInsureesMutation.Field()
     remove_insurees = RemoveInsureesMutation.Field()
     set_family_head = SetFamilyHeadMutation.Field()
-    set_insuree_photo = SetInsureePhotoMutation.Field()
-    delete_insuree_photo = DeleteInsureePhotoMutation.Field()
 
 
 def on_family_mutation(kwargs):
@@ -180,8 +178,6 @@ def on_mutation(sender, **kwargs):
         UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
         UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        SetInsureePhotoMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        DeleteInsureePhotoMutation._mutation_class: lambda x: on_insurees_mutation(x),
         DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
         RemoveInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
         SetFamilyHeadMutation._mutation_class: lambda x: on_family_mutation(x),
