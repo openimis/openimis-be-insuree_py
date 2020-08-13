@@ -141,11 +141,11 @@ def create_file(date, insuree_id, photo_bin):
 
 def photo_changed(insuree_photo, data):
     return (not insuree_photo and data) or \
-           insuree_photo.date != data.get('date', None) or \
-           insuree_photo.officer_id != data.get('officer_id', None) or \
-           insuree_photo.folder != data.get('folder', None) or \
-           insuree_photo.filename != data.get('filename', None) or \
-           insuree_photo.photo != data.get('photo', None)
+           (data and insuree_photo and insuree_photo.date != data.get('date', None)) or \
+           (data and insuree_photo and insuree_photo.officer_id != data.get('officer_id', None)) or \
+           (data and insuree_photo and insuree_photo.folder != data.get('folder', None)) or \
+           (data and insuree_photo and insuree_photo.filename != data.get('filename', None)) or \
+           (data and insuree_photo and insuree_photo.photo != data.get('photo', None))
 
 
 def handle_insuree_photo(user, now, insuree, data):
@@ -498,5 +498,38 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         except Exception as exc:
             return [{
                 'message': _("insuree.mutation.failed_to_set_head_insuree"),
+                'detail': str(exc)}
+            ]
+
+
+class ChangeInsureeFamilyMutation(OpenIMISMutation):
+    """
+    Set (change) the family of an insuree
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "ChangeInsureeFamilyMutation"
+
+    class Input(OpenIMISMutation.Input):
+        family_uuid = graphene.String()
+        insuree_uuid = graphene.String()
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms) or \
+                not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
+            raise PermissionDenied(_("unauthorized"))
+        try:
+            family = Family.objects.get(uuid=data['family_uuid'])
+            insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
+            # if settings.ROW_SECURITY:
+            #  TODO...
+            #
+            insuree.save_history()
+            insuree.family = family
+            insuree.save()
+            return None
+        except Exception as exc:
+            return [{
+                'message': _("insuree.mutation.failed_to_change_insuree_family"),
                 'detail': str(exc)}
             ]
