@@ -1,12 +1,11 @@
 import uuid
 
 import core
+from core import models as core_models
 from django.conf import settings
 from django.db import models
 from graphql import ResolveInfo
 from location import models as location_models
-from core import models as core_models
-from location.models import UserDistrict
 
 
 class Gender(models.Model):
@@ -28,8 +27,8 @@ class InsureePhoto(core_models.VersionedModel):
     uuid = models.CharField(db_column='PhotoUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
 
-    insuree = models.ForeignKey('insuree.Insuree', models.DO_NOTHING,
-        db_column='InsureeID', blank=True, null=True)
+    insuree = models.ForeignKey("Insuree", on_delete=models.DO_NOTHING,
+                                db_column='InsureeID', blank=True, null=True, related_name="photos")
     chf_id = models.CharField(
         db_column='CHFID', max_length=12, blank=True, null=True)
     folder = models.CharField(db_column='PhotoFolder', max_length=255, blank=True, null=True)
@@ -209,8 +208,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
     current_village = models.ForeignKey(
         location_models.Location, models.DO_NOTHING, db_column='CurrentVillage', blank=True, null=True)
-    photo = models.ForeignKey(InsureePhoto, models.DO_NOTHING,
-                              db_column='PhotoID', blank=True, null=True, related_name='insuree_photo')
+    photo = models.OneToOneField(InsureePhoto, models.DO_NOTHING,
+                              db_column='PhotoID', blank=True, null=True, related_name='+')
     photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     card_issued = models.BooleanField(db_column='CardIssued')
     relationship = models.ForeignKey(
@@ -232,8 +231,11 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
+    def is_head_of_family(self):
+        return self.family and self.family.head_insuree == self
+
     def __str__(self):
-        return self.chf_id + " " + self.last_name + " " + self.other_names
+        return f"{self.chf_id} {self.last_name} {self.other_names}"
 
     @classmethod
     def filter_queryset(cls, queryset=None):
@@ -303,3 +305,22 @@ class FamilyMutation(core_models.UUIDModel):
     class Meta:
         managed = True
         db_table = "insuree_FamilyMutation"
+
+
+class PolicyRenewalDetail(core_models.VersionedModel):
+    """
+    When there is a policy renewal in progress, there might also be a need to update the picture or something else.
+    As this part is quite specific to the insuree, it is handled in this module rather than policy (like PolicyRenewal)
+    """
+    id = models.AutoField(db_column='RenewalDetailID', primary_key=True)
+
+    insuree = models.ForeignKey('insuree.Insuree', models.DO_NOTHING, db_column='InsureeID',
+                                related_name='policy_renewal_details')
+    policy_renewal = models.ForeignKey('policy.PolicyRenewal', models.DO_NOTHING, db_column='RenewalID',
+                                       related_name='details')
+
+    audit_user_id = models.IntegerField(db_column='AuditCreateUser', null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tblPolicyRenewalDetails'
