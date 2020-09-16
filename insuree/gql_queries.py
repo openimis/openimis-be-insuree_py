@@ -102,7 +102,7 @@ class InsureeGQLType(DjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        return Insuree.filter_queryset(queryset)
+        return Insuree.get_queryset(queryset, info)
 
 
 class FamilyGQLType(DjangoObjectType):
@@ -130,3 +130,7 @@ class FamilyGQLType(DjangoObjectType):
         family_mutation = self.mutations.select_related(
             'mutation').filter(mutation__status=0).first()
         return family_mutation.mutation.client_mutation_id if family_mutation else None
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return Family.get_queryset(queryset, info)

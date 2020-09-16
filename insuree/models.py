@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import models
 from graphql import ResolveInfo
 from location import models as location_models
+from location.models import UserDistrict
 
 
 class Gender(models.Model):
@@ -112,6 +113,21 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         if queryset is None:
             queryset = cls.objects.all()
         queryset = queryset.filter(*core.filter_validity())
+        return queryset
+
+    @classmethod
+    def get_queryset(cls, queryset, user):
+        queryset = cls.filter_queryset(queryset)
+        # GraphQL calls with an info object while Rest calls with the user itself
+        if isinstance(user, ResolveInfo):
+            user = user.context.user
+        if settings.ROW_SECURITY and user.is_anonymous:
+            return queryset.filter(id=-1)
+        if settings.ROW_SECURITY:
+            dist = UserDistrict.get_user_districts(user._u)
+            return queryset.filter(
+                location_id__in=[l.location_id for l in dist]
+            )
         return queryset
 
     class Meta:
@@ -251,12 +267,15 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
-        # TODO: filter visible insurees, but how ?
-        # if settings.ROW_SECURITY:
-        #     dist = UserDistrict.get_user_districts(user._u)
-        #     return queryset.filter(
-        #         health_facility__location_id__in=[l.location.id for l in dist]
-        #     )
+        # The insuree "health facility" is the "First Point of Service"
+        # (aka the 'preferred/reference' HF for an insuree)
+        # ... so not ti be used as 'strict filtering'
+        if settings.ROW_SECURITY:
+            dist = UserDistrict.get_user_districts(user._u)
+            return queryset.filter(
+                models.Q(family__location_id__in=[l.location.id for l in dist]) |
+                models.Q(family__isnull=True)
+            )
         return queryset
 
     class Meta:
