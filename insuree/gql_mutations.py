@@ -96,6 +96,7 @@ class CreateFamilyInputType(FamilyInputType):
 class UpdateFamilyInputType(FamilyInputType):
     pass
 
+
 def reset_insuree_before_update(insuree):
     insuree.family = None
     insuree.chf_id = None
@@ -174,7 +175,6 @@ def handle_insuree_photo(user, now, insuree, data):
         insuree_photo = InsureePhoto.objects.create(**data)
     insuree_photo.save()
     return insuree_photo
-
 
 
 def update_or_create_insuree(data, user):
@@ -306,6 +306,63 @@ class UpdateFamilyMutation(OpenIMISMutation):
             ]
 
 
+def handle_member_on_family_delete(member, delete_members):
+    if delete_members:
+        member.delete_history()
+    else:
+        member.save_history()
+        member.family = None
+        member.save()
+
+
+def set_family_deleted(family, delete_members):
+    try:
+        [handle_member_on_family_delete(member, delete_members)
+         for member in family.members.filter(validity_to__isnull=True).all()]
+        family.delete_history()
+        return []
+    except Exception as exc:
+        return {
+            'title': insuree.chf_id,
+            'list': [{
+                'message': _("insuree.mutation.failed_to_delete_family") % {'chfid': family.chfid},
+                'detail': insuree.uuid}]
+        }
+
+
+class DeleteFamiliesMutation(OpenIMISMutation):
+    """
+    Delete one or several families (and all its insurees).
+    """
+    _mutation_module = "insuree"
+    _mutation_class = "DeleteFamiliesMutation"
+
+    class Input(OpenIMISMutation.Input):
+        uuids = graphene.List(graphene.String)
+        delete_members = graphene.Boolean(required=False, default_value=False)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        if not user.has_perms(InsureeConfig.gql_mutation_delete_families_perms):
+            raise PermissionDenied(_("unauthorized"))
+        errors = []
+        for family_uuid in data["uuids"]:
+            family = Family.objects \
+                .prefetch_related('members') \
+                .filter(uuid=family_uuid) \
+                .first()
+            if family is None:
+                errors.append({
+                    'title': family_uuid,
+                    'list': [{'message': _("insuree.mutation.failed_to_delete_family") % {'uuid': family_uuid}}]
+                })
+                continue
+            errors += set_family_deleted(family, data["delete_members"])
+        if len(errors) == 1:
+            errors = errors[0]['list']
+        return errors
+
+
 class CreateInsureeMutation(OpenIMISMutation):
     """
     Create a new insuree
@@ -385,7 +442,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
     _mutation_class = "DeleteInsureesMutation"
 
     class Input(OpenIMISMutation.Input):
-        uuid = graphene.String()
+        uuid = graphene.String(required=False)  # family uuid, to 'lock' family while mutation is processed
         uuids = graphene.List(graphene.String)
 
     @classmethod
@@ -395,17 +452,22 @@ class DeleteInsureesMutation(OpenIMISMutation):
         errors = []
         for insuree_uuid in data["uuids"]:
             insuree = Insuree.objects \
+                .prefetch_related('family') \
                 .filter(uuid=insuree_uuid) \
                 .first()
-            # if settings.ROW_SECURITY:
-            #  TODO...
-            #
             if insuree is None:
-                errors += {
+                errors.append({
                     'title': insuree_uuid,
                     'list': [{'message': _(
                         "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
-                }
+                })
+                continue
+            if insuree.family and insuree.family.head_insuree.id == insuree.id:
+                errors.append({
+                    'title': insuree_uuid,
+                    'list': [{'message': _(
+                        "insuree.validation.delete_head_insuree") % {'id': insuree_uuid}}]
+                })
                 continue
             errors += set_insuree_deleted(insuree)
         if len(errors) == 1:
@@ -427,6 +489,7 @@ def remove_insuree(insuree):
                 'detail': insuree.uuid}]
         }
 
+
 class RemoveInsureesMutation(OpenIMISMutation):
     """
     Delete one or several insurees.
@@ -445,11 +508,9 @@ class RemoveInsureesMutation(OpenIMISMutation):
         errors = []
         for insuree_uuid in data["uuids"]:
             insuree = Insuree.objects \
+                .prefetch_related('family') \
                 .filter(uuid=insuree_uuid) \
                 .first()
-            # if settings.ROW_SECURITY:
-            #  TODO...
-            #
             if insuree is None:
                 errors += {
                     'title': insuree_uuid,
@@ -457,10 +518,18 @@ class RemoveInsureesMutation(OpenIMISMutation):
                         "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
                 }
                 continue
+            if insuree.family.head_insuree.id == insuree.id:
+                errors.append({
+                    'title': insuree_uuid,
+                    'list': [{'message': _(
+                        "insuree.validation.remove_head_insuree") % {'id': insuree_uuid}}]
+                })
+                continue
             errors += remove_insuree(insuree)
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
+
 
 class SetFamilyHeadMutation(OpenIMISMutation):
     """
@@ -480,9 +549,6 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         try:
             family = Family.objects.get(uuid=data['uuid'])
             insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
-            # if settings.ROW_SECURITY:
-            #  TODO...
-            #
             family.save_history()
             prev_head = family.head_insuree
             if prev_head:
@@ -521,9 +587,6 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
         try:
             family = Family.objects.get(uuid=data['family_uuid'])
             insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
-            # if settings.ROW_SECURITY:
-            #  TODO...
-            #
             insuree.save_history()
             insuree.family = family
             insuree.save()

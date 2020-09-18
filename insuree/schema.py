@@ -140,6 +140,7 @@ class Query(graphene.ObjectType):
 class Mutation(graphene.ObjectType):
     create_family = CreateFamilyMutation.Field()
     update_family = UpdateFamilyMutation.Field()
+    delete_families = DeleteFamiliesMutation.Field()
     create_insuree = CreateInsureeMutation.Field()
     update_insuree = UpdateInsureeMutation.Field()
     delete_insurees = DeleteInsureesMutation.Field()
@@ -157,6 +158,20 @@ def on_family_mutation(kwargs, k='uuid'):
     return []
 
 
+def on_families_mutation(kwargs):
+    uuids = kwargs['data'].get('uuids', [])
+    if not uuids:
+        uuid = kwargs['data'].get('uuid', None)
+        uuids = [uuid] if uuid else []
+    if not uuids:
+        return []
+    impacted_families = Family.objects.filter(uuid__in=uuids).all()
+    for family in impacted_families:
+        FamilyMutation.objects.create(
+            family=family, mutation_id=kwargs['mutation_log_id'])
+    return []
+
+
 def on_insuree_mutation(kwargs, k='uuid'):
     insuree_uuid = kwargs['data'].get('uuid', None)
     if not insuree_uuid:
@@ -164,6 +179,7 @@ def on_insuree_mutation(kwargs, k='uuid'):
     impacted_insuree = Insuree.objects.get(Q(uuid=insuree_uuid))
     InsureeMutation.objects.create(insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
     return []
+
 
 def on_insurees_mutation(kwargs):
     uuids = kwargs['data'].get('uuids', [])
@@ -195,6 +211,7 @@ def on_mutation(sender, **kwargs):
     return {
         CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
         UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
+        DeleteFamiliesMutation._mutation_class: lambda x: on_families_mutation(x),
         CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
         UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
         DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),

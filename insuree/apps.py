@@ -10,6 +10,7 @@ DEFAULT_CFG = {
     "gql_query_families_perms": ["101001"],
     "gql_mutation_create_families_perms": ["101002"],
     "gql_mutation_update_families_perms": ["101003"],
+    "gql_mutation_delete_families_perms": ["101004"],
     "gql_mutation_create_insurees_perms": ["101102"],
     "gql_mutation_update_insurees_perms": ["101103"],
     "gql_mutation_delete_insurees_perms": ["101104"],
@@ -30,6 +31,7 @@ class InsureeConfig(AppConfig):
     gql_query_insuree_officers_perms = []
     gql_mutation_create_families_perms = []
     gql_mutation_update_families_perms = []
+    gql_mutation_delete_families_perms = []
     gql_mutation_create_insurees_perms = []
     gql_mutation_update_insurees_perms = []
     gql_mutation_delete_insurees_perms = []
@@ -62,9 +64,11 @@ class InsureeConfig(AppConfig):
             "insuree_photos_root_path"
         ]
 
+
     def _configure_renewal(self, cfg):
         InsureeConfig.renewal_photo_age_adult = cfg["renewal_photo_age_adult"]
         InsureeConfig.renewal_photo_age_child = cfg["renewal_photo_age_child"]
+
 
     def ready(self):
         from core.models import ModuleConfiguration
