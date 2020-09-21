@@ -273,7 +273,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         if settings.ROW_SECURITY:
             dist = UserDistrict.get_user_districts(user._u)
             return queryset.filter(
-                models.Q(family__location_id__in=[l.location.id for l in dist]) |
+                models.Q(family__location__parent__parent_id__in=[l.location.id for l in dist]) |
                 models.Q(family__isnull=True)
             )
         return queryset
