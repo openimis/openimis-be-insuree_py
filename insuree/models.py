@@ -126,7 +126,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         if settings.ROW_SECURITY:
             dist = UserDistrict.get_user_districts(user._u)
             return queryset.filter(
-                location_id__in=[l.location_id for l in dist]
+                location__parent__parent_id__in=[l.location_id for l in dist]
             )
         return queryset
 
