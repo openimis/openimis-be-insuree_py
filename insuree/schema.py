@@ -77,11 +77,23 @@ class Query(graphene.ObjectType):
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
-        query = Insuree.objects
+        filters = []
         show_history = kwargs.get('show_history', False)
         if not show_history:
-            query = query.filter(*filter_validity(**kwargs))
-        return gql_optimizer.query(query.all(), info)
+            filters += filter_validity(**kwargs)
+        parent_location = kwargs.get('parent_location')
+        if parent_location is not None:
+            parent_location_level = kwargs.get('parent_location_level')
+            if parent_location_level is None:
+                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+            f = "uuid"
+            for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
+                f = "parent__" + f
+            current_village = "current_village__" + f
+            family_location = "family__location__" + f
+            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
+                        (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+        return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
