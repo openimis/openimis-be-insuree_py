@@ -15,6 +15,7 @@ DEFAULT_CFG = {
     "gql_mutation_update_insurees_perms": ["101103"],
     "gql_mutation_delete_insurees_perms": ["101104"],
     "insuree_photos_root_path": None,
+    "excluded_insuree_chfids": ['999999999'],  # fake insurees (and bound families) used, for example, in 'funding'
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
 }
@@ -36,6 +37,7 @@ class InsureeConfig(AppConfig):
     gql_mutation_update_insurees_perms = []
     gql_mutation_delete_insurees_perms = []
     insuree_photos_root_path = None
+    excluded_insuree_chfids = ['999999999']
     renewal_photo_age_adult = 60
     renewal_photo_age_child = 12
 
@@ -64,6 +66,8 @@ class InsureeConfig(AppConfig):
             "insuree_photos_root_path"
         ]
 
+    def _configure_fake_insurees(self, cfg):
+        InsureeConfig.excluded_insuree_chfids = cfg["excluded_insuree_chfids"]
 
     def _configure_renewal(self, cfg):
         InsureeConfig.renewal_photo_age_adult = cfg["renewal_photo_age_adult"]
@@ -74,4 +78,5 @@ class InsureeConfig(AppConfig):
         from core.models import ModuleConfiguration
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
         self._configure_permissions(cfg)
+        self._configure_fake_insurees(cfg)
         self._configure_renewal(cfg)

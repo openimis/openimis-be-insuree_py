@@ -5,6 +5,7 @@ from core import models as core_models
 from django.conf import settings
 from django.db import models
 from graphql import ResolveInfo
+from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import UserDistrict
 
@@ -123,6 +124,10 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
+        if InsureeConfig.excluded_insuree_chfids:
+            queryset = queryset.exclude(
+                members__chf_id__in=InsureeConfig.excluded_insuree_chfids
+            )
         if settings.ROW_SECURITY:
             dist = UserDistrict.get_user_districts(user._u)
             return queryset.filter(
@@ -267,9 +272,13 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
+        if InsureeConfig.excluded_insuree_chfids:
+            queryset = queryset.exclude(
+                chf_id__in=InsureeConfig.excluded_insuree_chfids
+            )
         # The insuree "health facility" is the "First Point of Service"
         # (aka the 'preferred/reference' HF for an insuree)
-        # ... so not ti be used as 'strict filtering'
+        # ... so not to be used as 'strict filtering'
         if settings.ROW_SECURITY:
             dist = UserDistrict.get_user_districts(user._u)
             return queryset.filter(
