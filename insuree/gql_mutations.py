@@ -8,11 +8,12 @@ from .apps import InsureeConfig
 from core import filter_validity, assert_string_length
 from core.schema import TinyInt, SmallInt, OpenIMISMutation
 from django.conf import settings
+from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
-from .models import Family, Insuree, InsureePhoto
+from .models import Family, Insuree, InsureePhoto, InsureePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -192,9 +193,6 @@ def update_or_create_insuree(data, user):
     # doesn't work because of explicit attempt to set null to uuid!
     if insuree_uuid:
         insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
-        # if settings.ROW_SECURITY:
-        #  TODO...
-        #
         insuree.save_history()
         # reset the non required fields
         # (each update is 'complete', necessary to be able to set 'null')
@@ -424,6 +422,7 @@ class UpdateInsureeMutation(OpenIMISMutation):
 def set_insuree_deleted(insuree):
     try:
         insuree.delete_history()
+        insuree.insuree_policies.delete.delete_history()
         return []
     except Exception as exc:
         return {
@@ -475,6 +474,24 @@ class DeleteInsureesMutation(OpenIMISMutation):
         return errors
 
 
+def cancel_policies(insuree):
+    try:
+        from core import datetime
+        now = datetime.datetime.now()
+        ips = insuree.insuree_policies.filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=now))
+        for ip in ips:
+            ip.expiry_date = now
+        InsureePolicy.objects.bulk_update(ips, ['expiry_date'])
+        return []
+    except Exception as exc:
+        return {
+            'title': insuree.chf_id,
+            'list': [{
+                'message': _("insuree.mutation.failed_to_cancel_insuree_policies") % {'chfid': insuree.chfid},
+                'detail': insuree.uuid}]
+    }
+
+
 def remove_insuree(insuree):
     try:
         insuree.save_history()
@@ -500,6 +517,7 @@ class RemoveInsureesMutation(OpenIMISMutation):
     class Input(OpenIMISMutation.Input):
         uuid = graphene.String()
         uuids = graphene.List(graphene.String)
+        cancel_policies = graphene.Boolean(default_value=False)
 
     @classmethod
     def async_mutate(cls, user, **data):
@@ -525,6 +543,8 @@ class RemoveInsureesMutation(OpenIMISMutation):
                         "insuree.validation.remove_head_insuree") % {'id': insuree_uuid}}]
                 })
                 continue
+            if data['cancel_policies']:
+                errors += cancel_policies(insuree)
             errors += remove_insuree(insuree)
         if len(errors) == 1:
             errors = errors[0]['list']
@@ -578,6 +598,7 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
     class Input(OpenIMISMutation.Input):
         family_uuid = graphene.String()
         insuree_uuid = graphene.String()
+        cancel_policies = graphene.Boolean(default_value=False)
 
     @classmethod
     def async_mutate(cls, user, **data):
@@ -590,6 +611,8 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
             insuree.save_history()
             insuree.family = family
             insuree.save()
+            if data['cancel_policies']:
+                return cancel_policies(insuree)
             return None
         except Exception as exc:
             return [{
