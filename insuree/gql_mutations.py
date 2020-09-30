@@ -226,7 +226,9 @@ def update_or_create_family(data, user):
         data.pop('client_mutation_id')
     if "client_mutation_label" in data:
         data.pop('client_mutation_label')
-    head_insuree = update_or_create_insuree(data.pop('head_insuree'), user)
+    head_insuree_data = data.pop('head_insuree')
+    head_insuree_data["head"] = True
+    head_insuree = update_or_create_insuree(head_insuree_data, user)
     data["head_insuree"] = head_insuree
     family_uuid = data.pop('uuid') if 'uuid' in data else None
     # update_or_create(uuid=family_uuid, ...)
