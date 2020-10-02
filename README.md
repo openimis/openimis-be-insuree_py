@@ -14,29 +14,71 @@ It is dedicated to be deployed as a module of [openimis-be_py](https://github.co
 * tblPhotos > InsureePhoto
 * tblFamilyTypes > FamilyType
 * tblFamilies > Family
-* tblInsuree > Insuree (partially mapped)
+* tblInsuree > Insuree
 * tblInsureePolicy > InsureePolicy
+* tblConfirmationTypes > ConfirmationType
+* tblProfessions > Profession
+* tblEducations > Education
+* tblIdentificationTypes > IdentificationType
+* tblRelations > Relation
+* insuree_InsureeMutation > InsureeMutation
+* insuree_FamilyMutation > FamilyMutation
+* tblPolicyRenewalDetails > PolicyRenewalDetail
 
 ## Listened Django Signals
 None
 
 ## Services
-None
+* create_insuree_renewal_detail: the renewal details are
+  insuree-specific data to be renewed. Generally the picture.
 
 ## Reports (template can be overloaded via report.ReportDefinition)
 None
 
 ## GraphQL Queries
+* insuree_genders
 * insurees
-* insuree
+* identification_types
+* educations
+* professions
+* family_types
+* confirmation_types
+* relations
+* families
+* family_members
+* insuree_officers
 
 ## GraphQL Mutations - each mutation emits default signals and return standard error lists (cfr. openimis-be-core_py)
-None
+* create_family
+* update_family
+* delete_families
+* create_insuree
+* update_insuree
+* delete_insurees
+* remove_insurees
+* set_family_head
+* change_insuree_family
 
 ## Configuration options (can be changed via core.ModuleConfiguration)
-* gql_query_insurees_perms: required rights to call insurees (default: ["101101"])
-* gql_query_insuree_perms: required rights to call insuree (default: ["101101"])
-* gql_insuree_family_members: required rights to call insuree_family_members (default: ["101101"])
+Rights required:
+* gql_query_insurees_perms": (default: `["101101"]`)
+* gql_query_insuree_perms": (default: `["101101"]`)
+* gql_query_insuree_officers_perms": (default: `[]`),
+* gql_insuree_family_members": (default: `["101101"]`),
+* gql_query_families_perms": (default: `["101001"]`),
+* gql_mutation_create_families_perms": (default: `["101002"]`),
+* gql_mutation_update_families_perms": (default: `["101003"]`),
+* gql_mutation_delete_families_perms": (default: `["101004"]`),
+* gql_mutation_create_insurees_perms": (default: `["101102"]`),
+* gql_mutation_update_insurees_perms": (default: `["101103"]`),
+* gql_mutation_delete_insurees_perms": (default: `["101104"]`),
+* insuree_photos_root_path": None,
+* excluded_insuree_chfids": fake insurees (and bound families) used, for
+  example, in 'funding' (default: `['999999999']`)
+* renewal_photo_age_adult": age (in months) of a picture due for renewal
+  for adults (default: `60`)
+* renewal_photo_age_child": age (in months) of a picture due for renewal
+  for children (default: `12`)
 
 ## openIMIS Modules Dependencies
 * location.models.HealthFacility
