@@ -79,7 +79,7 @@ class Query(graphene.ObjectType):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         show_history = kwargs.get('show_history', False)
-        if not show_history:
+        if not show_history and not kwargs.get('uuid', None):
             filters += filter_validity(**kwargs)
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
