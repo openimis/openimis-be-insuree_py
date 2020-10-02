@@ -113,7 +113,6 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     def filter_queryset(cls, queryset=None):
         if queryset is None:
             queryset = cls.objects.all()
-        queryset = queryset.filter(*core.filter_validity())
         return queryset
 
     @classmethod
