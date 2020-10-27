@@ -109,6 +109,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
 
+    def __str__(self):
+        return str(self.head_insuree)
+
     @classmethod
     def filter_queryset(cls, queryset=None):
         if queryset is None:
