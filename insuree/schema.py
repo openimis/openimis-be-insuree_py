@@ -79,7 +79,10 @@ class Query(graphene.ObjectType):
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
         warnings = []
-        for policy in family.policies.exclude(status__in=[Policy.STATUS_EXPIRED, Policy.STATUS_SUSPENDED]):
+        policies = family.policies\
+            .filter(validity_to__isnull=True)\
+            .exclude(status__in=[Policy.STATUS_EXPIRED, Policy.STATUS_SUSPENDED])
+        for policy in policies:
             if not policy.can_add_insuree():
                 warnings.append(_("insuree.validation.policy_above_max_members") % {
                     'product_code': policy.product.code,
