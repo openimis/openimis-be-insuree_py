@@ -9,6 +9,7 @@ from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField, OfficerGQLType
+from policy.models import Policy
 
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
@@ -42,6 +43,10 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
 
 
 class Query(graphene.ObjectType):
+    can_add_insuree = graphene.Field(
+        graphene.List(graphene.String),
+        family_id=graphene.Int(required=True)
+    )
     insuree_genders = graphene.List(GenderGQLType)
     insurees = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
@@ -70,6 +75,22 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String),
     )
     insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
+
+    def resolve_can_add_insuree(self, info, **kwargs):
+        family = Family.objects.get(id=kwargs.get('family_id'))
+        warnings = []
+        policies = family.policies\
+            .filter(validity_to__isnull=True)\
+            .exclude(status__in=[Policy.STATUS_EXPIRED, Policy.STATUS_SUSPENDED])
+        for policy in policies:
+            if not policy.can_add_insuree():
+                warnings.append(_("insuree.validation.policy_above_max_members") % {
+                    'product_code': policy.product.code,
+                    'start_date': policy.start_date,
+                    'max': policy.product.member_count,
+                    'count': family.members.filter(validity_to__isnull=True).count()
+                })
+        return warnings
 
     def resolve_insuree_genders(selfself, info, **kwargs):
         return Gender.objects.order_by('sort_order').all()

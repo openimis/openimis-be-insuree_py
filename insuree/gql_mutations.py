@@ -125,7 +125,7 @@ def reset_insuree_before_update(insuree):
 
 def create_file(date, insuree_id, photo_bin):
     date_iso = date.isoformat()
-    root = InsureeConfig.insuree_photo_root_path
+    root = InsureeConfig.insuree_photos_root_path
     file_dir = '%s/%s/%s/%s' % (
         date_iso[0:4],
         date_iso[5:7],
@@ -323,10 +323,10 @@ def set_family_deleted(family, delete_members):
         return []
     except Exception as exc:
         return {
-            'title': insuree.chf_id,
+            'title': family.uuid,
             'list': [{
                 'message': _("insuree.mutation.failed_to_delete_family") % {'chfid': family.chfid},
-                'detail': insuree.uuid}]
+                'detail': family.uuid}]
         }
 
 
