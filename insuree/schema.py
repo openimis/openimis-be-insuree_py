@@ -1,4 +1,4 @@
-from core.schema import signal_mutation_module_validate, translate_query
+from core.schema import signal_mutation_module_validate
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from graphene_django.filter import DjangoFilterConnectionField
@@ -77,7 +77,6 @@ class Query(graphene.ObjectType):
     )
     insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
 
-    @translate_query
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
         warnings = []
@@ -94,10 +93,9 @@ class Query(graphene.ObjectType):
                 })
         return warnings
 
-    def resolve_insuree_genders(selfself, info, **kwargs):
+    def resolve_insuree_genders(self, info, **kwargs):
         return Gender.objects.order_by('sort_order').all()
 
-    @translate_query
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
@@ -119,7 +117,6 @@ class Query(graphene.ObjectType):
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
-    @translate_query
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
@@ -129,25 +126,24 @@ class Query(graphene.ObjectType):
             *filter_validity(**kwargs)
         ).order_by('-head', 'dob')
 
-    def resolve_educations(selfself, info, **kwargs):
+    def resolve_educations(self, info, **kwargs):
         return Education.objects.order_by('sort_order').all()
 
-    def resolve_professions(selfself, info, **kwargs):
+    def resolve_professions(self, info, **kwargs):
         return Profession.objects.order_by('sort_order').all()
 
-    def resolve_identification_types(selfself, info, **kwargs):
+    def resolve_identification_types(self, info, **kwargs):
         return IdentificationType.objects.order_by('sort_order').all()
 
-    def resolve_confirmation_types(selfself, info, **kwargs):
+    def resolve_confirmation_types(self, info, **kwargs):
         return ConfirmationType.objects.order_by('sort_order').all()
 
-    def resolve_relations(selfself, info, **kwargs):
+    def resolve_relations(self, info, **kwargs):
         return Relation.objects.order_by('sort_order').all()
 
-    def resolve_family_types(selfself, info, **kwargs):
+    def resolve_family_types(self, info, **kwargs):
         return FamilyType.objects.order_by('sort_order').all()
 
-    @translate_query
     def resolve_families(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
@@ -170,7 +166,6 @@ class Query(graphene.ObjectType):
             filters += [Q(**{f: parent_location})]
         return gql_optimizer.query(Family.objects.filter(*filters).all(), info)
 
-    @translate_query
     def resolve_insuree_officers(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
