@@ -424,13 +424,13 @@ class UpdateInsureeMutation(OpenIMISMutation):
 def set_insuree_deleted(insuree):
     try:
         insuree.delete_history()
-        insuree.insuree_policies.delete.delete_history()
+        [ip.delete_history() for ip in insuree.insuree_policies.filter(validity_to__isnull=True)]
         return []
     except Exception as exc:
         return {
             'title': insuree.chf_id,
             'list': [{
-                'message': _("insuree.mutation.failed_to_delete_insuree") % {'chfid': insuree.chfid},
+                'message': _("insuree.mutation.failed_to_delete_insuree") % {'chfid': insuree.chf_id},
                 'detail': insuree.uuid}]
         }
 
