@@ -47,24 +47,12 @@ class InsureeConfig(AppConfig):
         InsureeConfig.gql_query_insuree_officers_perms = cfg["gql_query_insuree_officers_perms"]
         InsureeConfig.gql_insuree_family_members = cfg["gql_insuree_family_members"]
         InsureeConfig.gql_query_families_perms = cfg["gql_query_families_perms"]
-        InsureeConfig.gql_mutation_create_families_perms = cfg[
-            "gql_mutation_create_families_perms"
-        ]
-        InsureeConfig.gql_mutation_update_families_perms = cfg[
-            "gql_mutation_update_families_perms"
-        ]
-        InsureeConfig.gql_mutation_create_insurees_perms = cfg[
-            "gql_mutation_create_insurees_perms"
-        ]
-        InsureeConfig.gql_mutation_update_insurees_perms = cfg[
-            "gql_mutation_update_insurees_perms"
-        ]
-        InsureeConfig.gql_mutation_delete_insurees_perms = cfg[
-            "gql_mutation_delete_insurees_perms"
-        ]
-        InsureeConfig.insuree_photos_root_path = cfg[
-            "insuree_photos_root_path"
-        ]
+        InsureeConfig.gql_mutation_create_families_perms = cfg["gql_mutation_create_families_perms"]
+        InsureeConfig.gql_mutation_update_families_perms = cfg["gql_mutation_update_families_perms"]
+        InsureeConfig.gql_mutation_create_insurees_perms = cfg["gql_mutation_create_insurees_perms"]
+        InsureeConfig.gql_mutation_update_insurees_perms = cfg["gql_mutation_update_insurees_perms"]
+        InsureeConfig.gql_mutation_delete_insurees_perms = cfg["gql_mutation_delete_insurees_perms"]
+        InsureeConfig.insuree_photos_root_path = cfg["insuree_photos_root_path"]
 
     def _configure_fake_insurees(self, cfg):
         InsureeConfig.excluded_insuree_chfids = cfg["excluded_insuree_chfids"]
