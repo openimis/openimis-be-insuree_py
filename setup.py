@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='openimis-be-insuree',
-    version='1.2.0rc3',
+    version='1.2.1rc2',
     packages=find_packages(),
     include_package_data=True,
     license='GNU AGPL v3',
@@ -23,7 +23,7 @@ setup(
         'django-db-signals',
         'djangorestframework',
         'openimis-be-location',
-    ],   
+    ],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
