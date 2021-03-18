@@ -55,6 +55,7 @@ class Query(graphene.ObjectType):
         show_history=graphene.Boolean(),
         parent_location=graphene.String(),
         parent_location_level=graphene.Int(),
+        client_mutation_id=graphene.String(),
         orderBy=graphene.List(of_type=graphene.String),
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
@@ -69,6 +70,7 @@ class Query(graphene.ObjectType):
         show_history=graphene.Boolean(),
         parent_location=graphene.String(),
         parent_location_level=graphene.Int(),
+        client_mutation_id=graphene.String(),
         orderBy=graphene.List(of_type=graphene.String),
     )
     family_members = OrderedDjangoFilterConnectionField(
@@ -111,6 +113,9 @@ class Query(graphene.ObjectType):
         show_history = kwargs.get('show_history', False)
         if not show_history and not kwargs.get('uuid', None):
             filters += filter_validity(**kwargs)
+        client_mutation_id = kwargs.get("client_mutation_id", None)
+        if client_mutation_id:
+            filters.append(Q(mutations__mutation__client_mutation_id=client_mutation_id))
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')
@@ -162,6 +167,9 @@ class Query(graphene.ObjectType):
         show_history = kwargs.get('show_history', False)
         if not show_history:
             filters += filter_validity(**kwargs)
+        client_mutation_id = kwargs.get("client_mutation_id", None)
+        if client_mutation_id:
+            filters.append(Q(mutations__mutation__client_mutation_id=client_mutation_id))
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')

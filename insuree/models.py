@@ -336,22 +336,18 @@ class InsureePolicy(core_models.VersionedModel):
         db_table = 'tblInsureePolicy'
 
 
-class InsureeMutation(core_models.UUIDModel):
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING,
-                                related_name='mutations')
-    mutation = models.ForeignKey(
-        core_models.MutationLog, models.DO_NOTHING, related_name='insurees')
+class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, related_name='mutations')
+    mutation = models.ForeignKey(core_models.MutationLog, models.DO_NOTHING, related_name='insurees')
 
     class Meta:
         managed = True
         db_table = "insuree_InsureeMutation"
 
 
-class FamilyMutation(core_models.UUIDModel):
-    family = models.ForeignKey(Family, models.DO_NOTHING,
-                               related_name='mutations')
-    mutation = models.ForeignKey(
-        core_models.MutationLog, models.DO_NOTHING, related_name='families')
+class FamilyMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    family = models.ForeignKey(Family, models.DO_NOTHING, related_name='mutations')
+    mutation = models.ForeignKey(core_models.MutationLog, models.DO_NOTHING, related_name='families')
 
     class Meta:
         managed = True
