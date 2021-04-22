@@ -327,7 +327,7 @@ class InsureePolicy(core_models.VersionedModel):
         if settings.ROW_SECURITY:
             dist = UserDistrict.get_user_districts(user._u)
             return queryset.filter(
-                location__parent__parent_id__in=[l.location_id for l in dist]
+                insuree__family__location__parent__parent_id__in=[l.location_id for l in dist]
             )
         return queryset
 
