@@ -14,6 +14,7 @@ from policy.models import Policy
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
+from .signals import signal_before_insuree_policy_query, _read_signal_results
 
 
 def family_fk(arg):
@@ -76,6 +77,13 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String),
     )
     insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
+    insuree_policy = OrderedDjangoFilterConnectionField(
+        InsureePolicyGQLType,
+        parent_location=graphene.String(),
+        parent_location_level=graphene.Int(),
+        orderBy=graphene.List(of_type=graphene.String),
+        additional_filter=graphene.JSONString(),
+    )
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
@@ -170,6 +178,35 @@ class Query(graphene.ObjectType):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
 
+    def resolve_insuree_policy(self, info, **kwargs):
+        filters = []
+        additional_filter = kwargs.get('additional_filter', None)
+        # go to process additional filter only when this arg of filter was passed into query
+        if additional_filter:
+            filters_from_signal = _get_additional_filter(
+                sender=self, additional_filter=additional_filter, user=info.context.user
+            )
+            # check if there is filter from signal (perms will be checked in the signals)
+            if len(filters_from_signal) == 0:
+                raise PermissionDenied(_("unauthorized"))
+            filters.extend(filters_from_signal)
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
+            raise PermissionDenied(_("unauthorized"))
+        parent_location = kwargs.get('parent_location')
+        if parent_location is not None:
+            parent_location_level = kwargs.get('parent_location_level')
+            if parent_location_level is None:
+                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+            f = "uuid"
+            for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
+                f = "parent__" + f
+            current_village = "current_village__" + f
+            family_location = "family__location__" + f
+            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
+                        (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+        return gql_optimizer.query(InsureePolicy.objects.filter(*filters).all(), info)
+
+
 
 class Mutation(graphene.ObjectType):
     create_family = CreateFamilyMutation.Field()
@@ -257,3 +294,15 @@ def on_mutation(sender, **kwargs):
 
 def bind_signals():
     signal_mutation_module_validate["insuree"].connect(on_mutation)
+
+
+def _get_additional_filter(sender, additional_filter, user):
+    # function to retrieve additional filters from signal
+    filters_from_signal = []
+    if additional_filter:
+        # send signal to append additional filter
+        results_signal = signal_before_insuree_policy_query.send(
+            sender=sender, additional_filter=additional_filter, user=user,
+        )
+        filters_from_signal = _read_signal_results(results_signal)
+    return filters_from_signal

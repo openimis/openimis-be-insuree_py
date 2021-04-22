@@ -8,6 +8,7 @@ DEFAULT_CFG = {
     "gql_query_insuree_officers_perms": [],
     "gql_insuree_family_members": ["101101"],
     "gql_query_families_perms": ["101001"],
+    "gql_query_insuree_policy_perms": ["101500"],
     "gql_mutation_create_families_perms": ["101002"],
     "gql_mutation_update_families_perms": ["101003"],
     "gql_mutation_delete_families_perms": ["101004"],
@@ -30,6 +31,7 @@ class InsureeConfig(AppConfig):
     gql_insuree_family_members = []
     gql_query_families_perms = []
     gql_query_insuree_officers_perms = []
+    gql_query_insuree_policy_perms = []
     gql_mutation_create_families_perms = []
     gql_mutation_update_families_perms = []
     gql_mutation_delete_families_perms = []
@@ -47,6 +49,7 @@ class InsureeConfig(AppConfig):
         InsureeConfig.gql_query_insuree_officers_perms = cfg["gql_query_insuree_officers_perms"]
         InsureeConfig.gql_insuree_family_members = cfg["gql_insuree_family_members"]
         InsureeConfig.gql_query_families_perms = cfg["gql_query_families_perms"]
+        InsureeConfig.gql_query_insuree_policy_perms = cfg["gql_query_insuree_policy_perms"]
         InsureeConfig.gql_mutation_create_families_perms = cfg["gql_mutation_create_families_perms"]
         InsureeConfig.gql_mutation_update_families_perms = cfg["gql_mutation_update_families_perms"]
         InsureeConfig.gql_mutation_create_insurees_perms = cfg["gql_mutation_create_insurees_perms"]
