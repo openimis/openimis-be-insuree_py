@@ -76,6 +76,12 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String),
     )
     insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
+    insuree_policy = OrderedDjangoFilterConnectionField(
+        InsureePolicyGQLType,
+        parent_location=graphene.String(),
+        parent_location_level=graphene.Int(),
+        orderBy=graphene.List(of_type=graphene.String),
+    )
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))

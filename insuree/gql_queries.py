@@ -1,8 +1,9 @@
 import graphene
 from graphene_django import DjangoObjectType
 from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation
+    Family, FamilyType, ConfirmationType, Relation, InsureePolicy
 from location.schema import LocationGQLType
+from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
 
 
@@ -134,3 +135,22 @@ class FamilyGQLType(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         return Family.get_queryset(queryset, info)
+
+
+class InsureePolicyGQLType(DjangoObjectType):
+    class Meta:
+        model = InsureePolicy
+        filter_fields = {
+            "enrollment_date": ["exact", "lt", "lte", "gt", "gte"],
+            "start_date": ["exact", "lt", "lte", "gt", "gte"],
+            "effective_date": ["exact", "lt", "lte", "gt", "gte"],
+            "expiry_date": ["exact", "lt", "lte", "gt", "gte"],
+            **prefix_filterset("insuree__", InsureeGQLType._meta.filter_fields),
+            **prefix_filterset("policy__", PolicyGQLType._meta.filter_fields),
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return InsureePolicy.get_queryset(queryset, info)
