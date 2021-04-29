@@ -13,7 +13,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
-from .models import Family, Insuree, InsureePhoto, InsureePolicy
+from .models import Family, Insuree, InsureePhoto, InsureePolicy, FamilyMutation, InsureeMutation
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +269,9 @@ class CreateFamilyMutation(OpenIMISMutation):
             data['audit_user_id'] = user.id_for_audit
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
-            update_or_create_family(data, user)
+            client_mutation_id = data.get("client_mutation_id")
+            family = update_or_create_family(data, user)
+            FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
         except Exception as exc:
             return [{
@@ -297,7 +299,9 @@ class UpdateFamilyMutation(OpenIMISMutation):
             if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
                 raise PermissionDenied(_("unauthorized"))
             data['audit_user_id'] = user.id_for_audit
-            update_or_create_family(data, user)
+            client_mutation_id = data.get("client_mutation_id")
+            family = update_or_create_family(data, user)
+            FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
         except Exception as exc:
             return [{
@@ -384,7 +388,9 @@ class CreateInsureeMutation(OpenIMISMutation):
             data['audit_user_id'] = user.id_for_audit
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
-            update_or_create_insuree(data, user)
+            client_mutation_id = data.get("client_mutation_id")
+            insuree = update_or_create_insuree(data, user)
+            InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
         except Exception as exc:
             return [{
@@ -412,7 +418,9 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
                 raise PermissionDenied(_("unauthorized"))
             data['audit_user_id'] = user.id_for_audit
-            update_or_create_insuree(data, user)
+            client_mutation_id = data.get("client_mutation_id")
+            insuree = update_or_create_insuree(data, user)
+            InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
         except Exception as exc:
             return [{

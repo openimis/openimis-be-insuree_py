@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation, InsureePolicy
+    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -154,3 +154,13 @@ class InsureePolicyGQLType(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         return InsureePolicy.get_queryset(queryset, info)
+
+
+class FamilyMutationGQLType(DjangoObjectType):
+    class Meta:
+        model = FamilyMutation
+
+
+class InsureeMutationGQLType(DjangoObjectType):
+    class Meta:
+        model = InsureeMutation
