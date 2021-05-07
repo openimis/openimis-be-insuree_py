@@ -1,0 +1,86 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-11-11 14:21+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: insuree/schema.py:71 insuree/schema.py:79 insuree/schema.py:84
+#: insuree/schema.py:92 insuree/gql_mutations.py:268
+#: insuree/gql_mutations.py:298 insuree/gql_mutations.py:347
+#: insuree/gql_mutations.py:383 insuree/gql_mutations.py:413
+#: insuree/gql_mutations.py:452 insuree/gql_mutations.py:527
+#: insuree/gql_mutations.py:570 insuree/gql_mutations.py:609
+#: insuree/schema.py:96 insuree/schema.py:117 insuree/schema.py:144
+#: insuree/schema.py:166
+msgid "unauthorized"
+msgstr "User not authorized for this operation"
+
+#: insuree/gql_mutations.py:266 insuree/gql_mutations.py:296
+#: insuree/gql_mutations.py:381 insuree/gql_mutations.py:411
+msgid "mutation.authentication_required"
+msgstr "User must be authenticated for this operation"
+
+#: insuree/gql_mutations.py:276 insuree/gql_mutations.py:304
+msgid "insuree.mutation.failed_to_create_family"
+msgstr "Failed to create family"
+
+#: insuree/gql_mutations.py:328 insuree/gql_mutations.py:357
+msgid "insuree.mutation.failed_to_delete_family"
+msgstr "Failed to delete family %(uuid)s"
+
+#: insuree/gql_mutations.py:391
+msgid "insuree.mutation.failed_to_create_insuree"
+msgstr "Failed to create insuree"
+
+#: insuree/gql_mutations.py:419
+msgid "insuree.mutation.failed_to_update_insuree"
+msgstr "Failed to update insuree"
+
+#: insuree/gql_mutations.py:433
+msgid "insuree.mutation.failed_to_delete_insuree"
+msgstr "Failed to delete insuree %(chfid)s"
+
+#: insuree/gql_mutations.py:463 insuree/gql_mutations.py:538
+msgid "insuree.validation.id_does_not_exist"
+msgstr "Insuree %(id)s doesn't exist"
+
+#: insuree/gql_mutations.py:470
+msgid "insuree.validation.delete_head_insuree"
+msgstr "Cannot delete family head insuree %(id)s"
+
+#: insuree/gql_mutations.py:492
+msgid "insuree.mutation.failed_to_cancel_insuree_policies"
+msgstr "Failed to cancel policies of insuree %(chfid)s"
+
+#: insuree/gql_mutations.py:507
+msgid "insuree.mutation.failed_to_remove_insuree"
+msgstr "Failed to remove insuree %(chfid)s from its family"
+
+#: insuree/gql_mutations.py:545
+msgid "insuree.validation.remove_head_insuree"
+msgstr "Cannot remove head insuree %(id)s from family"
+
+#: insuree/gql_mutations.py:588
+msgid "insuree.mutation.failed_to_set_head_insuree"
+msgstr "Failed to set family head insuree"
+
+#: insuree/gql_mutations.py:621
+msgid "insuree.mutation.failed_to_change_insuree_family"
+msgstr "Failed to change insuree from family"
+
+#: insuree/schema.py:83
+msgid "insuree.validation.policy_above_max_members"
+msgstr "Policy %(product_code)s - %(start_date)s covers max %(max)s insurees. Current family members count: %(count)s"
