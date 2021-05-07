@@ -130,6 +130,7 @@ class Query(graphene.ObjectType):
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
+
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
