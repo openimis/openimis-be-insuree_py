@@ -83,6 +83,8 @@ class FamilyBase:
     confirmation_type_id = graphene.String(max_length=3, required=False)
     json_ext = graphene.types.json.JSONString(required=False)
 
+    contribution = graphene.types.json.JSONString(required=False)
+
     head_insuree = graphene.Field(FamilyHeadInsureeInputType, required=False)
 
 
@@ -241,6 +243,7 @@ def update_or_create_family(data, user):
         reset_family_before_update(family)
         [setattr(family, key, data[key]) for key in data]
     else:
+        data.pop('contribution')
         family = Family.objects.create(**data)
     family.save()
     head_insuree.family = family
