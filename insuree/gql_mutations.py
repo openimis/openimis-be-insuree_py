@@ -162,7 +162,7 @@ def handle_insuree_photo(user, now, insuree, data):
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path and photo_bin != insuree_photo.photo:
         (file_dir, file_name) = create_file(now, insuree.id, photo_bin)
-        data.pop('photo')
+        data.pop('photo', None)
         data['folder'] = file_dir
         data['filename'] = file_name
 
@@ -181,16 +181,14 @@ def handle_insuree_photo(user, now, insuree, data):
 
 
 def update_or_create_insuree(data, user):
-    if "client_mutation_id" in data:
-        data.pop('client_mutation_id')
-    if "client_mutation_label" in data:
-        data.pop('client_mutation_label')
+    data.pop('client_mutation_id', None)
+    data.pop('client_mutation_label', None)
     photo = data.pop('photo', None)
     from core import datetime
     now = datetime.datetime.now()
     data['audit_user_id'] = user.id_for_audit
     data['validity_from'] = now
-    insuree_uuid = data.pop('uuid') if 'uuid' in data else None
+    insuree_uuid = data.pop('uuid', None)
     # update_or_create(uuid=insuree_uuid, ...)
     # doesn't work because of explicit attempt to set null to uuid!
     if insuree_uuid:
@@ -224,15 +222,13 @@ def reset_family_before_update(family):
 
 
 def update_or_create_family(data, user):
-    if "client_mutation_id" in data:
-        data.pop('client_mutation_id')
-    if "client_mutation_label" in data:
-        data.pop('client_mutation_label')
+    data.pop('client_mutation_id', None)
+    data.pop('client_mutation_label', None)
     head_insuree_data = data.pop('head_insuree')
     head_insuree_data["head"] = True
     head_insuree = update_or_create_insuree(head_insuree_data, user)
     data["head_insuree"] = head_insuree
-    family_uuid = data.pop('uuid') if 'uuid' in data else None
+    family_uuid = data.pop('uuid', None)
     # update_or_create(uuid=family_uuid, ...)
     # doesn't work because of explicit attempt to set null to uuid!
     if family_uuid:
@@ -243,7 +239,7 @@ def update_or_create_family(data, user):
         reset_family_before_update(family)
         [setattr(family, key, data[key]) for key in data]
     else:
-        data.pop('contribution')
+        data.pop('contribution', None)
         family = Family.objects.create(**data)
     family.save()
     head_insuree.family = family
@@ -277,6 +273,7 @@ class CreateFamilyMutation(OpenIMISMutation):
             FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_create_family")
             return [{
                 'message': _("insuree.mutation.failed_to_create_family"),
                 'detail': str(exc)}
@@ -307,8 +304,9 @@ class UpdateFamilyMutation(OpenIMISMutation):
             FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_update_family")
             return [{
-                'message': _("insuree.mutation.failed_to_create_family"),
+                'message': _("insuree.mutation.failed_to_update_family"),
                 'detail': str(exc)}
             ]
 
@@ -329,6 +327,7 @@ def set_family_deleted(family, delete_members):
         family.delete_history()
         return []
     except Exception as exc:
+        logger.exception("insuree.mutation.failed_to_delete_family")
         return {
             'title': family.uuid,
             'list': [{
@@ -396,6 +395,7 @@ class CreateInsureeMutation(OpenIMISMutation):
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_create_insuree")
             return [{
                 'message': _("insuree.mutation.failed_to_create_insuree"),
                 'detail': str(exc)}
@@ -426,6 +426,7 @@ class UpdateInsureeMutation(OpenIMISMutation):
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_update_insuree")
             return [{
                 'message': _("insuree.mutation.failed_to_update_insuree"),
                 'detail': str(exc)}
@@ -438,6 +439,7 @@ def set_insuree_deleted(insuree):
         [ip.delete_history() for ip in insuree.insuree_policies.filter(validity_to__isnull=True)]
         return []
     except Exception as exc:
+        logger.exception("insuree.mutation.failed_to_delete_insuree")
         return {
             'title': insuree.chf_id,
             'list': [{
@@ -497,6 +499,7 @@ def cancel_policies(insuree):
         InsureePolicy.objects.bulk_update(ips, ['expiry_date'])
         return []
     except Exception as exc:
+        logger.exception("insuree.mutation.failed_to_cancel_insuree_policies")
         return {
             'title': insuree.chf_id,
             'list': [{
@@ -512,6 +515,7 @@ def remove_insuree(insuree):
         insuree.save()
         return []
     except Exception as exc:
+        logger.exception("insuree.mutation.failed_to_remove_insuree")
         return {
             'title': insuree.chf_id,
             'list': [{
@@ -595,6 +599,7 @@ class SetFamilyHeadMutation(OpenIMISMutation):
             insuree.save()
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_set_head_insuree")
             return [{
                 'message': _("insuree.mutation.failed_to_set_head_insuree"),
                 'detail': str(exc)}
@@ -628,6 +633,7 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
                 return cancel_policies(insuree)
             return None
         except Exception as exc:
+            logger.exception("insuree.mutation.failed_to_change_insuree_family")
             return [{
                 'message': _("insuree.mutation.failed_to_change_insuree_family"),
                 'detail': str(exc)}
