@@ -62,12 +62,14 @@ class ConfirmationTypeGQLType(DjangoObjectType):
             "code": ["exact"]
         }
 
+
 class RelationGQLType(DjangoObjectType):
     class Meta:
         model = Relation
         filter_fields = {
             "code": ["exact"]
         }
+
 
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
