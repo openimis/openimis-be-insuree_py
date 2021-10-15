@@ -4,6 +4,8 @@ import pathlib
 import base64
 from copy import copy
 import graphene
+from insuree.services import validate_insuree_number
+
 from .apps import InsureeConfig
 from core import filter_validity, assert_string_length
 from core.schema import TinyInt, SmallInt, OpenIMISMutation
@@ -199,7 +201,11 @@ def update_or_create_insuree(data, user):
         reset_insuree_before_update(insuree)
         [setattr(insuree, key, data[key]) for key in data]
     else:
-        insuree = Insuree.objects.create(**data)
+        errors = validate_insuree_number(data["chf_id"])
+        if errors:
+            raise Exception("Invalid insuree number")
+        else:
+            insuree = Insuree.objects.create(**data)
     insuree.save()
     photo = handle_insuree_photo(user, now, insuree, photo)
     if photo:
@@ -269,6 +275,10 @@ class CreateFamilyMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
+            # Validate insuree number right away
+            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None))
+            if errors:
+                return errors
             family = update_or_create_family(data, user)
             FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
@@ -391,6 +401,10 @@ class CreateInsureeMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
+            # Validate insuree number right away
+            errors = validate_insuree_number(data.get("chf_id", None))
+            if errors:
+                return errors
             insuree = update_or_create_insuree(data, user)
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None

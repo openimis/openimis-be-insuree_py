@@ -1,4 +1,6 @@
 from django.apps import AppConfig
+from django.conf import settings
+
 
 MODULE_NAME = "insuree"
 
@@ -19,6 +21,9 @@ DEFAULT_CFG = {
     "excluded_insuree_chfids": ['999999999'],  # fake insurees (and bound families) used, for example, in 'funding'
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
+    "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number
+    "insuree_number_length": None,  # Insuree number length to validate
+    "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
 }
 
 
@@ -42,6 +47,9 @@ class InsureeConfig(AppConfig):
     excluded_insuree_chfids = ['999999999']
     renewal_photo_age_adult = 60
     renewal_photo_age_child = 12
+    insuree_number_validator = None
+    insuree_number_length = None
+    insuree_number_modulo_root = None
 
     def _configure_permissions(self, cfg):
         InsureeConfig.gql_query_insurees_perms = cfg["gql_query_insurees_perms"]
@@ -56,6 +64,9 @@ class InsureeConfig(AppConfig):
         InsureeConfig.gql_mutation_update_insurees_perms = cfg["gql_mutation_update_insurees_perms"]
         InsureeConfig.gql_mutation_delete_insurees_perms = cfg["gql_mutation_delete_insurees_perms"]
         InsureeConfig.insuree_photos_root_path = cfg["insuree_photos_root_path"]
+        InsureeConfig.insuree_number_validator = cfg["insuree_number_validator"]
+        InsureeConfig.insuree_number_length = cfg["insuree_number_length"]
+        InsureeConfig.insuree_number_modulo_root = cfg["insuree_number_modulo_root"]
 
     def _configure_fake_insurees(self, cfg):
         InsureeConfig.excluded_insuree_chfids = cfg["excluded_insuree_chfids"]
@@ -64,10 +75,25 @@ class InsureeConfig(AppConfig):
         InsureeConfig.renewal_photo_age_adult = cfg["renewal_photo_age_adult"]
         InsureeConfig.renewal_photo_age_child = cfg["renewal_photo_age_child"]
 
-
     def ready(self):
         from core.models import ModuleConfiguration
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
         self._configure_permissions(cfg)
         self._configure_fake_insurees(cfg)
         self._configure_renewal(cfg)
+
+    # Getting these at runtime for easier testing
+    @classmethod
+    def get_insuree_number_validator(cls):
+        return cls.insuree_number_validator or \
+               (hasattr(settings, "INSUREE_NUMBER_VALIDATOR") and settings.INSUREE_NUMBER_VALIDATOR)
+
+    @classmethod
+    def get_insuree_number_length(cls):
+        return cls.insuree_number_length or \
+               (hasattr(settings, "INSUREE_NUMBER_LENGTH") and settings.INSUREE_NUMBER_LENGTH)
+
+    @classmethod
+    def get_insuree_number_modulo_root(cls):
+        return cls.insuree_number_modulo_root or\
+               (hasattr(settings, "INSUREE_NUMBER_MODULE_ROOT") and settings.INSUREE_NUMBER_MODULE_ROOT)

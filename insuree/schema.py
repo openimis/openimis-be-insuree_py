@@ -90,6 +90,18 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String),
         additional_filter=graphene.JSONString(),
     )
+    insuree_number_validity = graphene.Field(
+        graphene.Boolean,
+        insuree_number=graphene.String(required=True),
+        description="Checks that the specified insuree number is valid"
+    )
+
+    def resolve_insuree_number_validity(self, info, insuree_number=None):
+        errors = validate_insuree_number(insuree_number)
+        if errors:
+            return False
+        else:
+            return True
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
@@ -309,15 +321,15 @@ def on_family_and_insuree_mutation(kwargs):
 
 def on_mutation(sender, **kwargs):
     return {
-        CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
-        UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
-        DeleteFamiliesMutation._mutation_class: lambda x: on_families_mutation(x),
-        CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
-        RemoveInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
-        SetFamilyHeadMutation._mutation_class: lambda x: on_family_mutation(x),
-        ChangeInsureeFamilyMutation._mutation_class: lambda x: on_family_and_insuree_mutation(x),
+        CreateFamilyMutation._mutation_class: on_family_mutation,
+        UpdateFamilyMutation._mutation_class: on_family_mutation,
+        DeleteFamiliesMutation._mutation_class: on_families_mutation,
+        CreateInsureeMutation._mutation_class: on_insurees_mutation,
+        UpdateInsureeMutation._mutation_class: on_insurees_mutation,
+        DeleteInsureesMutation._mutation_class: on_family_and_insurees_mutation,
+        RemoveInsureesMutation._mutation_class: on_family_and_insurees_mutation,
+        SetFamilyHeadMutation._mutation_class: on_family_mutation,
+        ChangeInsureeFamilyMutation._mutation_class: on_family_and_insuree_mutation,
     }.get(sender._mutation_class, lambda x: [])(kwargs)
 
 
