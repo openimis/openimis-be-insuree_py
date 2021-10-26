@@ -38,6 +38,8 @@ class EducationGQLType(DjangoObjectType):
             "id": ["exact"]
         }
 
+        exclude_fields = ('insurees',)
+
 
 class ProfessionGQLType(DjangoObjectType):
     class Meta:
