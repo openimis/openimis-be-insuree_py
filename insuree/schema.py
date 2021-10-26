@@ -111,12 +111,17 @@ class Query(graphene.ObjectType):
             .exclude(status__in=[Policy.STATUS_EXPIRED, Policy.STATUS_SUSPENDED])
         for policy in policies:
             if not policy.can_add_insuree():
-                warnings.append(_("insuree.validation.policy_above_max_members") % {
-                    'product_code': policy.product.code,
-                    'start_date': policy.start_date,
-                    'max': policy.product.member_count,
-                    'count': family.members.filter(validity_to__isnull=True).count()
-                })
+                warnings.append(
+                    _("insuree.validation.policy_above_max_members")
+                    % {
+                        "product_code": policy.product.code,
+                        "start_date": policy.start_date,
+                        "max": policy.product.max_members,
+                        "count": family.members.filter(
+                            validity_to__isnull=True
+                        ).count(),
+                    }
+                )
         return warnings
 
     def resolve_insuree_genders(self, info, **kwargs):
