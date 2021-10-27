@@ -84,7 +84,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
     head_insuree = models.OneToOneField(
-        'Insuree', models.DO_NOTHING, db_column='InsureeID',
+        'Insuree', models.PROTECT, db_column='InsureeID', null=False,
         related_name='head_of')
     location = models.ForeignKey(
         location_models.Location,
