@@ -1,6 +1,8 @@
 from core.schema import signal_mutation_module_validate
+from core.utils import filter_validity
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
+from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 
@@ -14,7 +16,7 @@ from policy.models import Policy
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
-from .signals import signal_before_insuree_policy_query, _read_signal_results
+from .signals import signal_before_insuree_policy_query, _read_signal_results, signal_before_family_query
 
 
 def family_fk(arg):
@@ -72,6 +74,8 @@ class Query(graphene.ObjectType):
         parent_location_level=graphene.Int(),
         client_mutation_id=graphene.String(),
         orderBy=graphene.List(of_type=graphene.String),
+        additional_filter=graphene.JSONString(),
+        officer=graphene.String()
     )
     family_members = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
@@ -86,6 +90,18 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String),
         additional_filter=graphene.JSONString(),
     )
+    insuree_number_validity = graphene.Field(
+        graphene.Boolean,
+        insuree_number=graphene.String(required=True),
+        description="Checks that the specified insuree number is valid"
+    )
+
+    def resolve_insuree_number_validity(self, info, insuree_number=None):
+        errors = validate_insuree_number(insuree_number)
+        if errors:
+            return False
+        else:
+            return True
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
@@ -95,12 +111,17 @@ class Query(graphene.ObjectType):
             .exclude(status__in=[Policy.STATUS_EXPIRED, Policy.STATUS_SUSPENDED])
         for policy in policies:
             if not policy.can_add_insuree():
-                warnings.append(_("insuree.validation.policy_above_max_members") % {
-                    'product_code': policy.product.code,
-                    'start_date': policy.start_date,
-                    'max': policy.product.member_count,
-                    'count': family.members.filter(validity_to__isnull=True).count()
-                })
+                warnings.append(
+                    _("insuree.validation.policy_above_max_members")
+                    % {
+                        "product_code": policy.product.code,
+                        "start_date": policy.start_date,
+                        "max": policy.product.max_members,
+                        "count": family.members.filter(
+                            validity_to__isnull=True
+                        ).count(),
+                    }
+                )
         return warnings
 
     def resolve_insuree_genders(self, info, **kwargs):
@@ -161,7 +182,20 @@ class Query(graphene.ObjectType):
     def resolve_families(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
+
         filters = []
+        additional_filter = kwargs.get('additional_filter', None)
+        if additional_filter:
+            filters_from_signal = _family_additional_filters(
+                sender=self, additional_filter=additional_filter, user=info.context.user
+            )
+            filters.extend(filters_from_signal)
+
+        officer = kwargs.get('officer', None)
+        if officer:
+            officer_policies_families = Policy.objects.filter(officer__uuid=officer).values_list('family', flat=True)
+            filters.append(Q(id__in=officer_policies_families))
+
         null_as_false_poverty = kwargs.get('null_as_false_poverty')
         if null_as_false_poverty is not None:
             filters += [Q(poverty=True)] if null_as_false_poverty else [Q(poverty=False) | Q(poverty__isnull=True)]
@@ -181,7 +215,11 @@ class Query(graphene.ObjectType):
                 f = "parent__" + f
             f = "location__" + f
             filters += [Q(**{f: parent_location})]
-        return gql_optimizer.query(Family.objects.filter(*filters).all(), info)
+
+        # Duplicates cannot be removed with distinct, as TEXT field is not comparable
+        ids = Family.objects.filter(*filters).values_list('id')
+        dinstinct_queryset = Family.objects.filter(id__in=ids)
+        return gql_optimizer.query(dinstinct_queryset.all(), info)
 
     def resolve_insuree_officers(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
@@ -192,7 +230,7 @@ class Query(graphene.ObjectType):
         additional_filter = kwargs.get('additional_filter', None)
         # go to process additional filter only when this arg of filter was passed into query
         if additional_filter:
-            filters_from_signal = _get_additional_filter(
+            filters_from_signal = _insuree_additional_filters(
                 sender=self, additional_filter=additional_filter, user=info.context.user
             )
             # check if there is filter from signal (perms will be checked in the signals)
@@ -214,7 +252,6 @@ class Query(graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(InsureePolicy.objects.filter(*filters).all(), info)
-
 
 
 class Mutation(graphene.ObjectType):
@@ -289,15 +326,15 @@ def on_family_and_insuree_mutation(kwargs):
 
 def on_mutation(sender, **kwargs):
     return {
-        CreateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
-        UpdateFamilyMutation._mutation_class: lambda x: on_family_mutation(x),
-        DeleteFamiliesMutation._mutation_class: lambda x: on_families_mutation(x),
-        CreateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        UpdateInsureeMutation._mutation_class: lambda x: on_insurees_mutation(x),
-        DeleteInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
-        RemoveInsureesMutation._mutation_class: lambda x: on_family_and_insurees_mutation(x),
-        SetFamilyHeadMutation._mutation_class: lambda x: on_family_mutation(x),
-        ChangeInsureeFamilyMutation._mutation_class: lambda x: on_family_and_insuree_mutation(x),
+        CreateFamilyMutation._mutation_class: on_family_mutation,
+        UpdateFamilyMutation._mutation_class: on_family_mutation,
+        DeleteFamiliesMutation._mutation_class: on_families_mutation,
+        CreateInsureeMutation._mutation_class: on_insurees_mutation,
+        UpdateInsureeMutation._mutation_class: on_insurees_mutation,
+        DeleteInsureesMutation._mutation_class: on_family_and_insurees_mutation,
+        RemoveInsureesMutation._mutation_class: on_family_and_insurees_mutation,
+        SetFamilyHeadMutation._mutation_class: on_family_mutation,
+        ChangeInsureeFamilyMutation._mutation_class: on_family_and_insuree_mutation,
     }.get(sender._mutation_class, lambda x: [])(kwargs)
 
 
@@ -305,12 +342,20 @@ def bind_signals():
     signal_mutation_module_validate["insuree"].connect(on_mutation)
 
 
-def _get_additional_filter(sender, additional_filter, user):
+def _insuree_additional_filters(sender, additional_filter, user):
+    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_policy_query)
+
+
+def _family_additional_filters(sender, additional_filter, user):
+    return _get_additional_filter(sender, additional_filter, user, signal_before_family_query)
+
+
+def _get_additional_filter(sender, additional_filter, user, signal: Signal):
     # function to retrieve additional filters from signal
     filters_from_signal = []
     if additional_filter:
         # send signal to append additional filter
-        results_signal = signal_before_insuree_policy_query.send(
+        results_signal = signal.send(
             sender=sender, additional_filter=additional_filter, user=user,
         )
         filters_from_signal = _read_signal_results(results_signal)

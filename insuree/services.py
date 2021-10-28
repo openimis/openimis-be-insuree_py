@@ -1,8 +1,9 @@
+import logging
+
 from core.apps import CoreConfig
 from django.db.models import Q
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,3 +31,33 @@ def create_insuree_renewal_detail(policy_renewal):
         )
         logger.debug("Photo due for renewal for insuree %s, renewal detail %s, created an entry ? %s",
                      photo.insuree_id, detail.id, detail_created)
+
+
+def validate_insuree_number(insuree_number):
+    if InsureeConfig.get_insuree_number_validator():
+        return InsureeConfig.get_insuree_number_validator()(insuree_number)
+    if InsureeConfig.get_insuree_number_length():
+        if not insuree_number:
+            return [
+                {
+                    "message": "Invalid insuree number (empty), should be %s" %
+                    (InsureeConfig.get_insuree_number_length(),)
+                }
+            ]
+        if len(insuree_number) != InsureeConfig.get_insuree_number_length():
+            return [
+                {
+                    "message": "Invalid insuree number length %s, should be %s" %
+                    (len(insuree_number), InsureeConfig.get_insuree_number_length())
+                }
+            ]
+    if InsureeConfig.get_insuree_number_modulo_root():
+        try:
+            base = int(insuree_number[:-1])
+            mod = int(insuree_number[-1])
+            if base % InsureeConfig.get_insuree_number_modulo_root() != mod:
+                return [{"message": "Invalid checksum"}]
+        except Exception as exc:
+            logger.exception("Failed insuree number validation", exc)
+            return [{"message": "Insuree number validation failed"}]
+    return []
