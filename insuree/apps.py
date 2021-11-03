@@ -95,5 +95,13 @@ class InsureeConfig(AppConfig):
 
     @classmethod
     def get_insuree_number_modulo_root(cls):
-        return cls.insuree_number_modulo_root or\
-               (hasattr(settings, "INSUREE_NUMBER_MODULE_ROOT") and settings.INSUREE_NUMBER_MODULE_ROOT)
+        return cls.insuree_number_modulo_root or (
+            hasattr(settings, "INSUREE_NUMBER_MODULE_ROOT")
+            and settings.INSUREE_NUMBER_MODULE_ROOT
+        )
+
+    def set_dataloaders(self, dataloaders):
+        from .dataloaders import InsureeLoader, FamilyLoader
+
+        dataloaders["insuree_loader"] = InsureeLoader()
+        dataloaders["family_loader"] = FamilyLoader()
