@@ -85,15 +85,18 @@ class InsureeConfig(AppConfig):
     # Getting these at runtime for easier testing
     @classmethod
     def get_insuree_number_validator(cls):
-        return cls.insuree_number_validator or \
-               (hasattr(settings, "INSUREE_NUMBER_VALIDATOR") and settings.INSUREE_NUMBER_VALIDATOR)
+        return cls.insuree_number_validator or cls.__get_from_settings_or_default("INSUREE_NUMBER_VALIDATOR")
 
     @classmethod
     def get_insuree_number_length(cls):
-        return int(cls.insuree_number_length or
-                   (hasattr(settings, "INSUREE_NUMBER_LENGTH") and settings.INSUREE_NUMBER_LENGTH))
+        value = cls.insuree_number_length or cls.__get_from_settings_or_default("INSUREE_NUMBER_LENGTH")
+        return int(value) if value else None
 
     @classmethod
     def get_insuree_number_modulo_root(cls):
-        return int(cls.insuree_number_modulo_root or
-                   (hasattr(settings, "INSUREE_NUMBER_MODULE_ROOT") and settings.INSUREE_NUMBER_MODULE_ROOT))
+        value = cls.insuree_number_modulo_root or cls.__get_from_settings_or_default("INSUREE_NUMBER_MODULE_ROOT")
+        return int(value) if value else None
+
+    @classmethod
+    def __get_from_settings_or_default(cls, attribute_name, default=None):
+        return getattr(settings, attribute_name) if hasattr(settings, attribute_name) else default
