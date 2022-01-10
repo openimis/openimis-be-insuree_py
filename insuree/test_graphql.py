@@ -46,7 +46,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
                 insureeNumberValidity(insureeNumber:"123456782")
             }
             ''',
-            headers={"HTTP_AUTHORIZATION": f"JWT {self.admin_token}"},
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
         )
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
