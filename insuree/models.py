@@ -308,7 +308,6 @@ class InsureePolicy(core_models.VersionedModel):
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
-    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
     @classmethod
     def filter_queryset(cls, queryset=None):
