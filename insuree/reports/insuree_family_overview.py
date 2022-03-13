@@ -1701,7 +1701,7 @@ def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
     from ..models import Insuree
     from core import datetimedelta
 
-    filters = Q(validity_to__isnull=True) & Q(family__validity_to__isnull=True)
+    filters = Q(legacy_id__isnull=True) & Q(family__legacy_id__isnull=True)
     # TODO verify that we should use the validity_from and not the enrolment_date
     # TODO verify the day+1 approach
     if date_from:
@@ -1717,17 +1717,18 @@ def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
     #         health_facility__location__id__in=[l.location_id for l in dist]
     #     )
 
-    queryset = Insuree.objects.filter(filters)\
+    queryset = (
+        Insuree.objects.filter(filters)
         .values(
-        "chf_id",
-        "other_names",
-        "last_name",
-        enroll_date=F("validity_from"),
-        village=F("family__location__name"),
-        ward=F("family__location__parent__name"),
-        district=F("family__location__parent__parent__name"),
-    ).order_by("district", "ward", "village", "chf_id")
+            "chf_id",
+            "other_names",
+            "last_name",
+            enroll_date=F("validity_from"),
+            village=F("family__location__name"),
+            ward=F("family__location__parent__name"),
+            district=F("family__location__parent__parent__name"),
+        )
+        .order_by("district", "ward", "village", "chf_id")
+    )
 
-    return {
-        "data": list(queryset)
-    }
+    return {"data": list(queryset)}

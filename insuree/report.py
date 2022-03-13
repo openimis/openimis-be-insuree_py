@@ -6,19 +6,20 @@ from insuree.reports.insuree_family_overview import insuree_family_overview_quer
 report_definitions = [
     {
         "name": "insuree_family_overview",
+        "engine": 0,
         "default_report": insuree_family_overview.template,
         "description": "Simple claim report",
         "module": "insuree",
         "python_query": insuree_family_overview_query,
-        "permission": 131215,
+        "permission": ["131215"],
     },
     {
         "name": "enrolled_families",
+        "engine": 0,
         "default_report": enrolled_families.template,
         "description": "Enrolled families",
         "module": "insuree",
         "python_query": enrolled_families_query,
-        "permission": 131215,
+        "permission": ["131215"],
     },
 ]
-
