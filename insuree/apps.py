@@ -97,6 +97,12 @@ class InsureeConfig(AppConfig):
         value = cls.insuree_number_modulo_root or cls.__get_from_settings_or_default("INSUREE_NUMBER_MODULE_ROOT")
         return int(value) if value else None
 
+    def set_dataloaders(self, dataloaders):
+        from .dataloaders import InsureeLoader, FamilyLoader
+
+        dataloaders["insuree_loader"] = InsureeLoader()
+        dataloaders["family_loader"] = FamilyLoader()
+
     @classmethod
     def __get_from_settings_or_default(cls, attribute_name, default=None):
         return getattr(settings, attribute_name) if hasattr(settings, attribute_name) else default
