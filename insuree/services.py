@@ -7,6 +7,7 @@ from core.apps import CoreConfig
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
+from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 
@@ -164,6 +165,7 @@ class InsureeService:
     def __init__(self, user):
         self.user = user
 
+    @register_service_signal('insuree_service.create_or_update')
     def create_or_update(self, data):
         photo = data.pop('photo', None)
         from core import datetime
@@ -207,6 +209,7 @@ class InsureeService:
                     'detail': insuree.uuid}]
             }
 
+    @register_service_signal('insuree_service.delete')
     def set_deleted(self, insuree):
         try:
             insuree.delete_history()
