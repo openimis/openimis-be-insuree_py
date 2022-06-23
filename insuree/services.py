@@ -2,6 +2,7 @@ import base64
 import logging
 import pathlib
 import uuid
+from os import path
 
 from core.apps import CoreConfig
 from django.db.models import Q
@@ -114,7 +115,8 @@ def handle_insuree_photo(user, now, insuree, data):
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
     photo_bin = data.get('photo', None)
-    if photo_bin and InsureeConfig.insuree_photos_root_path and photo_bin != insuree_photo.photo:
+    if photo_bin and InsureeConfig.insuree_photos_root_path \
+            and (insuree_photo is None or insuree_photo.photo != photo_bin):
         (file_dir, file_name) = create_file(now, insuree.id, photo_bin)
         data.pop('photo', None)
         data['folder'] = file_dir
@@ -143,22 +145,32 @@ def photo_changed(insuree_photo, data):
            (data and insuree_photo and insuree_photo.photo != data.get('photo', None))
 
 
-def create_file(date, insuree_id, photo_bin):
-    date_iso = date.isoformat()
+def _photo_dir(file_dir, file_name):
     root = InsureeConfig.insuree_photos_root_path
-    file_dir = '%s/%s/%s/%s' % (
-        date_iso[0:4],
-        date_iso[5:7],
-        date_iso[8:10],
-        insuree_id
-    )
-    file_name = uuid.uuid4()
-    file_path = '%s/%s' % (file_dir, file_name)
-    pathlib.Path('%s/%s' % (root, file_dir)).mkdir(parents=True, exist_ok=True)
-    f = open('%s/%s' % (root, file_path), "xb")
-    f.write(base64.b64decode(photo_bin))
-    f.close()
+    return path.join(root, file_dir, file_name)
+
+
+def _create_dir(file_dir):
+    root = InsureeConfig.insuree_photos_root_path
+    pathlib.Path(path.join(root, file_dir))\
+        .mkdir(parents=True, exist_ok=True)
+
+
+def create_file(date, insuree_id, photo_bin):
+    file_dir = path.join(str(date.year), str(date.month), str(date.day), str(insuree_id))
+    file_name = str(uuid.uuid4())
+
+    _create_dir(file_dir)
+    with open(_photo_dir(file_dir, file_name), "xb") as f:
+        f.write(base64.b64decode(photo_bin))
+        f.close()
     return file_dir, file_name
+
+
+def load_photo_file(file_dir, file_name):
+    photo_path = _photo_dir(file_dir, file_name)
+    with open(photo_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
 
 
 class InsureeService:
