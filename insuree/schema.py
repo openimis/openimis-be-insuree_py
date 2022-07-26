@@ -93,11 +93,12 @@ class Query(graphene.ObjectType):
     insuree_number_validity = graphene.Field(
         graphene.Boolean,
         insuree_number=graphene.String(required=True),
+        new_insuree=graphene.Boolean(required=False),
         description="Checks that the specified insuree number is valid"
     )
 
-    def resolve_insuree_number_validity(self, info, insuree_number=None):
-        errors = validate_insuree_number(insuree_number)
+    def resolve_insuree_number_validity(self, info, **kwargs):
+        errors = validate_insuree_number(kwargs['insuree_number'], kwargs['new_insuree'])
         if errors:
             return False
         else:
