@@ -152,7 +152,7 @@ class CreateFamilyMutation(OpenIMISMutation):
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
             # Validate insuree number right away
-            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None))
+            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None), True)
             if errors:
                 return errors
             family = update_or_create_family(data, user)
@@ -253,7 +253,7 @@ class CreateInsureeMutation(OpenIMISMutation):
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
             # Validate insuree number right away
-            errors = validate_insuree_number(data.get("chf_id", None))
+            errors = validate_insuree_number(data.get("chf_id", None), True)
             if errors:
                 return errors
             insuree = update_or_create_insuree(data, user)
