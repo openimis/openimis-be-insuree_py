@@ -297,7 +297,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
 
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeID', related_name="insuree_policies")
     policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId',
                                related_name="insuree_policies")
 
