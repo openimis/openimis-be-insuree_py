@@ -10,6 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL('ALTER TABLE tblInsuree ADD JsonExt TEXT'),
-        migrations.RunSQL('ALTER TABLE tblFamilies ADD JsonExt TEXT'),
+        migrations.RunSQL('ALTER TABLE "tblInsuree" ADD "JsonExt" TEXT'),
+        migrations.RunSQL('ALTER TABLE "tblFamilies" ADD "JsonExt" TEXT'),
     ]
