@@ -1,5 +1,7 @@
 import uuid
 
+from jsonfallback.fields import FallbackJSONField
+
 import core
 from core import models as core_models
 from django.conf import settings
@@ -249,6 +251,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
+    json_ext = FallbackJSONField(db_column="JsonExt", blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
