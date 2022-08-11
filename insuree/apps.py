@@ -1,3 +1,5 @@
+import os
+
 from django.apps import AppConfig
 from django.conf import settings
 
@@ -63,7 +65,6 @@ class InsureeConfig(AppConfig):
         InsureeConfig.gql_mutation_create_insurees_perms = cfg["gql_mutation_create_insurees_perms"]
         InsureeConfig.gql_mutation_update_insurees_perms = cfg["gql_mutation_update_insurees_perms"]
         InsureeConfig.gql_mutation_delete_insurees_perms = cfg["gql_mutation_delete_insurees_perms"]
-        InsureeConfig.insuree_photos_root_path = cfg["insuree_photos_root_path"]
         InsureeConfig.insuree_number_validator = cfg["insuree_number_validator"]
         InsureeConfig.insuree_number_length = cfg["insuree_number_length"]
         InsureeConfig.insuree_number_modulo_root = cfg["insuree_number_modulo_root"]
@@ -81,19 +82,38 @@ class InsureeConfig(AppConfig):
         self._configure_permissions(cfg)
         self._configure_fake_insurees(cfg)
         self._configure_renewal(cfg)
+        self._configure_photo_root(cfg)
 
     # Getting these at runtime for easier testing
     @classmethod
     def get_insuree_number_validator(cls):
-        return cls.insuree_number_validator or \
-               (hasattr(settings, "INSUREE_NUMBER_VALIDATOR") and settings.INSUREE_NUMBER_VALIDATOR)
+        return cls.insuree_number_validator or cls.__get_from_settings_or_default("INSUREE_NUMBER_VALIDATOR")
 
     @classmethod
     def get_insuree_number_length(cls):
-        return cls.insuree_number_length or \
-               (hasattr(settings, "INSUREE_NUMBER_LENGTH") and settings.INSUREE_NUMBER_LENGTH)
+        value = cls.insuree_number_length or cls.__get_from_settings_or_default("INSUREE_NUMBER_LENGTH")
+        return int(value) if value else None
 
     @classmethod
     def get_insuree_number_modulo_root(cls):
-        return cls.insuree_number_modulo_root or\
-               (hasattr(settings, "INSUREE_NUMBER_MODULE_ROOT") and settings.INSUREE_NUMBER_MODULE_ROOT)
+        value = cls.insuree_number_modulo_root or cls.__get_from_settings_or_default("INSUREE_NUMBER_MODULE_ROOT")
+        return int(value) if value else None
+
+    def set_dataloaders(self, dataloaders):
+        from .dataloaders import InsureeLoader, FamilyLoader
+
+        dataloaders["insuree_loader"] = InsureeLoader()
+        dataloaders["family_loader"] = FamilyLoader()
+
+    @classmethod
+    def __get_from_settings_or_default(cls, attribute_name, default=None):
+        return getattr(settings, attribute_name) if hasattr(settings, attribute_name) else default
+
+    def _configure_photo_root(self, cfg):
+        # TODO: To be confirmed. I left loading from config for integrity reasons
+        #  but it could be based on env variable only.
+        #  Also we could determine global file root for all stored files across modules.
+        if from_config := cfg.get("insuree_photos_root_path", None):
+            InsureeConfig.insuree_photos_root_path = from_config
+        elif from_env := os.getenv("PHOTO_ROOT_PATH", None):
+            InsureeConfig.insuree_photos_root_path = from_env
