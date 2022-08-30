@@ -35,6 +35,11 @@ class InsureeBase:
     other_names = graphene.String(max_length=100, required=True)
     gender_id = graphene.String(max_length=1, required=False)
     dob = graphene.Date(required=True)
+    
+    dod = graphene.Date(required=False)
+    dead = graphene.Boolean(required=False)
+    deathReason = graphene.String(max_length=500, required=False)
+
     head = graphene.Boolean(required=False)
     marital = graphene.String(max_length=1, required=False)
     passport = graphene.String(max_length=25, required=False)
