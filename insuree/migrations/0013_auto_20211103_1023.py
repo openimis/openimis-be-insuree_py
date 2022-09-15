@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 [ValidityFrom] ASC,
                 [LegacyID] ASC,
                 InsureeID
-            )""" if "sql_server" in settings.DB_ENGINE else """
+            )""" if settings.MSSQL else """
             CREATE INDEX "ix_tblInsuree_validity" ON "tblInsuree"
             (
                 "ValidityFrom" ASC,

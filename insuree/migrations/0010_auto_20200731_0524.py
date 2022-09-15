@@ -11,9 +11,9 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL('ALTER TABLE [tblInsuree] ADD [JsonExt] TEXT'
-                          if "sql_server" in settings.DB_ENGINE else
+                          if settings.MSSQL else
                           'ALTER TABLE "tblInsuree" ADD "JsonExt" jsonb'),
         migrations.RunSQL('ALTER TABLE [tblFamilies] ADD [JsonExt] TEXT'
-                          if "sql_server" in settings.DB_ENGINE else
+                          if settings.MSSQL else
                           'ALTER TABLE "tblFamilies" ADD "JsonExt" jsonb'),
     ]

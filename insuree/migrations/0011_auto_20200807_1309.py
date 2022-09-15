@@ -15,18 +15,18 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             'ALTER TABLE "tblPhotos" ADD "LegacyID" int NULL, photo TEXT null'
-            if "sql_server" in settings.DB_ENGINE else
+            if settings.MSSQL else
             'ALTER TABLE "tblPhotos" ADD "LegacyID" int; ALTER TABLE "tblPhotos" add photo TEXT;'
         ),
         migrations.RunSQL(
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFolder" nvarchar(255) NULL'
-            if "sql_server" in settings.DB_ENGINE else
+            if settings.MSSQL else
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFolder" TYPE VARCHAR(255); '
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFolder" DROP NOT NULL;'
         ),
         migrations.RunSQL(
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFileName" nvarchar(255) NULL'
-            if "sql_server" in settings.DB_ENGINE else
+            if settings.MSSQL else
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFileName" TYPE VARCHAR(255);'
             'ALTER TABLE "tblPhotos" ALTER COLUMN "PhotoFileName" DROP NOT NULL;'
         ),

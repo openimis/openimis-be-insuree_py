@@ -1,7 +1,5 @@
 import uuid
 
-from jsonfallback.fields import FallbackJSONField
-
 import core
 from core import models as core_models
 from django.conf import settings
@@ -91,14 +89,13 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     location = models.ForeignKey(
         location_models.Location,
         models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
-    # Need to be NullBooleanField (BooleanField + null=True is not enough) for Graphene to map properly
-    poverty = models.NullBooleanField(db_column='Poverty', blank=True, null=True)
+    poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
     family_type = models.ForeignKey(
         FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True,
         related_name='families')
     address = models.CharField(
         db_column='FamilyAddress', max_length=200, blank=True, null=True)
-    is_offline = models.NullBooleanField(
+    is_offline = models.BooleanField(
         db_column='isOffline', blank=True, null=True)
     ethnicity = models.CharField(
         db_column='Ethnicity', max_length=1, blank=True, null=True)
@@ -251,7 +248,6 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
-    json_ext = FallbackJSONField(db_column="JsonExt", blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
