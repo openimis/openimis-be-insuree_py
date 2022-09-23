@@ -1,3 +1,4 @@
+import os.path
 import uuid
 
 import core
@@ -44,6 +45,11 @@ class InsureePhoto(core_models.VersionedModel):
     audit_user_id = models.IntegerField(
         db_column='AuditUserID', blank=True, null=True)
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
+
+    def full_file_path(self):
+        if not InsureeConfig.insuree_photos_root_path or not self.filename:
+            return None
+        return os.path.join(InsureeConfig.insuree_photos_root_path, self.folder, self.filename)
 
     class Meta:
         managed = False
