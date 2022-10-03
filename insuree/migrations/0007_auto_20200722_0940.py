@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
             "ALTER TABLE [tblInsuree] ADD CONSTRAINT "
             "[tblInsuree_CurrentVillage_8ea25085_fk_tblLocations_LocationId] "
             "FOREIGN KEY([CurrentVillage]) REFERENCES[tblLocations]([LocationId]);"
-            if "sql_server" in settings.DB_ENGINE else
+            if settings.MSSQL else
             'ALTER TABLE "tblInsuree" ADD CONSTRAINT "tblInsuree_CurrentVillage_8ea25085_fk_tblLocations_LocationId" '
             ' FOREIGN KEY("CurrentVillage") REFERENCES "tblLocations"("LocationId");'
         )

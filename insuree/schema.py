@@ -98,7 +98,7 @@ class Query(graphene.ObjectType):
     )
 
     def resolve_insuree_number_validity(self, info, **kwargs):
-        errors = validate_insuree_number(kwargs['insuree_number'], kwargs['new_insuree'])
+        errors = validate_insuree_number(kwargs['insuree_number'], kwargs.get('new_insuree', False))
         if errors:
             return False
         else:

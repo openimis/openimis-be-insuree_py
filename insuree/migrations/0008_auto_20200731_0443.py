@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             "ALTER TABLE[tblInsuree] ALTER COLUMN FamilyID [int] NULL;"
-            if "sql_server" in settings.DB_ENGINE else
+            if settings.MSSQL else
             'ALTER TABLE "tblInsuree" ALTER COLUMN "FamilyID" DROP NOT NULL;'
         )
     ]
