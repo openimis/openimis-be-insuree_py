@@ -84,7 +84,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
     head_insuree = models.OneToOneField(
-        'Insuree', models.PROTECT, db_column='InsureeID', null=False,
+        'Insuree', models.DO_NOTHING, db_column='InsureeID', null=False,
         related_name='head_of')
     location = models.ForeignKey(
         location_models.Location,
@@ -308,7 +308,6 @@ class InsureePolicy(core_models.VersionedModel):
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
-    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
     @classmethod
     def filter_queryset(cls, queryset=None):

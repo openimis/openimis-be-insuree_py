@@ -2,20 +2,17 @@ import logging
 import uuid
 import pathlib
 import base64
-from copy import copy
 import graphene
-from insuree.services import validate_insuree_number
+
+from insuree.services import validate_insuree_number, InsureeService, FamilyService
 
 from .apps import InsureeConfig
-from core import filter_validity, assert_string_length
-from core.schema import TinyInt, SmallInt, OpenIMISMutation
-from django.conf import settings
-from django.db.models import Q
+from core.schema import OpenIMISMutation
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
-from .models import Family, Insuree, InsureePhoto, InsureePolicy, FamilyMutation, InsureeMutation
+from .models import Family, Insuree, FamilyMutation, InsureeMutation
 
 logger = logging.getLogger(__name__)
 
@@ -102,31 +99,6 @@ class UpdateFamilyInputType(FamilyInputType):
     pass
 
 
-def reset_insuree_before_update(insuree):
-    insuree.family = None
-    insuree.chf_id = None
-    insuree.last_name = None
-    insuree.other_names = None
-    insuree.gender = None
-    insuree.dob = None
-    insuree.head = None
-    insuree.marital = None
-    insuree.passport = None
-    insuree.phone = None
-    insuree.email = None
-    insuree.current_address = None
-    insuree.geolocation = None
-    insuree.current_village = None
-    insuree.card_issued = None
-    insuree.relationship = None
-    insuree.profession = None
-    insuree.education = None
-    insuree.type_of_id = None
-    insuree.health_facility = None
-    insuree.offline = None
-    insuree.json_ext = None
-
-
 def create_file(date, insuree_id, photo_bin):
     date_iso = date.isoformat()
     root = InsureeConfig.insuree_photos_root_path
@@ -145,112 +117,16 @@ def create_file(date, insuree_id, photo_bin):
     return file_dir, file_name
 
 
-def photo_changed(insuree_photo, data):
-    return (not insuree_photo and data) or \
-           (data and insuree_photo and insuree_photo.date != data.get('date', None)) or \
-           (data and insuree_photo and insuree_photo.officer_id != data.get('officer_id', None)) or \
-           (data and insuree_photo and insuree_photo.folder != data.get('folder', None)) or \
-           (data and insuree_photo and insuree_photo.filename != data.get('filename', None)) or \
-           (data and insuree_photo and insuree_photo.photo != data.get('photo', None))
-
-
-def handle_insuree_photo(user, now, insuree, data):
-    insuree_photo = insuree.photo
-    if not photo_changed(insuree_photo, data):
-        return None
-    data['audit_user_id'] = user.id_for_audit
-    data['validity_from'] = now
-    data['insuree_id'] = insuree.id
-    photo_bin = data.get('photo', None)
-    if photo_bin and InsureeConfig.insuree_photos_root_path and photo_bin != insuree_photo.photo:
-        (file_dir, file_name) = create_file(now, insuree.id, photo_bin)
-        data.pop('photo', None)
-        data['folder'] = file_dir
-        data['filename'] = file_name
-
-    if insuree_photo:
-        insuree_photo.save_history()
-        insuree_photo.date = None
-        insuree_photo.officer_id = None
-        insuree_photo.folder = None
-        insuree_photo.filename = None
-        insuree_photo.photo = None
-        [setattr(insuree_photo, key, data[key]) for key in data if key != 'id']
-    else:
-        insuree_photo = InsureePhoto.objects.create(**data)
-    insuree_photo.save()
-    return insuree_photo
-
-
 def update_or_create_insuree(data, user):
     data.pop('client_mutation_id', None)
     data.pop('client_mutation_label', None)
-    photo = data.pop('photo', None)
-    from core import datetime
-    now = datetime.datetime.now()
-    data['audit_user_id'] = user.id_for_audit
-    data['validity_from'] = now
-    insuree_uuid = data.pop('uuid', None)
-    # update_or_create(uuid=insuree_uuid, ...)
-    # doesn't work because of explicit attempt to set null to uuid!
-    if insuree_uuid:
-        insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
-        insuree.save_history()
-        # reset the non required fields
-        # (each update is 'complete', necessary to be able to set 'null')
-        reset_insuree_before_update(insuree)
-        [setattr(insuree, key, data[key]) for key in data]
-    else:
-        errors = validate_insuree_number(data["chf_id"])
-        if errors:
-            raise Exception("Invalid insuree number")
-        else:
-            insuree = Insuree.objects.create(**data)
-    insuree.save()
-    photo = handle_insuree_photo(user, now, insuree, photo)
-    if photo:
-        insuree.photo = photo
-        insuree.photo_date = photo.date
-        insuree.save()
-    return insuree
-
-
-def reset_family_before_update(family):
-    family.location = None
-    family.poverty = None
-    family.family_type = None
-    family.address = None
-    family.is_offline = None
-    family.ethnicity = None
-    family.confirmation_no = None
-    family.confirmation_type = None
-    family.json_ext = None
+    return InsureeService(user).create_or_update(data)
 
 
 def update_or_create_family(data, user):
     data.pop('client_mutation_id', None)
     data.pop('client_mutation_label', None)
-    head_insuree_data = data.pop('head_insuree')
-    head_insuree_data["head"] = True
-    head_insuree = update_or_create_insuree(head_insuree_data, user)
-    data["head_insuree"] = head_insuree
-    family_uuid = data.pop('uuid', None)
-    # update_or_create(uuid=family_uuid, ...)
-    # doesn't work because of explicit attempt to set null to uuid!
-    if family_uuid:
-        family = Family.objects.get(uuid=family_uuid)
-        family.save_history()
-        # reset the non required fields
-        # (each update is 'complete', necessary to be able to set 'null')
-        reset_family_before_update(family)
-        [setattr(family, key, data[key]) for key in data]
-    else:
-        data.pop('contribution', None)
-        family = Family.objects.create(**data)
-    family.save()
-    head_insuree.family = family
-    head_insuree.save()
-    return family
+    return FamilyService(user).create_or_update(data)
 
 
 class CreateFamilyMutation(OpenIMISMutation):
@@ -321,31 +197,6 @@ class UpdateFamilyMutation(OpenIMISMutation):
             ]
 
 
-def handle_member_on_family_delete(member, delete_members):
-    if delete_members:
-        member.delete_history()
-    else:
-        member.save_history()
-        member.family = None
-        member.save()
-
-
-def set_family_deleted(family, delete_members):
-    try:
-        [handle_member_on_family_delete(member, delete_members)
-         for member in family.members.filter(validity_to__isnull=True).all()]
-        family.delete_history()
-        return []
-    except Exception as exc:
-        logger.exception("insuree.mutation.failed_to_delete_family")
-        return {
-            'title': family.uuid,
-            'list': [{
-                'message': _("insuree.mutation.failed_to_delete_family") % {'chfid': family.chfid},
-                'detail': family.uuid}]
-        }
-
-
 class DeleteFamiliesMutation(OpenIMISMutation):
     """
     Delete one or several families (and all its insurees).
@@ -373,7 +224,7 @@ class DeleteFamiliesMutation(OpenIMISMutation):
                     'list': [{'message': _("insuree.mutation.failed_to_delete_family") % {'uuid': family_uuid}}]
                 })
                 continue
-            errors += set_family_deleted(family, data["delete_members"])
+            errors += FamilyService(user).set_deleted(family, data["delete_members"])
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
@@ -447,21 +298,6 @@ class UpdateInsureeMutation(OpenIMISMutation):
             ]
 
 
-def set_insuree_deleted(insuree):
-    try:
-        insuree.delete_history()
-        [ip.delete_history() for ip in insuree.insuree_policies.filter(validity_to__isnull=True)]
-        return []
-    except Exception as exc:
-        logger.exception("insuree.mutation.failed_to_delete_insuree")
-        return {
-            'title': insuree.chf_id,
-            'list': [{
-                'message': _("insuree.mutation.failed_to_delete_insuree") % {'chfid': insuree.chf_id},
-                'detail': insuree.uuid}]
-        }
-
-
 class DeleteInsureesMutation(OpenIMISMutation):
     """
     Delete one or several insurees.
@@ -497,45 +333,10 @@ class DeleteInsureesMutation(OpenIMISMutation):
                         "insuree.validation.delete_head_insuree") % {'id': insuree_uuid}}]
                 })
                 continue
-            errors += set_insuree_deleted(insuree)
+            errors += InsureeService(user).set_deleted(insuree)
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
-
-
-def cancel_policies(insuree):
-    try:
-        from core import datetime
-        now = datetime.datetime.now()
-        ips = insuree.insuree_policies.filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=now))
-        for ip in ips:
-            ip.expiry_date = now
-        InsureePolicy.objects.bulk_update(ips, ['expiry_date'])
-        return []
-    except Exception as exc:
-        logger.exception("insuree.mutation.failed_to_cancel_insuree_policies")
-        return {
-            'title': insuree.chf_id,
-            'list': [{
-                'message': _("insuree.mutation.failed_to_cancel_insuree_policies") % {'chfid': insuree.chfid},
-                'detail': insuree.uuid}]
-    }
-
-
-def remove_insuree(insuree):
-    try:
-        insuree.save_history()
-        insuree.family = None
-        insuree.save()
-        return []
-    except Exception as exc:
-        logger.exception("insuree.mutation.failed_to_remove_insuree")
-        return {
-            'title': insuree.chf_id,
-            'list': [{
-                'message': _("insuree.mutation.failed_to_remove_insuree") % {'chfid': insuree.chfid},
-                'detail': insuree.uuid}]
-        }
 
 
 class RemoveInsureesMutation(OpenIMISMutation):
@@ -574,9 +375,10 @@ class RemoveInsureesMutation(OpenIMISMutation):
                         "insuree.validation.remove_head_insuree") % {'id': insuree_uuid}}]
                 })
                 continue
+            insuree_service = InsureeService(user)
             if data['cancel_policies']:
-                errors += cancel_policies(insuree)
-            errors += remove_insuree(insuree)
+                errors += insuree_service.cancel_policies(insuree)
+            errors += insuree_service.remove(insuree)
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
@@ -644,7 +446,7 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
             insuree.family = family
             insuree.save()
             if data['cancel_policies']:
-                return cancel_policies(insuree)
+                return InsureeService(user).cancel_policies(insuree)
             return None
         except Exception as exc:
             logger.exception("insuree.mutation.failed_to_change_insuree_family")

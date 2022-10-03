@@ -77,6 +77,25 @@ class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
     client_mutation_id = graphene.String()
 
+    def resolve_current_village(self, info):
+        if "location_loader" in info.context.dataloaders and self.current_village_id:
+            return info.context.dataloaders["location_loader"].load(
+                self.current_village_id
+            )
+        return self.current_village
+
+    def resolve_family(self, info):
+        if "family_loader" in info.context.dataloaders and self.family_id:
+            return info.context.dataloaders["family_loader"].load(self.family_id)
+        return self.family
+
+    def resolve_health_facility(self, info):
+        if "health_facililty" in info.context.dataloaders and self.health_facility_id:
+            return info.context.dataloaders["health_facility"].load(
+                self.health_facility_id
+            )
+        return self.health_facility
+
     class Meta:
         model = Insuree
         filter_fields = {
@@ -112,6 +131,14 @@ class InsureeGQLType(DjangoObjectType):
 
 class FamilyGQLType(DjangoObjectType):
     client_mutation_id = graphene.String()
+
+    def resolve_location(self, info):
+        if "location_loader" in info.context.dataloaders:
+            return info.context.dataloaders["location_loader"].load(self.location_id)
+
+    def resolve_head_insuree(self, info):
+        if "insuree_loader" in info.context.dataloaders:
+            return info.context.dataloaders["insuree_loader"].load(self.head_insuree_id)
 
     class Meta:
         model = Family
