@@ -93,11 +93,12 @@ class Query(graphene.ObjectType):
     insuree_number_validity = graphene.Field(
         graphene.Boolean,
         insuree_number=graphene.String(required=True),
+        new_insuree=graphene.Boolean(required=False),
         description="Checks that the specified insuree number is valid"
     )
 
-    def resolve_insuree_number_validity(self, info, insuree_number=None):
-        errors = validate_insuree_number(insuree_number)
+    def resolve_insuree_number_validity(self, info, **kwargs):
+        errors = validate_insuree_number(kwargs['insuree_number'], kwargs.get('new_insuree', False))
         if errors:
             return False
         else:
@@ -150,7 +151,6 @@ class Query(graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
-
 
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):

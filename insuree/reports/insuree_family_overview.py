@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import Q, F
 
 # If manually pasting from reportbro and you have test data, search and replace \" with \\"
@@ -1709,16 +1710,17 @@ def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
     if date_to:
         filters &= Q(validity_from__lte=date_to + datetimedelta(days=1))
 
-    # TODO use auth from Quentin's PR
-    # if settings.ROW_SECURITY:
-    #     from location.models import UserDistrict
-    #     dist = UserDistrict.get_user_districts(user._u)
-    #     queryset = queryset.filter(
-    #         health_facility__location__id__in=[l.location_id for l in dist]
-    #     )
+    if settings.ROW_SECURITY:
+        from location.models import UserDistrict
+        dist = UserDistrict.get_user_districts(user._u)
+        queryset = Insuree.objects.filter(
+            health_facility__location__id__in=[l.location_id for l in dist]
+        )
+    else:
+        queryset = Insuree.objects
 
     queryset = (
-        Insuree.objects.filter(filters)
+        queryset.filter(filters)
         .values(
             "chf_id",
             "other_names",
