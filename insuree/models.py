@@ -1,3 +1,4 @@
+import os.path
 import uuid
 
 import core
@@ -45,6 +46,11 @@ class InsureePhoto(core_models.VersionedModel):
         db_column='AuditUserID', blank=True, null=True)
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
 
+    def full_file_path(self):
+        if not InsureeConfig.insuree_photos_root_path or not self.filename:
+            return None
+        return os.path.join(InsureeConfig.insuree_photos_root_path, self.folder, self.filename)
+
     class Meta:
         managed = False
         db_table = 'tblPhotos'
@@ -89,14 +95,13 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     location = models.ForeignKey(
         location_models.Location,
         models.DO_NOTHING, db_column='LocationId', blank=True, null=True)
-    # Need to be NullBooleanField (BooleanField + null=True is not enough) for Graphene to map properly
-    poverty = models.NullBooleanField(db_column='Poverty', blank=True, null=True)
+    poverty = models.BooleanField(db_column='Poverty', blank=True, null=True)
     family_type = models.ForeignKey(
         FamilyType, models.DO_NOTHING, db_column='FamilyType', blank=True, null=True,
         related_name='families')
     address = models.CharField(
         db_column='FamilyAddress', max_length=200, blank=True, null=True)
-    is_offline = models.NullBooleanField(
+    is_offline = models.BooleanField(
         db_column='isOffline', blank=True, null=True)
     ethnicity = models.CharField(
         db_column='Ethnicity', max_length=1, blank=True, null=True)
@@ -297,7 +302,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
 
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeId', related_name="insuree_policies")
+    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeID', related_name="insuree_policies")
     policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId',
                                related_name="insuree_policies")
 

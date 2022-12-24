@@ -35,7 +35,7 @@ class InsureeBase:
     chf_id = graphene.String(max_length=12, required=False)
     last_name = graphene.String(max_length=100, required=True)
     other_names = graphene.String(max_length=100, required=True)
-    gender_id = graphene.String(max_length=1, required=False)
+    gender_id = graphene.String(max_length=1, required=True, description="Was mandatory in Legacy but not in modular")
     dob = graphene.Date(required=True)
     
     dod = graphene.Date(required=False)
@@ -299,7 +299,6 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if insuree.dead == True : 
                 listPolicy = Policy.objects.filter(family=insuree.family).all()
                 for policy in listPolicy :
-                    print(policy)
                     policy.status=4
                     policy.save()
 
