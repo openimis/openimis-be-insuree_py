@@ -1,6 +1,7 @@
 import base64
 import logging
 import pathlib
+import shutil
 import uuid
 from os import path
 
@@ -172,6 +173,15 @@ def create_file(date, insuree_id, photo_bin):
     with open(_photo_dir(file_dir, file_name), "xb") as f:
         f.write(base64.b64decode(photo_bin))
         f.close()
+    return file_dir, file_name
+
+
+def copy_file(date, insuree_id, original_file):
+    file_dir = path.join(str(date.year), str(date.month), str(date.day), str(insuree_id))
+    file_name = str(uuid.uuid4())
+
+    _create_dir(file_dir)
+    shutil.copy2(original_file, _photo_dir(file_dir, file_name))
     return file_dir, file_name
 
 
