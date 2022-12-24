@@ -23,9 +23,13 @@ class PhotoGQLType(DjangoObjectType):
     photo = graphene.String()
 
     def resolve_photo(self, info):
+        print("Resolve_photo")
+        print(InsureeConfig.insuree_photos_root_path)
         if self.photo:
             return self.photo
         elif InsureeConfig.insuree_photos_root_path and self.folder and self.filename:
+            print("Resolve_photo Insuree")
+            print(load_photo_file(self.folder, self.filename))
             return load_photo_file(self.folder, self.filename)
         return None
 

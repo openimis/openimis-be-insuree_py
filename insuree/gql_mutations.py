@@ -299,7 +299,6 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if insuree.dead == True : 
                 listPolicy = Policy.objects.filter(family=insuree.family).all()
                 for policy in listPolicy :
-                    print(policy)
                     policy.status=4
                     policy.save()
 
