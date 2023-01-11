@@ -150,7 +150,7 @@ class Query(graphene.ObjectType):
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')
             if parent_location_level is None:
-                raise NotImplementedError(
+                raise ValueError(
                     "Missing parentLocationLevel argument when filtering on parentLocation")
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
