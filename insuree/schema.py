@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
+from location.models import Location, UserDistrict
 
 from .apps import InsureeConfig
 from .models import FamilyMutation, InsureeMutation
@@ -30,18 +31,23 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
     ):
         qs = super(FamiliesConnectionField, cls).resolve_queryset(
             connection, iterable, info,
-            {k: args[k] for k in args.keys() if not k.startswith("members_") and not k.startswith("head_insuree_")},
+            {k: args[k] for k in args.keys() if not k.startswith(
+                "members_") and not k.startswith("head_insuree_")},
             filtering_args,
             filterset_class
         )
-        head_insuree_filters = {k: args[k] for k in args.keys() if k.startswith("head_insuree__")}
-        members_filters = {k: args[k] for k in args.keys() if k.startswith("members__")}
+        head_insuree_filters = {
+            k: args[k] for k in args.keys() if k.startswith("head_insuree__")}
+        members_filters = {k: args[k]
+                           for k in args.keys() if k.startswith("members__")}
         if len(head_insuree_filters) or len(members_filters):
             qs = qs._next_is_sticky()
         if len(head_insuree_filters):
-            qs = qs.filter(Q(head_insuree__validity_to__isnull=True), **head_insuree_filters)
+            qs = qs.filter(
+                Q(head_insuree__validity_to__isnull=True), **head_insuree_filters)
         if len(members_filters):
-            qs = qs.filter(Q(members__validity_to__isnull=True), **members_filters)
+            qs = qs.filter(Q(members__validity_to__isnull=True),
+                           **members_filters)
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
 
@@ -98,7 +104,8 @@ class Query(graphene.ObjectType):
     )
 
     def resolve_insuree_number_validity(self, info, **kwargs):
-        errors = validate_insuree_number(kwargs['insuree_number'], kwargs.get('new_insuree', False))
+        errors = validate_insuree_number(
+            kwargs['insuree_number'], kwargs.get('new_insuree', False))
         if errors:
             return False
         else:
@@ -137,12 +144,14 @@ class Query(graphene.ObjectType):
             filters += filter_validity(**kwargs)
         client_mutation_id = kwargs.get("client_mutation_id", None)
         if client_mutation_id:
-            filters.append(Q(mutations__mutation__client_mutation_id=client_mutation_id))
+            filters.append(
+                Q(mutations__mutation__client_mutation_id=client_mutation_id))
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')
             if parent_location_level is None:
-                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+                raise NotImplementedError(
+                    "Missing parentLocationLevel argument when filtering on parentLocation")
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
                 f = "parent__" + f
@@ -150,6 +159,13 @@ class Query(graphene.ObjectType):
             family_location = "family__location__" + f
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+
+        # Limit the list by the logged in user location mapping
+        user_districts = UserDistrict.get_user_districts(info.context.user._u)
+
+        filters += [Q(family__location__parent__parent__in=Location.objects.filter(
+            uuid__in=user_districts.values_list('location__uuid', flat=True)))]
+
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
@@ -193,23 +209,27 @@ class Query(graphene.ObjectType):
 
         officer = kwargs.get('officer', None)
         if officer:
-            officer_policies_families = Policy.objects.filter(officer__uuid=officer).values_list('family', flat=True)
+            officer_policies_families = Policy.objects.filter(
+                officer__uuid=officer).values_list('family', flat=True)
             filters.append(Q(id__in=officer_policies_families))
 
         null_as_false_poverty = kwargs.get('null_as_false_poverty')
         if null_as_false_poverty is not None:
-            filters += [Q(poverty=True)] if null_as_false_poverty else [Q(poverty=False) | Q(poverty__isnull=True)]
+            filters += [Q(poverty=True)] if null_as_false_poverty else [
+                Q(poverty=False) | Q(poverty__isnull=True)]
         show_history = kwargs.get('show_history', False)
         if not show_history:
             filters += filter_validity(**kwargs)
         client_mutation_id = kwargs.get("client_mutation_id", None)
         if client_mutation_id:
-            filters.append(Q(mutations__mutation__client_mutation_id=client_mutation_id))
+            filters.append(
+                Q(mutations__mutation__client_mutation_id=client_mutation_id))
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')
             if parent_location_level is None:
-                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+                raise NotImplementedError(
+                    "Missing parentLocationLevel argument when filtering on parentLocation")
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
                 f = "parent__" + f
@@ -243,7 +263,8 @@ class Query(graphene.ObjectType):
         if parent_location is not None:
             parent_location_level = kwargs.get('parent_location_level')
             if parent_location_level is None:
-                raise NotImplementedError("Missing parentLocationLevel argument when filtering on parentLocation")
+                raise NotImplementedError(
+                    "Missing parentLocationLevel argument when filtering on parentLocation")
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
                 f = "parent__" + f
@@ -271,7 +292,8 @@ def on_family_mutation(kwargs, k='uuid'):
     if not family_uuid:
         return []
     impacted_family = Family.objects.get(Q(uuid=family_uuid))
-    FamilyMutation.objects.create(family=impacted_family, mutation_id=kwargs['mutation_log_id'])
+    FamilyMutation.objects.create(
+        family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
 
 
@@ -294,7 +316,8 @@ def on_insuree_mutation(kwargs, k='uuid'):
     if not insuree_uuid:
         return []
     impacted_insuree = Insuree.objects.get(Q(uuid=insuree_uuid))
-    InsureeMutation.objects.create(insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
+    InsureeMutation.objects.create(
+        insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
     return []
 
 
