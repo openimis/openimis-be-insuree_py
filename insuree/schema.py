@@ -64,6 +64,7 @@ class Query(graphene.ObjectType):
         parent_location=graphene.String(),
         parent_location_level=graphene.Int(),
         client_mutation_id=graphene.String(),
+        ignore_location=graphene.Boolean(),
         orderBy=graphene.List(of_type=graphene.String),
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
@@ -136,6 +137,7 @@ class Query(graphene.ObjectType):
         return Gender.objects.order_by('sort_order').all()
 
     def resolve_insurees(self, info, **kwargs):
+
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
@@ -160,11 +162,13 @@ class Query(graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
 
-        # Limit the list by the logged in user location mapping
-        user_districts = UserDistrict.get_user_districts(info.context.user._u)
+        if (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None):
+            # Limit the list by the logged in user location mapping
+            user_districts = UserDistrict.get_user_districts(
+                info.context.user._u)
 
-        filters += [Q(family__location__parent__parent__in=Location.objects.filter(
-            uuid__in=user_districts.values_list('location__uuid', flat=True)))]
+            filters += [Q(family__location__parent__parent__in=Location.objects.filter(
+                uuid__in=user_districts.values_list('location__uuid', flat=True)))]
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
