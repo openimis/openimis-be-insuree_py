@@ -39,7 +39,8 @@ class InsureePhotoTest(TestCase):
     def setUp(self):
         super(InsureePhotoTest, self).setUp()
         self._TEST_USER = self._get_or_create_user_api()
-        self.insuree = create_test_insuree(custom_props={'chf_id': '110707070'})
+        self.insuree = create_test_insuree(
+            custom_props={'chf_id': '110707070'})
         self.row_sec = settings.ROW_SECURITY
         settings.ROW_SECURITY = False
 
@@ -50,7 +51,8 @@ class InsureePhotoTest(TestCase):
     def setUpClass(cls):
         # Signals are not automatically bound in unit tests
         super(InsureePhotoTest, cls).setUpClass()
-        cls.insuree_client = Client(Schema(mutation=insuree_schema.Mutation, query=insuree_schema.Query))
+        cls.insuree_client = Client(
+            Schema(mutation=insuree_schema.Mutation, query=insuree_schema.Query))
         insuree_schema.bind_signals()
 
     def test_add_photo_save_db(self):
@@ -64,20 +66,22 @@ class InsureePhotoTest(TestCase):
             gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
             self.assertEqual(gql_photo['photo'], self.photo_base64)
         except Exception as e:
-            print(query_result)
             raise e
 
     @mock.patch('insuree.services.InsureeConfig')
     @mock.patch('insuree.services.create_file')
     def test_add_photo_save_files(self, create_file, insuree_config):
         create_file.return_value = self.test_photo_path, self.test_photo_uuid
-        insuree_config.insuree_photos_root_path = PropertyMock(return_value="insuree_root_path")
+        insuree_config.insuree_photos_root_path = PropertyMock(
+            return_value="insuree_root_path")
 
         self.__call_photo_mutation()
 
         self.assertEqual(self.insuree.photo.folder, "some/file/path")
-        self.assertEqual(self.insuree.photo.filename, str(self.test_photo_uuid))
-        create_file.assert_called_once_with(ANY, self.insuree.id, self.photo_base64)
+        self.assertEqual(self.insuree.photo.filename,
+                         str(self.test_photo_uuid))
+        create_file.assert_called_once_with(
+            ANY, self.insuree.id, self.photo_base64)
 
     @mock.patch('insuree.services.InsureeConfig')
     @mock.patch('insuree.gql_queries.InsureeConfig')
@@ -86,13 +90,16 @@ class InsureePhotoTest(TestCase):
     def test_pull_photo_file_path(self, load_photo_file, create_file, insuree_config, insuree_config2):
         load_photo_file.return_value = self.photo_base64
         create_file.return_value = self.test_photo_path, self.test_photo_uuid
-        insuree_config.insuree_photos_root_path = PropertyMock(return_value="insuree_root_path")
-        insuree_config2.insuree_photos_root_path = PropertyMock(return_value="insuree_root_path")
+        insuree_config.insuree_photos_root_path = PropertyMock(
+            return_value="insuree_root_path")
+        insuree_config2.insuree_photos_root_path = PropertyMock(
+            return_value="insuree_root_path")
         self.__call_photo_mutation()
         query_result = self.__call_photo_query()
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
         self.assertEqual(gql_photo['photo'], self.photo_base64)
-        load_photo_file.assert_called_once_with(self.test_photo_path, str(self.test_photo_uuid))
+        load_photo_file.assert_called_once_with(
+            self.test_photo_path, str(self.test_photo_uuid))
 
     def __call_photo_mutation(self):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
@@ -147,13 +154,14 @@ class InsureePhotoTest(TestCase):
         i_user, i_user_created = create_or_update_interactive_user(
             user_id=None, data=data, audit_user_id=999, connected=False
         )
-        create_or_update_core_user(user_uuid=None, username=self._TEST_USER_NAME, i_user=i_user)
+        create_or_update_core_user(
+            user_uuid=None, username=self._TEST_USER_NAME, i_user=i_user)
         return User.objects.filter(username=self._TEST_USER_NAME).get()
 
     def __get_insuree_query(self, insuree):
         return F'''
 {{
-    insurees(uuid: "{insuree.uuid}") {{
+    insurees(uuid: "{insuree.uuid}", ignoreLocation:true) {{
         pageInfo {{
             hasNextPage,
             hasPreviousPage,
