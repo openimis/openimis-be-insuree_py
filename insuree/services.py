@@ -41,10 +41,10 @@ def create_insuree_renewal_detail(policy_renewal):
                      photo.insuree_id, detail.id, detail_created)
 
 
-def validate_insuree_number(insuree_number, is_new_insuree=False):
-    if is_new_insuree:
-        if Insuree.objects.filter(chf_id=insuree_number).exists():
-            return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
+def validate_insuree_number(insuree_number):
+
+    if Insuree.objects.filter(chf_id=insuree_number).exists():
+        return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
         return InsureeConfig.get_insuree_number_validator()(insuree_number)
