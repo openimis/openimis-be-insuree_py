@@ -74,6 +74,12 @@ class InsureePhotoTest(TestCase):
         create_file.return_value = self.test_photo_path, self.test_photo_uuid
         insuree_config.insuree_photos_root_path = PropertyMock(
             return_value="insuree_root_path")
+        insuree_config.get_insuree_number_validator = PropertyMock(
+            return_value=None)
+        insuree_config.get_insuree_number_length = PropertyMock(
+            return_value=None)
+        insuree_config.get_insuree_number_modulo_root = PropertyMock(
+            return_value=None)
 
         self.__call_photo_mutation()
 
@@ -92,8 +98,24 @@ class InsureePhotoTest(TestCase):
         create_file.return_value = self.test_photo_path, self.test_photo_uuid
         insuree_config.insuree_photos_root_path = PropertyMock(
             return_value="insuree_root_path")
+        insuree_config.get_insuree_number_validator = PropertyMock(
+            return_value=None)
+        insuree_config.get_insuree_number_length = PropertyMock(
+            return_value=None)
+        insuree_config.get_insuree_number_modulo_root = PropertyMock(
+            return_value=None)
+        insuree_config.insuree_photos_root_path = PropertyMock(
+            return_value="insuree_root_path")
         insuree_config2.insuree_photos_root_path = PropertyMock(
             return_value="insuree_root_path")
+        insuree_config2.insuree_photos_root_path = PropertyMock(
+            return_value="insuree_root_path")
+        insuree_config2.get_insuree_number_validator = PropertyMock(
+            return_value=None)
+        insuree_config2.get_insuree_number_length = PropertyMock(
+            return_value=None)
+        insuree_config2.get_insuree_number_modulo_root = PropertyMock(
+            return_value=None)
         self.__call_photo_mutation()
         query_result = self.__call_photo_query()
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
