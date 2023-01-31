@@ -43,7 +43,8 @@ def create_insuree_renewal_detail(policy_renewal):
 
 def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
-    if query.exists() and (not uuid or query.get().uuid != uuid):
+    instance_uuid = query.first().uuid if query.first() else None
+    if query.exists() and (not uuid or instance_uuid != uuid):
         return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
@@ -199,6 +200,9 @@ class InsureeService:
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
         insuree_uuid = data.pop('uuid', None)
+        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+        if errors:
+            raise Exception("Invalid insuree number")
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
             insuree.save_history()
@@ -207,11 +211,7 @@ class InsureeService:
             reset_insuree_before_update(insuree)
             [setattr(insuree, key, data[key]) for key in data]
         else:
-            errors = validate_insuree_number(data["chf_id"])
-            if errors:
-                raise Exception("Invalid insuree number")
-            else:
-                insuree = Insuree.objects.create(**data)
+            insuree = Insuree.objects.create(**data)
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
