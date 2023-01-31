@@ -12,6 +12,7 @@ class Command(BaseCommand):
     services = None
     items = None
     products = None
+    villages = None
 
     def add_arguments(self, parser):
         parser.add_argument("nb_insurees", nargs=1, type=int)
@@ -47,7 +48,10 @@ class Command(BaseCommand):
                 dob=fake.date_between(start_date='-105y', end_date='today'),
                 chf_id=random.randrange(100000000, 999999999),
             )
-            insuree = create_test_insuree(custom_props=props)
+            family_props = dict(
+                location_id=self.get_random_village(),
+            )
+            insuree = create_test_insuree(custom_props=props, family_custom_props=family_props)
             if verbose:
                 print(insuree_num, "created head insuree and family", insuree.other_names, insuree.last_name,
                       insuree.chf_id)
@@ -63,6 +67,7 @@ class Command(BaseCommand):
             if policy:
                 from policy.test_helpers import create_test_policy_family
                 product = self.get_random_product()
+                # TODO Method doesn't exist anymore
                 policy = create_test_policy_family(product, insuree.family, link=True, valid=True)
                 if verbose:
                     print("Generated policy for family", insuree.family_id, policy)
@@ -72,3 +77,9 @@ class Command(BaseCommand):
             from product.models import Product
             self.products = Product.objects.filter(validity_to__isnull=True).values_list("pk", flat=True)
         return random.choice(self.products)
+
+    def get_random_village(self):
+        if not self.villages:
+            from location.models import Location
+            self.villages = Location.objects.filter(type="V", validity_to__isnull=True).values_list("pk", flat=True)
+        return random.choice(self.villages)
