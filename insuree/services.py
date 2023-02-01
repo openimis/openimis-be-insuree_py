@@ -43,8 +43,8 @@ def create_insuree_renewal_detail(policy_renewal):
 
 def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
-    instance_uuid = query.first().uuid if query.first() else None
-    if query.exists() and (not uuid or instance_uuid != uuid):
+    insuree = query.first()
+    if insuree and insuree.uuid != uuid:
         return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
