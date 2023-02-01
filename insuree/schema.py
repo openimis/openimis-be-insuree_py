@@ -100,17 +100,12 @@ class Query(graphene.ObjectType):
     insuree_number_validity = graphene.Field(
         graphene.Boolean,
         insuree_number=graphene.String(required=True),
-        new_insuree=graphene.Boolean(required=False),
         description="Checks that the specified insuree number is valid"
     )
 
     def resolve_insuree_number_validity(self, info, **kwargs):
-        errors = validate_insuree_number(
-            kwargs['insuree_number'], kwargs.get('new_insuree', False))
-        if errors:
-            return False
-        else:
-            return True
+        errors = validate_insuree_number(kwargs['insuree_number'])
+        return False if errors else True
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
