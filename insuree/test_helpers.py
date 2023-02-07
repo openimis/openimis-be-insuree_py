@@ -1,7 +1,7 @@
 from insuree.models import Insuree, Family, Gender, InsureePhoto
 
 
-def create_test_insuree(with_family=True, custom_props=None, family_custom_props={}):
+def create_test_insuree(with_family=True, is_head=False, custom_props=None, family_custom_props=None):
     # insuree has a mandatory reference to family and family has a mandatory reference to insuree
     # So we first insert the family with a dummy id and then update it
     if with_family:
@@ -9,6 +9,7 @@ def create_test_insuree(with_family=True, custom_props=None, family_custom_props
             validity_from="2019-01-01",
             head_insuree_id=1,  # dummy
             audit_user_id=-1,
+            **(family_custom_props if family_custom_props else {})
         )
     else:
         family = None
@@ -21,7 +22,7 @@ def create_test_insuree(with_family=True, custom_props=None, family_custom_props
             "family": family,
             "gender": Gender.objects.get(code='M'),
             "dob": "1970-01-01",
-            "head": True,
+            "head": is_head,
             "card_issued": True,
             "validity_from": "2019-01-01",
             "audit_user_id": -1,
