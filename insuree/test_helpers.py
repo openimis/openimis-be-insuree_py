@@ -31,8 +31,9 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
     )
     if with_family:
         family.head_insuree_id = insuree.id
-        for k, v in family_custom_props.items():
-            setattr(family, k, v)
+        if family_custom_props:
+            for k, v in family_custom_props.items():
+                setattr(family, k, v)
         family.save()
 
     return insuree
