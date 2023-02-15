@@ -75,7 +75,7 @@ def validate_insuree_number(insuree_number, uuid=None):
         except Exception as exc:
             logger.exception("Failed insuree number validation", exc)
             return [{"code": 5, "message": "Insuree number validation failed"}]
-    return [{"code": 0, "message": "OK"}]
+    return []
 
 
 def reset_insuree_before_update(insuree):

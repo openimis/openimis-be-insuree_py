@@ -107,6 +107,10 @@ class Query(graphene.ObjectType):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         errors = validate_insuree_number(kwargs['insuree_number'])
+        if errors:
+            errors[0].update({'isValid': "False" if errors else "True"})
+        else:
+            errors = [{'isValid': "True"}]
         return errors
 
     def resolve_can_add_insuree(self, info, **kwargs):
