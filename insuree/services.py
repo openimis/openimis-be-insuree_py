@@ -45,7 +45,8 @@ def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
     if insuree and insuree.uuid != uuid:
-        return [{"code": 1, "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
+        return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
+                 "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
         return InsureeConfig.get_insuree_number_validator()(insuree_number)
@@ -53,7 +54,7 @@ def validate_insuree_number(insuree_number, uuid=None):
         if not insuree_number:
             return [
                 {
-                    "code": 2,
+                    "errorCode": InsureeConfig.validation_code_no_insuree_number,
                     "message": "Invalid insuree number (empty), should be %s" %
                                (InsureeConfig.get_insuree_number_length(),)
                 }
@@ -61,7 +62,7 @@ def validate_insuree_number(insuree_number, uuid=None):
         if len(insuree_number) != InsureeConfig.get_insuree_number_length():
             return [
                 {
-                    "code": 3,
+                    "errorCode": InsureeConfig.validation_code_invalid_insuree_number_len,
                     "message": "Invalid insuree number length %s, should be %s" %
                                (len(insuree_number), InsureeConfig.get_insuree_number_length())
                 }
@@ -71,10 +72,12 @@ def validate_insuree_number(insuree_number, uuid=None):
             base = int(insuree_number[:-1])
             mod = int(insuree_number[-1])
             if base % InsureeConfig.get_insuree_number_modulo_root() != mod:
-                return [{"code": 4, "message": "Invalid checksum"}]
+                return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_checksum,
+                         "message": "Invalid checksum"}]
         except Exception as exc:
             logger.exception("Failed insuree number validation", exc)
-            return [{"code": 5, "message": "Insuree number validation failed"}]
+            return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_exception,
+                     "message": "Insuree number validation failed"}]
     return []
 
 

@@ -12,6 +12,7 @@ from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField, OfficerGQLType
+from core.gql_queries import ValidationMessageGQLType
 from policy.models import Policy
 
 # We do need all queries and mutations in the namespace here.
@@ -98,7 +99,7 @@ class Query(graphene.ObjectType):
         additional_filter=graphene.JSONString(),
     )
     insuree_number_validity = graphene.Field(
-        graphene.String,
+        ValidationMessageGQLType,
         insuree_number=graphene.String(required=True),
         description="Checks that the specified insuree number is valid"
     )
@@ -108,10 +109,9 @@ class Query(graphene.ObjectType):
             raise PermissionDenied(_("unauthorized"))
         errors = validate_insuree_number(kwargs['insuree_number'])
         if errors:
-            errors[0].update({'isValid': "False" if errors else "True"})
+            return ValidationMessageGQLType(False, errors[0]['errorCode'], errors[0]['message'])
         else:
-            errors = [{'isValid': "True"}]
-        return errors
+            return ValidationMessageGQLType(True, 0, "")
 
     def resolve_can_add_insuree(self, info, **kwargs):
         family = Family.objects.get(id=kwargs.get('family_id'))
