@@ -45,6 +45,11 @@ class InsureeConfig(AppConfig):
     gql_mutation_create_insurees_perms = []
     gql_mutation_update_insurees_perms = []
     gql_mutation_delete_insurees_perms = []
+    validation_code_taken_insuree_number = 1
+    validation_code_no_insuree_number = 2
+    validation_code_invalid_insuree_number_len = 3
+    validation_code_invalid_insuree_number_checksum = 4
+    validation_code_invalid_insuree_number_exception = 5
     insuree_photos_root_path = None
     excluded_insuree_chfids = ['999999999']
     renewal_photo_age_adult = 60
