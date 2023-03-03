@@ -1,3 +1,5 @@
+import os
+
 from django.apps import AppConfig
 from django.conf import settings
 
@@ -63,7 +65,6 @@ class InsureeConfig(AppConfig):
         InsureeConfig.gql_mutation_create_insurees_perms = cfg["gql_mutation_create_insurees_perms"]
         InsureeConfig.gql_mutation_update_insurees_perms = cfg["gql_mutation_update_insurees_perms"]
         InsureeConfig.gql_mutation_delete_insurees_perms = cfg["gql_mutation_delete_insurees_perms"]
-        InsureeConfig.insuree_photos_root_path = cfg["insuree_photos_root_path"]
         InsureeConfig.insuree_number_validator = cfg["insuree_number_validator"]
         InsureeConfig.insuree_number_length = cfg["insuree_number_length"]
         InsureeConfig.insuree_number_modulo_root = cfg["insuree_number_modulo_root"]
@@ -81,6 +82,7 @@ class InsureeConfig(AppConfig):
         self._configure_permissions(cfg)
         self._configure_fake_insurees(cfg)
         self._configure_renewal(cfg)
+        self._configure_photo_root(cfg)
 
     # Getting these at runtime for easier testing
     @classmethod
@@ -106,3 +108,12 @@ class InsureeConfig(AppConfig):
     @classmethod
     def __get_from_settings_or_default(cls, attribute_name, default=None):
         return getattr(settings, attribute_name) if hasattr(settings, attribute_name) else default
+
+    def _configure_photo_root(self, cfg):
+        # TODO: To be confirmed. I left loading from config for integrity reasons
+        #  but it could be based on env variable only.
+        #  Also we could determine global file root for all stored files across modules.
+        if from_config := cfg.get("insuree_photos_root_path", None):
+            InsureeConfig.insuree_photos_root_path = from_config
+        elif from_env := os.getenv("PHOTO_ROOT_PATH", None):
+            InsureeConfig.insuree_photos_root_path = from_env

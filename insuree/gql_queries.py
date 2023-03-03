@@ -1,10 +1,14 @@
 import graphene
 from graphene_django import DjangoObjectType
+
+from .apps import InsureeConfig
 from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
     Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
+
+from .services import load_photo_file
 
 
 class GenderGQLType(DjangoObjectType):
@@ -16,6 +20,15 @@ class GenderGQLType(DjangoObjectType):
 
 
 class PhotoGQLType(DjangoObjectType):
+    photo = graphene.String()
+
+    def resolve_photo(self, info):
+        if self.photo:
+            return self.photo
+        elif InsureeConfig.insuree_photos_root_path and self.folder and self.filename:
+            return load_photo_file(self.folder, self.filename)
+        return None
+
     class Meta:
         model = InsureePhoto
         filter_fields = {
@@ -76,6 +89,7 @@ class RelationGQLType(DjangoObjectType):
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
     client_mutation_id = graphene.String()
+    photo = PhotoGQLType()
 
     def resolve_current_village(self, info):
         if "location_loader" in info.context.dataloaders and self.current_village_id:
@@ -95,6 +109,9 @@ class InsureeGQLType(DjangoObjectType):
                 self.health_facility_id
             )
         return self.health_facility
+
+    def resolve_photo(self, info):
+        return self.photo
 
     class Meta:
         model = Insuree

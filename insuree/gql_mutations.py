@@ -33,7 +33,7 @@ class InsureeBase:
     chf_id = graphene.String(max_length=12, required=False)
     last_name = graphene.String(max_length=100, required=True)
     other_names = graphene.String(max_length=100, required=True)
-    gender_id = graphene.String(max_length=1, required=False)
+    gender_id = graphene.String(max_length=1, required=True, description="Was mandatory in Legacy but not in modular")
     dob = graphene.Date(required=True)
     head = graphene.Boolean(required=False)
     marital = graphene.String(max_length=1, required=False)
@@ -152,7 +152,7 @@ class CreateFamilyMutation(OpenIMISMutation):
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
             # Validate insuree number right away
-            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None))
+            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None), True)
             if errors:
                 return errors
             family = update_or_create_family(data, user)
@@ -253,7 +253,7 @@ class CreateInsureeMutation(OpenIMISMutation):
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
             # Validate insuree number right away
-            errors = validate_insuree_number(data.get("chf_id", None))
+            errors = validate_insuree_number(data.get("chf_id", None), True)
             if errors:
                 return errors
             insuree = update_or_create_insuree(data, user)
