@@ -163,14 +163,6 @@ class Query(graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
 
-        if (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None):
-            # Limit the list by the logged in user location mapping
-            user_districts = UserDistrict.get_user_districts(
-                info.context.user._u)
-
-            filters += [Q(family__location__parent__parent__in=Location.objects.filter(
-                uuid__in=user_districts.values_list('location__uuid', flat=True)))]
-
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
