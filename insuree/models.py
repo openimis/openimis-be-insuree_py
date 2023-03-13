@@ -298,6 +298,23 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         managed = False
         db_table = 'tblInsuree'
 
+class InsureeAttachment(models.Model):
+    """ Class Attachment :
+    Class for isurees attachments
+    """
+    idAttachment = models.AutoField(
+        primary_key=True
+    )
+    folder = models.CharField(db_column='Folder', max_length=250, null=False)
+    name = models.CharField(db_column='FileName', max_length=250, null=False)
+    insuree = models.ManyToManyField('Insuree')
+
+    """ Class Meta :
+    Class Meta to define specific table
+    """
+
+    class Meta:
+        db_table = "tblattachment"
 
 class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
