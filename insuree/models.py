@@ -307,7 +307,12 @@ class InsureeAttachment(models.Model):
     )
     folder = models.CharField(db_column='Folder', max_length=250, null=False)
     name = models.CharField(db_column='FileName', max_length=250, null=False)
-    insuree = models.ManyToManyField('Insuree')
+    insuree = models.ForeignKey(
+        'Insuree',
+        models.DO_NOTHING,
+        db_column='InsureeID',
+        related_name="attachments"
+    )
 
     """ Class Meta :
     Class Meta to define specific table
