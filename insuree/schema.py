@@ -30,6 +30,8 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
     def resolve_queryset(
             cls, connection, iterable, info, args, filtering_args, filterset_class
     ):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         qs = super(FamiliesConnectionField, cls).resolve_queryset(
             connection, iterable, info,
             {k: args[k] for k in args.keys() if not k.startswith(
@@ -114,6 +116,8 @@ class Query(graphene.ObjectType):
             return ValidationMessageGQLType(True, 0, "")
 
     def resolve_can_add_insuree(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+            raise PermissionDenied(_("unauthorized"))
         family = Family.objects.get(id=kwargs.get('family_id'))
         warnings = []
         policies = family.policies\
@@ -135,10 +139,11 @@ class Query(graphene.ObjectType):
         return warnings
 
     def resolve_insuree_genders(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+            raise PermissionDenied(_("unauthorized"))
         return Gender.objects.order_by('sort_order').all()
 
     def resolve_insurees(self, info, **kwargs):
-
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
@@ -174,7 +179,7 @@ class Query(graphene.ObjectType):
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_family_members):
             raise PermissionDenied(_("unauthorized"))
         family = Family.objects.get(Q(uuid=kwargs.get('family_uuid')))
         return Insuree.objects.filter(
@@ -183,21 +188,33 @@ class Query(graphene.ObjectType):
         ).order_by('-head', 'dob')
 
     def resolve_educations(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return Education.objects.order_by('sort_order').all()
 
     def resolve_professions(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return Profession.objects.order_by('sort_order').all()
 
     def resolve_identification_types(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return IdentificationType.objects.order_by('sort_order').all()
 
     def resolve_confirmation_types(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return ConfirmationType.objects.order_by('sort_order').all()
 
     def resolve_relations(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return Relation.objects.order_by('sort_order').all()
 
     def resolve_family_types(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         return FamilyType.objects.order_by('sort_order').all()
 
     def resolve_families(self, info, **kwargs):
@@ -258,6 +275,8 @@ class Query(graphene.ObjectType):
             raise PermissionDenied(_("unauthorized"))
 
     def resolve_insuree_policy(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
+            raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filter', None)
         # go to process additional filter only when this arg of filter was passed into query
