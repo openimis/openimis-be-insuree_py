@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
-from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from insuree.models import InsureePhoto, InsureeAttachment, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +140,17 @@ def handle_insuree_photo(user, now, insuree, data):
     insuree_photo.save()
     return insuree_photo
 
+def handle_insuree_attachments(user, now, insuree, data):
+    data['insuree_id'] = insuree.id
+    document_bin = data.get('document', None)
+    if document_bin and InsureeConfig.insuree_photos_root_path:
+        (file_dir, file_name) = create_file(now, insuree.id, document_bin)
+        data.pop('document', None)
+        data['folder'] = file_dir
+        data['filename'] = file_name
+    insuree_attachment = InsureeAttachment.objects.create(**data)
+    insuree_attachment.save()
+    return insuree_attachment
 
 def photo_changed(insuree_photo, data):
     return (not insuree_photo and data) or \
@@ -194,6 +205,7 @@ class InsureeService:
     @register_service_signal('insuree_service.create_or_update')
     def create_or_update(self, data):
         photo = data.pop('photo', None)
+        attachments = data.pop('attachments', [])
         from core import datetime
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
@@ -218,6 +230,13 @@ class InsureeService:
             insuree.photo = photo
             insuree.photo_date = photo.date
             insuree.save()
+        InsureeAttachment.objects.filter(
+            insuree_id=insuree.id
+        ).delete()
+        for attachment in attachments:
+            handle_insuree_attachments(
+                self.user, now, insuree, attachment
+            )
         return insuree
 
     def remove(self, insuree):

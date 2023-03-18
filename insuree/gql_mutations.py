@@ -26,6 +26,15 @@ class PhotoInputType(InputObjectType):
     filename = graphene.String(required=False)
     folder = graphene.String(required=False)
 
+class AttachmentInputType(InputObjectType):
+    idAttachment = graphene.Int(required=False, read_only=True)
+    folder = graphene.String(required=False)
+    title = graphene.String(required=False)
+    mime = graphene.String(required=False)
+    filename = graphene.String(required=False)
+    date = graphene.Date(required=False)
+    document = graphene.String(required=True) # Ficher
+
 
 class InsureeBase:
     id = graphene.Int(required=False, read_only=True)
@@ -46,6 +55,7 @@ class InsureeBase:
     photo_id = graphene.Int(required=False)
     photo_date = graphene.Date(required=False)
     photo = graphene.Field(PhotoInputType, required=False)
+    attachments = graphene.List(AttachmentInputType, required=True)
     card_issued = graphene.Boolean(required=False)
     family_id = graphene.Int(required=False)
     relationship_id = graphene.Int(required=False)
