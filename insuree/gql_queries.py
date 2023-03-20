@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .apps import InsureeConfig
-from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
+from .models import Insuree, InsureePhoto, InsureeAttachment, Education, Profession, Gender, IdentificationType, \
     Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
@@ -31,6 +31,22 @@ class PhotoGQLType(DjangoObjectType):
 
     class Meta:
         model = InsureePhoto
+        filter_fields = {
+            "id": ["exact"]
+        }
+
+class AttachmentGQLType(DjangoObjectType):
+    document = graphene.String()
+
+    def resolve_attachment(self, info):
+        if self.document:
+            return self.document
+        elif InsureeConfig.insuree_photos_root_path and self.folder and self.filename:
+            return load_photo_file(self.folder, self.filename)
+        return None
+
+    class Meta:
+        model = InsureeAttachment
         filter_fields = {
             "id": ["exact"]
         }
