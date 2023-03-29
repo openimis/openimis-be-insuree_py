@@ -3,7 +3,6 @@ import uuid
 import pathlib
 import base64
 import graphene
-import random
 from insuree.services import validate_insuree_number, InsureeService, FamilyService
 
 from .apps import InsureeConfig
@@ -262,19 +261,6 @@ class CreateInsureeMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
-
-            # This function is designed to generate a random insuree ID with 9 characters, ranging from 1 to 999999999. 
-            # It returns a string of 9 characters for the insuree ID.
-            min_num = 1
-            max_num = 999999999
-
-            formatted_num = 0
-            print(formatted_num)
-            # We try if the insuree number and generate a new id till a unique insureeId is generated
-            while formatted_num==0 or Insuree.objects.filter(chf_id=formatted_num).exists():
-                random_num = random.randint(min_num, max_num)
-                formatted_num = str(random_num).zfill(9)
-                data["chf_id"] = formatted_num
 
             # Validate insuree number right away
             errors = validate_insuree_number(data.get("chf_id", None), True)
