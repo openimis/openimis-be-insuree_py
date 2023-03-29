@@ -6,7 +6,6 @@ import uuid
 from os import path
 import random
 from core.apps import CoreConfig
-from location.apps import LocationConfig
 from location.models import Location
 from django.db.models import Q
 from django.utils.translation import gettext as _
