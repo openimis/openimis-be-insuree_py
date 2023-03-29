@@ -4,8 +4,9 @@ import pathlib
 import shutil
 import uuid
 from os import path
-
+import random
 from core.apps import CoreConfig
+from location.models import Location
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
@@ -202,6 +203,15 @@ class InsureeService:
     def __init__(self, user):
         self.user = user
 
+    def normalize_code(self, code, maxi=2):
+        if len(code) <= 0:
+            code = '00' if maxi == 2 else '000'
+        if len(code) == 1:
+            code = '0'+str(code) if maxi == 2 else '00'+str(code)
+        if len(code) > maxi:
+            code = code[:maxi]
+        return code
+    
     @register_service_signal('insuree_service.create_or_update')
     def create_or_update(self, data):
         photo = data.pop('photo', None)
@@ -210,6 +220,42 @@ class InsureeService:
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
+        location_id = data.pop('location_id', False)
+        gender = data.get('gender_id', False)
+        # This function is designed to generate a random insuree ID with 5 characters, ranging from 1 to 99999. 
+        # It returns a string of 9 characters for the insuree ID.
+        min_num = 1
+        max_num = 9999999999999
+        val = 13
+        first_part = ""
+        if location_id:
+            max_num = 99999
+            val = 5
+            location = Location.objects.get(id=location_id)
+            municipality = location.parent.code
+            district = location.parent.parent.code
+            region = location.parent.parent.parent.code
+
+            region = self.normalize_code(region)
+            district = self.normalize_code(district)
+            municipality = self.normalize_code(municipality, maxi=3)
+            
+            print("region ", region)
+            print("district ", district)
+            print("municipality ", municipality)
+            gender_code = '1'
+            if gender == 'F':
+                gender_code = '2'
+            first_part = region + district + municipality + gender_code
+
+        formatted_num = 0
+        print(formatted_num)
+        # We try if the insuree number and generate a new id till a unique insureeId is generated
+        while formatted_num==0 or Insuree.objects.filter(chf_id=formatted_num).exists():
+            random_num = random.randint(min_num, max_num)
+            formatted_num = str(random_num).zfill(val)
+            data["chf_id"] = first_part + formatted_num
+        print(data["chf_id"])
         insuree_uuid = data.pop('uuid', None)
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
@@ -295,6 +341,7 @@ class FamilyService:
     def create_or_update(self, data):
         head_insuree_data = data.pop('head_insuree')
         head_insuree_data["head"] = True
+        head_insuree_data["location_id"] = data.get('location_id', None)
         head_insuree = InsureeService(self.user).create_or_update(head_insuree_data)
         data["head_insuree"] = head_insuree
         family_uuid = data.pop('uuid', None)
