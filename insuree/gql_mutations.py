@@ -34,6 +34,9 @@ class AttachmentInputType(InputObjectType):
     date = graphene.Date(required=False)
     document = graphene.String(required=True) # Ficher
 
+class MembershipGroupInputType(InputObjectType):
+    id = graphene.Int(required=False, read_only=True)
+    name = graphene.String(required=False)
 
 class InsureeBase:
     id = graphene.Int(required=False, read_only=True)
@@ -64,6 +67,7 @@ class InsureeBase:
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
+    membershipgroup_id = graphene.Int(required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):

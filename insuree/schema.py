@@ -63,6 +63,10 @@ class Query(graphene.ObjectType):
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
     professions = graphene.List(ProfessionGQLType)
+    membershipgroups = OrderedDjangoFilterConnectionField(
+        MembershipGroupGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
     relations = graphene.List(RelationGQLType)
@@ -163,6 +167,10 @@ class Query(graphene.ObjectType):
 
     def resolve_educations(self, info, **kwargs):
         return Education.objects.order_by('sort_order').all()
+
+    def resolve_membershipgroups(self, info, **kwargs):
+        query = MembershipGroup.objects
+        return gql_optimizer.query(query.all(), info)
 
     def resolve_professions(self, info, **kwargs):
         return Profession.objects.order_by('sort_order').all()

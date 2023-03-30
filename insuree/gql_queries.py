@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 
 from .apps import InsureeConfig
 from .models import Insuree, InsureePhoto, InsureeAttachment, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation
+    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation, MembershipGroup
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -51,6 +51,14 @@ class AttachmentGQLType(DjangoObjectType):
             "id": ["exact"]
         }
 
+class MembershipGroupGQLType(DjangoObjectType):
+    class Meta:
+        model = MembershipGroup
+        filter_fields = {
+            "name": ["exact", "icontains"]
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
 
 class IdentificationTypeGQLType(DjangoObjectType):
     class Meta:

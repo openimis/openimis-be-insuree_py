@@ -225,6 +225,23 @@ class InsureeAttachment(models.Model):
     class Meta:
         db_table = "tblattachment"
 
+
+class MembershipGroup(models.Model):
+    """ Class membership group :
+    Class for isurees membership
+    """
+    idMembershipgroup = models.AutoField(
+        primary_key=True, db_column='idMembershipGroup'
+    )
+    name = models.CharField(db_column='Name', max_length=250, null=True)
+
+    """ Class Meta :
+    Class Meta to define specific table
+    """
+
+    class Meta:
+        db_table = "tblMembershipGroup"
+
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
@@ -282,6 +299,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
+    membershipgroup = models.ForeignKey(
+        MembershipGroup, models.DO_NOTHING, db_column='MembershipGroupID', blank=True, null=True,
+        related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
@@ -323,7 +343,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblInsuree'
 
 class InsureePolicy(core_models.VersionedModel):
