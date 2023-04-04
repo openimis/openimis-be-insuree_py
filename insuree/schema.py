@@ -1,3 +1,5 @@
+import graphene
+
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -18,7 +20,8 @@ from policy.models import Policy
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
-from .signals import signal_before_insuree_policy_query, _read_signal_results, signal_before_family_query
+from .signals import signal_before_insuree_policy_query, _read_signal_results, \
+    signal_before_family_query, signal_before_insuree_search_query
 
 
 def family_fk(arg):
@@ -69,6 +72,7 @@ class Query(graphene.ObjectType):
         client_mutation_id=graphene.String(),
         ignore_location=graphene.Boolean(),
         orderBy=graphene.List(of_type=graphene.String),
+        additional_filters=graphene.JSONString()
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
@@ -147,6 +151,12 @@ class Query(graphene.ObjectType):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
+        additional_filter = kwargs.get('additional_filters', None)
+        if additional_filter:
+            filters_from_signal = _insuree_insuree_additional_filters(
+                sender=self, additional_filter=additional_filter, user=info.context.user
+            )
+            filters.extend(filters_from_signal)
         show_history = kwargs.get('show_history', False)
         if not show_history and not kwargs.get('uuid', None):
             filters += filter_validity(**kwargs)
@@ -398,6 +408,9 @@ def bind_signals():
 
 def _insuree_additional_filters(sender, additional_filter, user):
     return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_policy_query)
+
+def _insuree_insuree_additional_filters(sender, additional_filter, user):
+    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_search_query)
 
 
 def _family_additional_filters(sender, additional_filter, user):
