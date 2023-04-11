@@ -1,5 +1,6 @@
 import graphene
 
+from claim.apps import ClaimConfig
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -148,13 +149,14 @@ class Query(graphene.ObjectType):
         return Gender.objects.order_by('sort_order').all()
 
     def resolve_insurees(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms)\
+                or not info.context.has_perms(ClaimConfig.gql_query_claims_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
-        chfId = kwargs.get('chf_id')
-        if chfId is not None:
-            filters.append(Q(chf_id=chfId))
+        chf_id = kwargs.get('chf_id')
+        if chf_id is not None:
+            filters.append(Q(chf_id=chf_id))
         if additional_filter:
             filters_from_signal = _insuree_insuree_additional_filters(
                 sender=self, additional_filter=additional_filter, user=info.context.user
