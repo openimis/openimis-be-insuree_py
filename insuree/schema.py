@@ -152,6 +152,9 @@ class Query(graphene.ObjectType):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
+        chfId = kwargs.get('chf_id')
+        if chfId is not None:
+            filters.append(Q(chf_id=chfId))
         if additional_filter:
             filters_from_signal = _insuree_insuree_additional_filters(
                 sender=self, additional_filter=additional_filter, user=info.context.user
