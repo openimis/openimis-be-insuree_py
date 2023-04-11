@@ -1,5 +1,6 @@
 import graphene
 
+from claim.apps import ClaimConfig
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -152,6 +153,9 @@ class Query(graphene.ObjectType):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
+        chf_id = kwargs.get('chf_id')
+        if chf_id is not None:
+            filters.append(Q(chf_id=chf_id))
         if additional_filter:
             filters_from_signal = _insuree_insuree_additional_filters(
                 sender=self, additional_filter=additional_filter, user=info.context.user
