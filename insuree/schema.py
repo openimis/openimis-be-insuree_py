@@ -150,7 +150,7 @@ class Query(graphene.ObjectType):
 
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms)\
-                or not info.context.has_perms(ClaimConfig.gql_query_claims_perms):
+                and not info.context.has_perms(ClaimConfig.gql_query_claims_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
