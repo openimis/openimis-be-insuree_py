@@ -1,7 +1,10 @@
-from insuree.reports import insuree_family_overview, enrolled_families, insuree_missing_photo
+from insuree.reports import insuree_family_overview, enrolled_families, insuree_missing_photo, \
+    insurees_pending_enrollment
 from insuree.reports.enrolled_families import enrolled_families_query
 from insuree.reports.insuree_family_overview import insuree_family_overview_query
 from insuree.reports.insuree_missing_photo import insuree_missing_photo_query
+from insuree.reports.insurees_pending_enrollment import insurees_pending_enrollment_query
+
 
 # Insuree_family_overview are the same report, with native code and with the stored_procedure
 report_definitions = [
@@ -12,6 +15,15 @@ report_definitions = [
         "description": "Missing insuree photos",
         "module": "insuree",
         "python_query": insuree_missing_photo_query,
+        "permission": ["131215"],
+    },
+    {
+        "name": "insurees_pending_enrollment",
+        "engine": 0,
+        "default_report": insurees_pending_enrollment.template,
+        "description": "Insurees pending enrollment",
+        "module": "insuree",
+        "python_query": insurees_pending_enrollment_query,
         "permission": ["131215"],
     },
     {
