@@ -205,7 +205,7 @@ class InsureeAttachment(models.Model):
     )
     folder = models.CharField(db_column='Folder', max_length=250, null=True)
     filename = models.CharField(db_column='FileName', max_length=250, null=True)
-    title = models.CharField(db_column='Title', max_length=50, null=True)
+    title = models.CharField(db_column='Title', max_length=250, null=True)
     insuree = models.ForeignKey(
         'Insuree',
         models.DO_NOTHING,

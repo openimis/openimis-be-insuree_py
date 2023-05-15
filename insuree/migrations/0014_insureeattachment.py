@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('idAttachment', models.AutoField(db_column='idAttachment', primary_key=True, serialize=False)),
                 ('folder', models.CharField(db_column='Folder', max_length=250, null=True)),
                 ('filename', models.CharField(db_column='FileName', max_length=250, null=True)),
-                ('title', models.CharField(db_column='Title', max_length=50, null=True)),
+                ('title', models.CharField(db_column='Title', max_length=250, null=True)),
                 ('date', core.fields.DateField(blank=True, db_column='AttachmentDate', null=True)),
                 ('document', models.TextField()),
                 ('mime', models.CharField(db_column='Mime', max_length=250)),
