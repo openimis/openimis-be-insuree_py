@@ -193,17 +193,6 @@ class Query(graphene.ObjectType):
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
-    def resolve_insuree_by_chf_id(self, info, chf_id):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
-            raise PermissionDenied(_("unauthorized"))
-
-        try:
-            insuree = Insuree.objects.get(chf_id=chf_id, validity_to__isnull=True)
-        except Insuree.DoesNotExist:
-            return None
-
-        return insuree
-
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_family_members):
             raise PermissionDenied(_("unauthorized"))
