@@ -231,16 +231,21 @@ class InsureeService:
         else:
             location_id = data.pop('location_id', False)
             gender = data.get('gender_id', False)
+            family_id = data.get('family_id', False)
             # This function is designed to generate a random insuree ID with 5 characters, ranging from 1 to 99999. 
             # It returns a string of 9 characters for the insuree ID.
             min_num = 1
             max_num = 9999999999999
             val = 13
             first_part = ""
-            if location_id:
+            if location_id or family_id:
                 max_num = 99999
                 val = 5
-                location = Location.objects.get(id=location_id)
+                if family_id:
+                    family = Family.objects.get(id=family_id)
+                    location = Location.objects.get(id=family.location_id)
+                else:
+                    location = Location.objects.get(id=location_id)
                 municipality = location.parent.code
                 district = location.parent.parent.code
                 region = location.parent.parent.parent.code
