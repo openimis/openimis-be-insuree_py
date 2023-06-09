@@ -33,7 +33,7 @@ class InsureePhoto(core_models.VersionedModel):
     insuree = models.ForeignKey("Insuree", on_delete=models.DO_NOTHING,
                                 db_column='InsureeID', blank=True, null=True, related_name="photos")
     chf_id = models.CharField(
-        db_column='CHFID', max_length=12, blank=True, null=True)
+        db_column='CHFID', max_length=13, blank=True, null=True)
     folder = models.CharField(db_column='PhotoFolder', max_length=255, blank=True, null=True)
     filename = models.CharField(
         db_column='PhotoFileName', max_length=250, blank=True, null=True)
@@ -52,7 +52,7 @@ class InsureePhoto(core_models.VersionedModel):
         return os.path.join(InsureeConfig.insuree_photos_root_path, self.folder, self.filename)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblPhotos'
 
 
