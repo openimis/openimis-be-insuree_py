@@ -1,4 +1,5 @@
 import logging
+from pickle import TRUE
 import uuid
 import pathlib
 import base64
@@ -13,6 +14,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
 from .models import Family, Insuree, FamilyMutation, InsureeMutation
+from policy.models import Policy
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,11 @@ class InsureeBase:
     other_names = graphene.String(max_length=100, required=True)
     gender_id = graphene.String(max_length=1, required=True, description="Was mandatory in Legacy but not in modular")
     dob = graphene.Date(required=True)
+    
+    dod = graphene.Date(required=False)
+    dead = graphene.Boolean(required=False)
+    deathReason = graphene.String(max_length=500, required=False)
+
     head = graphene.Boolean(required=False)
     marital = graphene.String(max_length=1, required=False)
     passport = graphene.String(max_length=25, required=False)
@@ -288,6 +295,13 @@ class UpdateInsureeMutation(OpenIMISMutation):
             data['audit_user_id'] = user.id_for_audit
             client_mutation_id = data.get("client_mutation_id")
             insuree = update_or_create_insuree(data, user)
+            ## If an insuree is considered Dead, we suspend all family policy linked to this insuree
+            if insuree.dead == True : 
+                listPolicy = Policy.objects.filter(family=insuree.family).all()
+                for policy in listPolicy :
+                    policy.status=4
+                    policy.save()
+
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
         except Exception as exc:

@@ -206,11 +206,12 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
-
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
     dob = core.fields.DateField(db_column='DOB')
-
+    dead = models.BooleanField(db_column='Dead')
+    dod = core.fields.DateField(db_column='DOD', null=True,)
+    deathReason = models.CharField(db_column='DeathReason', max_length=500, null=True,)
     def age(self, reference_date=None):
         if self.dob:
             today = core.datetime.date.today() if reference_date is None else reference_date
@@ -293,7 +294,6 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
                 models.Q(family__isnull=True)
             )
         return queryset
-
     class Meta:
         managed = False
         db_table = 'tblInsuree'

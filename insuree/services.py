@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from cs.models import ChequeImportLine
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ def validate_insuree_number(insuree_number, is_new_insuree=False):
     if is_new_insuree:
         if Insuree.objects.filter(chf_id=insuree_number).exists():
             return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
+
+    if ChequeImportLine.objects.filter(chequeImportLineCode=insuree_number,chequeImportLineStatus='new').exists()==False:
+        return [{"message": "Cheque is not available, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
         return InsureeConfig.get_insuree_number_validator()(insuree_number)
@@ -214,6 +218,10 @@ class InsureeService:
                 raise Exception("Invalid insuree number")
             else:
                 insuree = Insuree.objects.create(**data)
+                currentCheque = ChequeImportLine.objects.filter(chequeImportLineCode=data["chf_id"],chequeImportLineStatus='new')
+                currentCheque = currentCheque[0]
+                setattr(currentCheque,"chequeImportLineStatus","Used")
+                currentCheque.save()
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
