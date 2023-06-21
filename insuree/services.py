@@ -219,10 +219,10 @@ class InsureeService:
                 raise Exception("Invalid insuree number")
             else:
                 insuree = Insuree.objects.create(**data)
-                currentCheque = ChequeImportLine.objects.filter(chequeImportLineCode=data["chf_id"],chequeImportLineStatus='new')
-                currentCheque = currentCheque[0]
-                setattr(currentCheque,"chequeImportLineStatus","Used")
-                currentCheque.save()
+                # currentCheque = ChequeImportLine.objects.filter(chequeImportLineCode=data["chf_id"],chequeImportLineStatus='new')
+                # currentCheque = currentCheque[0]
+                # setattr(currentCheque,"chequeImportLineStatus","Used")
+                # currentCheque.save()
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
