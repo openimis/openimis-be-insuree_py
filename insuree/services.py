@@ -47,8 +47,9 @@ def validate_insuree_number(insuree_number, is_new_insuree=False):
         if Insuree.objects.filter(chf_id=insuree_number).exists():
             return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
-    if ChequeImportLine.objects.filter(chequeImportLineCode=insuree_number,chequeImportLineStatus='new').exists()==False:
-        return [{"message": "Cheque is not available, %s exists in system" % insuree_number}]
+    # Nor used here aigain, but in policy module
+    # if ChequeImportLine.objects.filter(chequeImportLineCode=insuree_number,chequeImportLineStatus='new').exists()==False:
+    #     return [{"message": "Cheque is not available, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
         return InsureeConfig.get_insuree_number_validator()(insuree_number)
