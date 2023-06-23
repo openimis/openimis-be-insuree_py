@@ -209,7 +209,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
     dob = core.fields.DateField(db_column='DOB')
-    dead = models.BooleanField(db_column='Dead')
+    dead = models.BooleanField(db_column='Dead', blank=True, null=True, default=False)
     dod = core.fields.DateField(db_column='DOD', null=True,)
     deathReason = models.CharField(db_column='DeathReason', max_length=500, null=True,)
     def age(self, reference_date=None):
