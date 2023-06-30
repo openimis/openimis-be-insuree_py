@@ -207,7 +207,8 @@ class InsureeService:
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
             if insuree.email != 'newhivuser_XM7dw70J0M3N@gmail.com':
-                raise Exception("Sorry you can't update an insuree that does not have HIV")
+                pass
+                # raise Exception("Sorry you can't update an insuree that does not have HIV")
             insuree.save_history()
             # reset the non required fields
             # (each update is 'complete', necessary to be able to set 'null')
