@@ -63,7 +63,7 @@ class InsureeBase:
     relationship_id = graphene.Int(required=False)
     profession_id = graphene.Int(required=False)
     education_id = graphene.Int(required=False)
-    type_of_id_id = graphene.String(max_length=1, required=False)
+    type_of_id_id = graphene.String(max_length=1, required=True)
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
