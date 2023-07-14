@@ -13,6 +13,7 @@ from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,8 +21,10 @@ def create_insuree_renewal_detail(policy_renewal):
     from core import datetime, datetimedelta
     now = datetime.datetime.now()
     adult_birth_date = now - datetimedelta(years=CoreConfig.age_of_majority)
-    photo_renewal_date_adult = now - datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
-    photo_renewal_date_child = now - datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
+    photo_renewal_date_adult = now - \
+        datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
+    photo_renewal_date_child = now - \
+        datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
     photos_to_renew = InsureePhoto.objects.filter(insuree__family=policy_renewal.insuree.family) \
         .filter(insuree__validity_to__isnull=True) \
         .filter(Q(insuree__photo_date__isnull=True)
@@ -42,7 +45,8 @@ def create_insuree_renewal_detail(policy_renewal):
 
 
 def validate_insuree_number(insuree_number, uuid=None):
-    query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
+    query = Insuree.objects.filter(
+        chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
     if insuree and insuree.uuid != uuid:
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
@@ -64,7 +68,8 @@ def validate_insuree_number(insuree_number, uuid=None):
                 {
                     "errorCode": InsureeConfig.validation_code_invalid_insuree_number_len,
                     "message": "Invalid insuree number length %s, should be %s" %
-                               (len(insuree_number), InsureeConfig.get_insuree_number_length())
+                               (len(insuree_number),
+                                InsureeConfig.get_insuree_number_length())
                 }
             ]
     config_modulo = InsureeConfig.get_insuree_number_modulo_root()
@@ -189,7 +194,8 @@ def _create_dir(file_dir):
 
 
 def create_file(date, insuree_id, photo_bin):
-    file_dir = path.join(str(date.year), str(date.month), str(date.day), str(insuree_id))
+    file_dir = path.join(str(date.year), str(date.month),
+                         str(date.day), str(insuree_id))
     file_name = str(uuid.uuid4())
 
     _create_dir(file_dir)
@@ -200,7 +206,8 @@ def create_file(date, insuree_id, photo_bin):
 
 
 def copy_file(date, insuree_id, original_file):
-    file_dir = path.join(str(date.year), str(date.month), str(date.day), str(insuree_id))
+    file_dir = path.join(str(date.year), str(date.month),
+                         str(date.day), str(insuree_id))
     file_name = str(uuid.uuid4())
 
     _create_dir(file_dir)
@@ -230,7 +237,8 @@ class InsureeService:
         if errors:
             raise Exception("Invalid insuree number")
         if insuree_uuid:
-            insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
+            insuree = Insuree.objects.prefetch_related(
+                "photo").get(uuid=insuree_uuid)
             insuree.save_history()
             # reset the non required fields
             # (each update is 'complete', necessary to be able to set 'null')
@@ -265,7 +273,8 @@ class InsureeService:
     def set_deleted(self, insuree):
         try:
             insuree.delete_history()
-            [ip.delete_history() for ip in insuree.insuree_policies.filter(validity_to__isnull=True)]
+            [ip.delete_history()
+             for ip in insuree.insuree_policies.filter(validity_to__isnull=True)]
             return []
         except Exception as exc:
             logger.exception("insuree.mutation.failed_to_delete_insuree")
@@ -280,19 +289,44 @@ class InsureeService:
         try:
             from core import datetime
             now = datetime.datetime.now()
-            ips = insuree.insuree_policies.filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=now))
+            ips = insuree.insuree_policies.filter(
+                Q(expiry_date__isnull=True) | Q(expiry_date__gt=now))
             for ip in ips:
                 ip.expiry_date = now
             InsureePolicy.objects.bulk_update(ips, ['expiry_date'])
             return []
         except Exception as exc:
-            logger.exception("insuree.mutation.failed_to_cancel_insuree_policies")
+            logger.exception(
+                "insuree.mutation.failed_to_cancel_insuree_policies")
             return {
                 'title': insuree.chf_id,
                 'list': [{
                     'message': _("insuree.mutation.failed_to_cancel_insuree_policies") % {'chfid': insuree.chfid},
                     'detail': insuree.uuid}]
             }
+
+
+class InsureePolicyService:
+    def __init__(self, user):
+        self.user = user
+
+    def add_insuree_policy(self, insuree):
+        from policy.models import Policy
+        policies = Policy.objects.filter(family_id=insuree.family_id)
+        for policy in policies:
+            if policy.can_add_insuree():
+                ip = InsureePolicy(
+                    insuree=insuree,
+                    policy=policy,
+                    enrollment_date=policy.enroll_date,
+                    start_date=policy.start_date,
+                    effective_date=policy.effective_date,
+                    expiry_date=policy.expiry_date,
+                    offline=False,
+                    audit_user_id=self.user.i_user.id
+                )
+                print(ip.__dict__)
+                ip.save()
 
 
 class FamilyService:
@@ -302,7 +336,8 @@ class FamilyService:
     def create_or_update(self, data):
         head_insuree_data = data.pop('head_insuree')
         head_insuree_data["head"] = True
-        head_insuree = InsureeService(self.user).create_or_update(head_insuree_data)
+        head_insuree = InsureeService(
+            self.user).create_or_update(head_insuree_data)
         data["head_insuree"] = head_insuree
         family_uuid = data.pop('uuid', None)
         if family_uuid:
