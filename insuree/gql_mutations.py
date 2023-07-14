@@ -164,10 +164,6 @@ class CreateFamilyMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
-            # Validate insuree number right away
-            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None), True)
-            if errors:
-                return errors
             family = update_or_create_family(data, user)
             FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
@@ -265,11 +261,6 @@ class CreateInsureeMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
-
-            # Validate insuree number right away
-            errors = validate_insuree_number(data.get("chf_id", None), True)
-            if errors:   
-                return errors
             insuree = update_or_create_insuree(data, user)
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
@@ -299,6 +290,8 @@ class UpdateInsureeMutation(OpenIMISMutation):
                     _("mutation.authentication_required"))
             if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
                 raise PermissionDenied(_("unauthorized"))
+            if 'uuid' not in data:
+                raise ValidationError("There is no uuid in updateMutation input!")
             data['audit_user_id'] = user.id_for_audit
             client_mutation_id = data.get("client_mutation_id")
             insuree = update_or_create_insuree(data, user)
