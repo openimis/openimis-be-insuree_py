@@ -2,6 +2,7 @@ import random
 
 from django.core.management.base import BaseCommand
 from faker import Faker
+
 from insuree.test_helpers import create_test_insuree
 
 
@@ -12,6 +13,8 @@ class Command(BaseCommand):
     services = None
     items = None
     products = None
+    villages = None
+    officers = None
 
     def add_arguments(self, parser):
         parser.add_argument("nb_insurees", nargs=1, type=int)
@@ -47,7 +50,10 @@ class Command(BaseCommand):
                 dob=fake.date_between(start_date='-105y', end_date='today'),
                 chf_id=random.randrange(100000000, 999999999),
             )
-            insuree = create_test_insuree(custom_props=props)
+            family_props = dict(
+                location_id=self.get_random_village(),
+            )
+            insuree = create_test_insuree(is_head=True, custom_props=props, family_custom_props=family_props)
             if verbose:
                 print(insuree_num, "created head insuree and family", insuree.other_names, insuree.last_name,
                       insuree.chf_id)
@@ -61,9 +67,10 @@ class Command(BaseCommand):
                     print("Created family member", member_num, member.other_names)
 
             if policy:
-                from policy.test_helpers import create_test_policy_family
+                from policy.test_helpers import create_test_policy_with_IPs
                 product = self.get_random_product()
-                policy = create_test_policy_family(product, insuree.family, link=True, valid=True)
+                officer_id = self.get_random_officer()
+                policy = create_test_policy_with_IPs(product, insuree, policy_props={"officer_id": officer_id})
                 if verbose:
                     print("Generated policy for family", insuree.family_id, policy)
 
@@ -72,3 +79,15 @@ class Command(BaseCommand):
             from product.models import Product
             self.products = Product.objects.filter(validity_to__isnull=True).values_list("pk", flat=True)
         return random.choice(self.products)
+
+    def get_random_village(self):
+        if not self.villages:
+            from location.models import Location
+            self.villages = Location.objects.filter(type="V", validity_to__isnull=True).values_list("pk", flat=True)
+        return random.choice(self.villages)
+
+    def get_random_officer(self):
+        if not self.officers:
+            from core.models import Officer
+            self.officers = Officer.objects.filter(validity_to__isnull=True).values_list("pk", flat=True)
+        return random.choice(self.officers)

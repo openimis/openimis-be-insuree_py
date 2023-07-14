@@ -41,10 +41,12 @@ def create_insuree_renewal_detail(policy_renewal):
                      photo.insuree_id, detail.id, detail_created)
 
 
-def validate_insuree_number(insuree_number, is_new_insuree=False):
-    if is_new_insuree:
-        if Insuree.objects.filter(chf_id=insuree_number).exists():
-            return [{"message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
+def validate_insuree_number(insuree_number, uuid=None):
+    query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
+    insuree = query.first()
+    if insuree and insuree.uuid != uuid:
+        return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
+                 "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
         return InsureeConfig.get_insuree_number_validator()(insuree_number)
@@ -52,6 +54,7 @@ def validate_insuree_number(insuree_number, is_new_insuree=False):
         if not insuree_number:
             return [
                 {
+                    "errorCode": InsureeConfig.validation_code_no_insuree_number,
                     "message": "Invalid insuree number (empty), should be %s" %
                                (InsureeConfig.get_insuree_number_length(),)
                 }
@@ -59,20 +62,44 @@ def validate_insuree_number(insuree_number, is_new_insuree=False):
         if len(insuree_number) != InsureeConfig.get_insuree_number_length():
             return [
                 {
+                    "errorCode": InsureeConfig.validation_code_invalid_insuree_number_len,
                     "message": "Invalid insuree number length %s, should be %s" %
                                (len(insuree_number), InsureeConfig.get_insuree_number_length())
                 }
             ]
-    if InsureeConfig.get_insuree_number_modulo_root():
+    config_modulo = InsureeConfig.get_insuree_number_modulo_root()
+    if config_modulo:
         try:
-            base = int(insuree_number[:-1])
-            mod = int(insuree_number[-1])
-            if base % InsureeConfig.get_insuree_number_modulo_root() != mod:
-                return [{"message": "Invalid checksum"}]
+            if config_modulo == 10:
+                if not is_modulo_10_number_valid(insuree_number):
+                    return invalid_checksum()
+            else:
+                base = int(insuree_number[:-1])
+                mod = int(insuree_number[-1])
+                if base % config_modulo != mod:
+                    return invalid_checksum()
         except Exception as exc:
             logger.exception("Failed insuree number validation", exc)
-            return [{"message": "Insuree number validation failed"}]
+            return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_exception,
+                     "message": "Insuree number validation failed"}]
     return []
+
+
+def is_modulo_10_number_valid(insuree_number: str) -> bool:
+    """
+    This function checks whether an insuree number is valid, according to the modulo 10 technique.
+    Contrarily to its name, this technique does not simply check if number % 10 == 0.
+    This function uses Luhn's algorithm (https://en.wikipedia.org/wiki/Luhn_algorithm).
+    """
+    return (sum(
+        (element + (index % 2 == 0) * (element - 9 * (element > 4))
+         for index, element in enumerate(map(int, insuree_number[:-1])))
+    ) + int(insuree_number[-1])) % 10 == 0
+
+
+def invalid_checksum():
+    return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_checksum,
+             "message": "Invalid checksum"}]
 
 
 def reset_insuree_before_update(insuree):
@@ -143,11 +170,11 @@ def handle_insuree_photo(user, now, insuree, data):
 
 def photo_changed(insuree_photo, data):
     return (not insuree_photo and data) or \
-           (data and insuree_photo and insuree_photo.date != data.get('date', None)) or \
-           (data and insuree_photo and insuree_photo.officer_id != data.get('officer_id', None)) or \
-           (data and insuree_photo and insuree_photo.folder != data.get('folder', None)) or \
-           (data and insuree_photo and insuree_photo.filename != data.get('filename', None)) or \
-           (data and insuree_photo and insuree_photo.photo != data.get('photo', None))
+        (data and insuree_photo and insuree_photo.date != data.get('date', None)) or \
+        (data and insuree_photo and insuree_photo.officer_id != data.get('officer_id', None)) or \
+        (data and insuree_photo and insuree_photo.folder != data.get('folder', None)) or \
+        (data and insuree_photo and insuree_photo.filename != data.get('filename', None)) or \
+        (data and insuree_photo and insuree_photo.photo != data.get('photo', None))
 
 
 def _photo_dir(file_dir, file_name):
@@ -157,7 +184,7 @@ def _photo_dir(file_dir, file_name):
 
 def _create_dir(file_dir):
     root = InsureeConfig.insuree_photos_root_path
-    pathlib.Path(path.join(root, file_dir))\
+    pathlib.Path(path.join(root, file_dir)) \
         .mkdir(parents=True, exist_ok=True)
 
 
@@ -199,6 +226,9 @@ class InsureeService:
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
         insuree_uuid = data.pop('uuid', None)
+        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+        if errors:
+            raise Exception("Invalid insuree number")
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
             insuree.save_history()
@@ -207,11 +237,7 @@ class InsureeService:
             reset_insuree_before_update(insuree)
             [setattr(insuree, key, data[key]) for key in data]
         else:
-            errors = validate_insuree_number(data["chf_id"])
-            if errors:
-                raise Exception("Invalid insuree number")
-            else:
-                insuree = Insuree.objects.create(**data)
+            insuree = Insuree.objects.create(**data)
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
