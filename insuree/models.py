@@ -251,6 +251,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     chf_id = models.CharField(db_column='CHFID', max_length=13, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
+    arab_last_name = models.CharField(db_column='ArabLastName', max_length=100, null=True, blank=True)
+    arab_other_names = models.CharField(db_column='ArabOtherNames', max_length=100,  null=True, blank=True)
 
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
