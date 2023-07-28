@@ -156,6 +156,8 @@ class InsureeGQLType(DjangoObjectType):
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
+            "arab_last_name": ["exact", "istartswith", "icontains", "iexact"],
+            "arab_other_names": ["exact", "istartswith", "icontains", "iexact"],
             "email": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "phone": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "dob": ["exact", "lt", "lte", "gt", "gte", "isnull"],
