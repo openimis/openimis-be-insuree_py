@@ -21,7 +21,7 @@ class Gender(models.Model):
         db_column='SortOrder', blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblGender'
 
 
@@ -52,7 +52,7 @@ class InsureePhoto(core_models.VersionedModel):
         return os.path.join(InsureeConfig.insuree_photos_root_path, self.folder, self.filename)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblPhotos'
 
 
@@ -66,7 +66,7 @@ class FamilyType(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblFamilyTypes'
 
 
@@ -81,7 +81,7 @@ class ConfirmationType(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblConfirmationTypes'
 
 
@@ -143,7 +143,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblFamilies'
 
 
@@ -156,7 +156,7 @@ class Profession(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblProfessions'
 
 
@@ -169,7 +169,7 @@ class Education(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblEducations'
 
 
@@ -180,7 +180,7 @@ class IdentificationType(models.Model):
     sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblIdentificationTypes'
 
 
@@ -193,7 +193,7 @@ class Relation(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblRelations'
 
 
@@ -295,7 +295,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             )
         return queryset
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblInsuree'
 
 
@@ -336,7 +336,7 @@ class InsureePolicy(core_models.VersionedModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblInsureePolicy'
 
 
@@ -373,5 +373,5 @@ class PolicyRenewalDetail(core_models.VersionedModel):
     audit_user_id = models.IntegerField(db_column='AuditCreateUser', null=True, blank=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblPolicyRenewalDetails'

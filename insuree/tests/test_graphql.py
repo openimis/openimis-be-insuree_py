@@ -43,7 +43,12 @@ class InsureeGQLTestCase(GraphQLTestCase):
         response = self.query(
             '''
             {
-                insureeNumberValidity(insureeNumber:"123456782", newInsuree:false)
+                insureeNumberValidity(insureeNumber:"123456782")
+                {
+                  isValid
+                  errorCode
+                  errorMessage
+                }
             }
             ''',
             headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
