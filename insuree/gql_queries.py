@@ -128,7 +128,9 @@ class InsureeGQLType(DjangoObjectType):
     class Meta:
         model = Insuree
         filter_fields = {
+            "id": ["exact"],
             "uuid": ["exact"],
+            # "json_ext": ["exact"]
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],

@@ -10,7 +10,6 @@ from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import UserDistrict
 
-
 class Gender(models.Model):
     code = models.CharField(db_column='Code', primary_key=True, max_length=1)
     gender = models.CharField(
@@ -210,6 +209,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
     dob = core.fields.DateField(db_column='DOB')
+    json_ext = models.JSONField(blank=True, db_column='JsonExt', null=True)
 
     def age(self, reference_date=None):
         if self.dob:

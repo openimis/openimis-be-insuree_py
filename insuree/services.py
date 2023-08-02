@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
-from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, Gender
 
 
 logger = logging.getLogger(__name__)
@@ -376,3 +376,19 @@ class FamilyService:
             insuree_service.set_deleted(member)
         else:
             insuree_service.remove(member)
+
+
+class GenderService:
+    def __init__(self, user):
+        self.user = user
+
+    def create_or_update(self, data):
+        gender_code = data.pop('Code', None)
+        if gender_code:
+            gender = Gender.objects.get(Code=gender_code)
+            gender.save_history()
+            [setattr(gender, key, data[key]) for key in data]
+        else:
+            gender = Gender.objects.create(**data)
+        gender.save()
+        return gender

@@ -4,7 +4,7 @@ import pathlib
 import base64
 import graphene
 
-from insuree.services import validate_insuree_number, InsureeService, FamilyService, InsureePolicyService
+from insuree.services import validate_insuree_number, InsureeService, FamilyService, GenderService, InsureePolicyService
 
 from .apps import InsureeConfig
 from core.schema import OpenIMISMutation
@@ -122,6 +122,12 @@ def update_or_create_insuree(data, user):
     data.pop('client_mutation_id', None)
     data.pop('client_mutation_label', None)
     return InsureeService(user).create_or_update(data)
+
+
+def update_or_create_gender(data, user):
+    data.pop('client_mutation_id', None)
+    data.pop('client_mutation_label', None)
+    return GenderService(user).create_or_update(data)
 
 
 def update_or_create_family(data, user):

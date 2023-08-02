@@ -73,7 +73,7 @@ class Query(graphene.ObjectType):
         client_mutation_id=graphene.String(),
         ignore_location=graphene.Boolean(),
         orderBy=graphene.List(of_type=graphene.String),
-        additional_filters=graphene.JSONString()
+        additional_filters=graphene.JSONString(),
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
@@ -189,7 +189,6 @@ class Query(graphene.ObjectType):
 
             filters += [Q(family__location__parent__parent__in=Location.objects.filter(
                 uuid__in=user_districts.values_list('location__uuid', flat=True)))]
-
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
