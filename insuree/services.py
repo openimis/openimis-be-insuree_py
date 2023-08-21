@@ -13,7 +13,6 @@ from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,9 +21,9 @@ def create_insuree_renewal_detail(policy_renewal):
     now = datetime.datetime.now()
     adult_birth_date = now - datetimedelta(years=CoreConfig.age_of_majority)
     photo_renewal_date_adult = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
     photo_renewal_date_child = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
     photos_to_renew = InsureePhoto.objects.filter(insuree__family=policy_renewal.insuree.family) \
         .filter(insuree__validity_to__isnull=True) \
         .filter(Q(insuree__photo_date__isnull=True)
@@ -325,7 +324,6 @@ class InsureePolicyService:
                     offline=False,
                     audit_user_id=self.user.i_user.id
                 )
-                print(ip.__dict__)
                 ip.save()
 
 

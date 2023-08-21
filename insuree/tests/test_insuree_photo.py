@@ -141,7 +141,7 @@ class InsureePhotoTest(TestCase):
                 updateInsuree(input: {{
                         clientMutationId: "c9598c58-26c8-47d7-b33e-c8d606eb9ab3"          
                         clientMutationLabel: "Update insuree - {insuree.chf_id}"
-                        uuid: "{str(insuree.uuid).upper()}" 
+                        uuid: "{str(insuree.uuid)}"
                         chfId: "{insuree.chf_id}"
                         lastName: "{insuree.last_name}"
                         otherNames: "{insuree.other_names}"
