@@ -59,6 +59,7 @@ class InsureeConfig(AppConfig):
     insuree_number_validator = None
     insuree_number_length = None
     insuree_number_modulo_root = None
+    insuree_fsp_mandatory = False
 
     def _configure_permissions(self, cfg):
         InsureeConfig.gql_query_insurees_perms = cfg["gql_query_insurees_perms"]

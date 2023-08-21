@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -232,6 +233,8 @@ class InsureeService:
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
+        if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
+            raise ValidationError("mutation.insuree.fsp_required")
         insuree_uuid = data.pop('uuid', None)
         errors = validate_insuree_number(data["chf_id"], insuree_uuid)
         if errors:
