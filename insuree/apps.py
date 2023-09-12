@@ -27,6 +27,13 @@ DEFAULT_CFG = {
     "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number
     "insuree_number_length": None,  # Insuree number length to validate
     "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
+    "validation_code_taken_insuree_number": 1,
+    "validation_code_no_insuree_number": 2,
+    "validation_code_invalid_insuree_number_len": 3,
+    "validation_code_invalid_insuree_number_checksum": 4,
+    "validation_code_invalid_insuree_number_exception": 5,
+    "insuree_fsp_mandatory": False,
+
 }
 
 
@@ -47,50 +54,28 @@ class InsureeConfig(AppConfig):
     gql_mutation_create_insurees_perms = []
     gql_mutation_update_insurees_perms = []
     gql_mutation_delete_insurees_perms = []
-    validation_code_taken_insuree_number = 1
-    validation_code_no_insuree_number = 2
-    validation_code_invalid_insuree_number_len = 3
-    validation_code_invalid_insuree_number_checksum = 4
-    validation_code_invalid_insuree_number_exception = 5
+    validation_code_taken_insuree_number = None
+    validation_code_no_insuree_number = None
+    validation_code_invalid_insuree_number_len = None
+    validation_code_invalid_insuree_number_checksum = None
+    validation_code_invalid_insuree_number_exception = None
     insuree_photos_root_path = None
-    excluded_insuree_chfids = ['999999999']
-    renewal_photo_age_adult = 60
-    renewal_photo_age_child = 12
+    excluded_insuree_chfids = []
+    renewal_photo_age_adult = None
+    renewal_photo_age_child = None
     insuree_number_validator = None
     insuree_number_length = None
     insuree_number_modulo_root = None
-    insuree_fsp_mandatory = False
+    insuree_fsp_mandatory = None
 
-    def _configure_permissions(self, cfg):
-        InsureeConfig.gql_query_insurees_perms = cfg["gql_query_insurees_perms"]
-        InsureeConfig.gql_query_insuree_perms = cfg["gql_query_insuree_perms"]
-        InsureeConfig.gql_query_insuree_photo_perms = cfg["gql_query_insuree_photo_perms"]
-        InsureeConfig.gql_query_insuree_officers_perms = cfg["gql_query_insuree_officers_perms"]
-        InsureeConfig.gql_query_insuree_family_members = cfg["gql_query_insuree_family_members"]
-        InsureeConfig.gql_query_families_perms = cfg["gql_query_families_perms"]
-        InsureeConfig.gql_query_insuree_policy_perms = cfg["gql_query_insuree_policy_perms"]
-        InsureeConfig.gql_mutation_create_families_perms = cfg["gql_mutation_create_families_perms"]
-        InsureeConfig.gql_mutation_update_families_perms = cfg["gql_mutation_update_families_perms"]
-        InsureeConfig.gql_mutation_create_insurees_perms = cfg["gql_mutation_create_insurees_perms"]
-        InsureeConfig.gql_mutation_update_insurees_perms = cfg["gql_mutation_update_insurees_perms"]
-        InsureeConfig.gql_mutation_delete_insurees_perms = cfg["gql_mutation_delete_insurees_perms"]
-        InsureeConfig.insuree_number_validator = cfg["insuree_number_validator"]
-        InsureeConfig.insuree_number_length = cfg["insuree_number_length"]
-        InsureeConfig.insuree_number_modulo_root = cfg["insuree_number_modulo_root"]
-
-    def _configure_fake_insurees(self, cfg):
-        InsureeConfig.excluded_insuree_chfids = cfg["excluded_insuree_chfids"]
-
-    def _configure_renewal(self, cfg):
-        InsureeConfig.renewal_photo_age_adult = cfg["renewal_photo_age_adult"]
-        InsureeConfig.renewal_photo_age_child = cfg["renewal_photo_age_child"]
+    def __load_config(self, cfg):
+        for field in cfg:
+            if hasattr(InsureeConfig, field):
+                setattr(InsureeConfig, field, cfg[field])
 
     def ready(self):
         from core.models import ModuleConfiguration
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
-        self._configure_permissions(cfg)
-        self._configure_fake_insurees(cfg)
-        self._configure_renewal(cfg)
         self._configure_photo_root(cfg)
 
     # Getting these at runtime for easier testing
