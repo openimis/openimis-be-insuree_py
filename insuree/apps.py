@@ -76,6 +76,7 @@ class InsureeConfig(AppConfig):
     def ready(self):
         from core.models import ModuleConfiguration
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
+        self.__load_config(cfg)
         self._configure_photo_root(cfg)
 
     # Getting these at runtime for easier testing
