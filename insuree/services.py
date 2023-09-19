@@ -11,7 +11,8 @@ from django.utils.translation import gettext as _
 
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
-from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
+                            InsureeStatusReason)
 from django.core.exceptions import ValidationError
 
 
@@ -233,6 +234,20 @@ class InsureeService:
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
+        status = data.get('status', InsureeStatus.ACTIVE)
+
+        if status == InsureeStatus.ACTIVE:
+            data['status_date'] = None
+            data['status_reason'] = None
+        if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
+            data['status_date'] = datetime.datetime.now()
+            status_reason = data.get('status_reason', None)
+            if (status_reason is None or
+                    InsureeStatusReason.objects.get(id=status_reason, validity_to_isnull=True).status_type != status):
+                raise ValidationError(_("mutation.insuree.wrong_status"))
+        else:
+            raise ValidationError(_("mutation.insuree.wrong_status"))
+
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
         insuree_uuid = data.pop('uuid', None)

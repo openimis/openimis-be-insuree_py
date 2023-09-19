@@ -197,6 +197,23 @@ class Relation(models.Model):
         db_table = 'tblRelations'
 
 
+class InsureeStatus(models.TextChoices):
+    ACTIVE = "AC"
+    INACTIVE = "IN"
+    DEAD = "DE"
+
+
+class InsureeStatusReason(core_models.VersionedModel):
+    id = models.SmallIntegerField(db_column='StatusReasonId', primary_key=True)
+    insuree_status_reason = models.CharField(db_column='StatusReason', max_length=50)
+    code = models.CharField(db_column='Code', max_length=5)
+    status_type = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+
+    class Meta:
+        managed = True
+        db_table = 'tblInsureeStatusReason'
+
+
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
@@ -256,6 +273,10 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
+    status = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+    status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
+    status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
+                                      blank=True, null=True, related_name='insurees')
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
