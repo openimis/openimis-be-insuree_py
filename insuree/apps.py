@@ -25,7 +25,7 @@ DEFAULT_CFG = {
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
     "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number
-    "insuree_number_length": None,  # Insuree number length to validate
+    "insuree_number_length": 12,  # Insuree number length to validate
     "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
     "validation_code_taken_insuree_number": 1,
     "validation_code_no_insuree_number": 2,
@@ -33,6 +33,7 @@ DEFAULT_CFG = {
     "validation_code_invalid_insuree_number_checksum": 4,
     "validation_code_invalid_insuree_number_exception": 5,
     "insuree_fsp_mandatory": False,
+    "insuree_as_worker": False,
 
 }
 
@@ -67,6 +68,7 @@ class InsureeConfig(AppConfig):
     insuree_number_length = None
     insuree_number_modulo_root = None
     insuree_fsp_mandatory = None
+    insuree_as_worker = None
 
     def __load_config(self, cfg):
         for field in cfg:

@@ -203,13 +203,13 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 
     family = models.ForeignKey(Family, models.DO_NOTHING, blank=True, null=True,
                                db_column='FamilyID', related_name="members")
-    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
+    chf_id = models.CharField(db_column='CHFID', max_length=50, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
-    dob = core.fields.DateField(db_column='DOB')
+    dob = core.fields.DateField(db_column='DOB', blank=True, null=True)
 
     def age(self, reference_date=None):
         if self.dob:
@@ -226,7 +226,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         else:
             return None
 
-    head = models.BooleanField(db_column='IsHead')
+    head = models.BooleanField(db_column='IsHead', default=False)
     marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)

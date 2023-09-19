@@ -84,3 +84,15 @@ msgstr "Failed to change insuree from family"
 #: insuree/schema.py:83
 msgid "insuree.validation.policy_above_max_members"
 msgstr "Policy %(product_code)s - %(start_date)s covers max %(max)s insurees. Current family members count: %(count)s"
+
+msgid "insuree.validation.insuree_requires_dob"
+msgstr "Insuree requires date of birth."
+
+msgid "insuree.validation.insuree_requires_gender"
+msgstr "Insuree requires gender."
+
+msgid "insuree.validation.worker_requires_first_name"
+msgstr "Worker requires first name."
+
+msgid "insuree.validation.worker_requires_last_name"
+msgstr "Worker requires last name."

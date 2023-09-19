@@ -14,7 +14,6 @@ from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 from django.core.exceptions import ValidationError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,9 +22,9 @@ def create_insuree_renewal_detail(policy_renewal):
     now = datetime.datetime.now()
     adult_birth_date = now - datetimedelta(years=CoreConfig.age_of_majority)
     photo_renewal_date_adult = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
     photo_renewal_date_child = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
     photos_to_renew = InsureePhoto.objects.filter(insuree__family=policy_renewal.insuree.family) \
         .filter(insuree__validity_to__isnull=True) \
         .filter(Q(insuree__photo_date__isnull=True)
@@ -222,6 +221,34 @@ def load_photo_file(file_dir, file_name):
         return base64.b64encode(f.read()).decode("utf-8")
 
 
+def validate_insuree_data(data):
+    dob = data.get("dob", None)
+    if dob:
+        raise Exception(_("insuree.validation.insuree_requires_dob"))
+    gender = data.get("gender", None)
+    if gender:
+        raise Exception(_("insuree.validation.insuree_requires_gender"))
+
+
+def validate_worker_data(data):
+    first_name = data.get("first_name", None)
+    if first_name:
+        raise Exception(_("worker_requires_first_name"))
+    last_name = data.get("last_name", None)
+    if last_name:
+        raise Exception(_("worker_requires_last_name"))
+
+
+def validate_insuree(data, insuree_uuid):
+    errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+    if errors:
+        raise Exception("invalid_insuree_number")
+    if InsureeConfig.insuree_as_worker:
+        validate_worker_data(data)
+    else:
+        validate_insuree_data(data)
+
+
 class InsureeService:
     def __init__(self, user):
         self.user = user
@@ -236,9 +263,7 @@ class InsureeService:
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
         insuree_uuid = data.pop('uuid', None)
-        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
-        if errors:
-            raise Exception("Invalid insuree number")
+        validate_insuree(data, insuree_uuid)
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related(
                 "photo").get(uuid=insuree_uuid)
