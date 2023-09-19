@@ -224,25 +224,25 @@ def load_photo_file(file_dir, file_name):
 def validate_insuree_data(data):
     dob = data.get("dob", None)
     if dob:
-        raise Exception(_("insuree.validation.insuree_requires_dob"))
+        raise ValidationError(_("insuree.validation.insuree_requires_dob"))
     gender = data.get("gender", None)
     if gender:
-        raise Exception(_("insuree.validation.insuree_requires_gender"))
+        raise ValidationError(_("insuree.validation.insuree_requires_gender"))
 
 
 def validate_worker_data(data):
     first_name = data.get("first_name", None)
     if first_name:
-        raise Exception(_("worker_requires_first_name"))
+        raise ValidationError(_("worker_requires_first_name"))
     last_name = data.get("last_name", None)
     if last_name:
-        raise Exception(_("worker_requires_last_name"))
+        raise ValidationError(_("worker_requires_last_name"))
 
 
 def validate_insuree(data, insuree_uuid):
     errors = validate_insuree_number(data["chf_id"], insuree_uuid)
     if errors:
-        raise Exception("invalid_insuree_number")
+        raise ValidationError("invalid_insuree_number")
     if InsureeConfig.insuree_as_worker:
         validate_worker_data(data)
     else:
