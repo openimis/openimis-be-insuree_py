@@ -7,6 +7,7 @@ from core.forms import User
 
 from graphene import Schema
 from graphene.test import Client
+from apps import InsureeConfig
 from insuree import schema as insuree_schema
 from insuree.models import Insuree
 from insuree.test_helpers import create_test_insuree
@@ -30,7 +31,7 @@ class InsureePhotoTest(TestCase):
         "roles": [4],
     }
     photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
-    test_photo_path, test_photo_uuid = "some/file/path", str(uuid.uuid4())
+    test_photo_path, test_photo_uuid = InsureeConfig.insuree_photos_root_path, str(uuid.uuid4())
 
     class BaseTestContext:
         def __init__(self, user):
