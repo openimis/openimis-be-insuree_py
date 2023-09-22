@@ -3,10 +3,9 @@ import uuid
 import pathlib
 import base64
 import graphene
-
+from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number, InsureeService, FamilyService, InsureePolicyService
 
-from .apps import InsureeConfig
 from core.schema import OpenIMISMutation
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied

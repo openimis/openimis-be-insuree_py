@@ -7,7 +7,7 @@ from core.forms import User
 
 from graphene import Schema
 from graphene.test import Client
-from apps import InsureeConfig
+from insuree.apps import InsureeConfig
 from insuree import schema as insuree_schema
 from insuree.models import Insuree
 from insuree.test_helpers import create_test_insuree

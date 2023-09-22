@@ -10,7 +10,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 from location.models import Location, UserDistrict
 
-from .apps import InsureeConfig
+from from insuree.apps import InsureeConfig
 from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
