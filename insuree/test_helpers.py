@@ -1,4 +1,4 @@
-from from insuree.apps import InsureeConfig
+from insuree.apps import InsureeConfig
 from insuree.models import Insuree, Family, Gender, InsureePhoto
 
 
