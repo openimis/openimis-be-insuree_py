@@ -84,7 +84,7 @@ class InsureePhotoTest(TestCase):
 
         self.__call_photo_mutation()
 
-        self.assertEqual(self.insuree.photo.folder, "some/file/path")
+        self.assertEqual(self.insuree.photo.folder, InsureeConfig.insuree_photos_root_path)
         self.assertEqual(self.insuree.photo.filename,
                          str(self.test_photo_uuid))
         create_file.assert_called_once_with(
