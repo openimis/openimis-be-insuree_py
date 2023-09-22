@@ -20,7 +20,7 @@ DEFAULT_CFG = {
     "gql_mutation_create_insurees_perms": ["101102"],
     "gql_mutation_update_insurees_perms": ["101103"],
     "gql_mutation_delete_insurees_perms": ["101104"],
-    "insuree_photos_root_path": None,
+    "insuree_photos_root_path":  os.path.abspath("/openIMIS/images/insurees"),
     "excluded_insuree_chfids": ['999999999'],  # fake insurees (and bound families) used, for example, in 'funding'
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
