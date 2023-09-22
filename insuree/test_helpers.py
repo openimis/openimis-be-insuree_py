@@ -1,3 +1,4 @@
+from apps import InsureeConfig
 from insuree.models import Insuree, Family, Gender, InsureePhoto
 
 
@@ -55,7 +56,7 @@ def create_test_photo(insuree_id, officer_id, custom_props=None):
     photo = InsureePhoto.objects.create(
         **{
             "insuree_id": insuree_id,
-            "folder": "images/insurees/",
+            "folder": InsureeConfig.insuree_photos_root_path,
             "officer_id": officer_id,
             "chf_id": "chfpic",
             "date": "2020-01-01",
