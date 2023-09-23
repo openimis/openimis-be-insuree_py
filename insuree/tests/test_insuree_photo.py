@@ -167,21 +167,21 @@ class InsureePhotoTest(TestCase):
                 }}
             }}
         '''
-
-    def _get_or_create_user_api(self):
+    @classmethod
+    def _get_or_create_user_api(cls):
         try:
-            return User.objects.filter(username=self._TEST_USER_NAME).get()
+            return User.objects.filter(username=cls._TEST_USER_NAME).get()
         except User.DoesNotExist:
-            return self.__create_user_interactive_core()
-
-    def __create_user_interactive_core(self):
+            return cls.__create_user_interactive_core()
+    @classmethod
+    def __create_user_interactive_core(cls):
         data = self._TEST_DATA_USER
         i_user, i_user_created = create_or_update_interactive_user(
             user_id=None, data=data, audit_user_id=999, connected=False
         )
         create_or_update_core_user(
-            user_uuid=None, username=self._TEST_USER_NAME, i_user=i_user)
-        return User.objects.filter(username=self._TEST_USER_NAME).get()
+            user_uuid=None, username=cls._TEST_USER_NAME, i_user=i_user)
+        return User.objects.filter(username=cls._TEST_USER_NAME).get()
 
     def __get_insuree_query(self, insuree):
         return F'''
