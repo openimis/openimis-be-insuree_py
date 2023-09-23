@@ -127,7 +127,7 @@ class InsureePhotoTest(TestCase):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
         context = self.BaseTestContext(self._TEST_USER)
         self.insuree_client.execute(mutation, context=context)
-        self.insuree = Insuree.object.get(pk=self.insuree.pk)
+        self.insuree = Insuree.objects.get(pk=self.insuree.pk)
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
