@@ -75,7 +75,7 @@ class InsureePhotoTest(TestCase):
     @mock.patch('insuree.services.InsureeConfig')
     @mock.patch('insuree.services.create_file')
     def test_add_photo_save_files(self, create_file, insuree_config):
-        create_file.return_value = self., self.test_photo_uuid
+        create_file.return_value = self.test_photo_path, self.test_photo_uuid
         insuree_config.insuree_photos_root_path = PropertyMock(
             return_value="insuree_root_path")
         insuree_config.get_insuree_number_validator = PropertyMock(
@@ -98,7 +98,7 @@ class InsureePhotoTest(TestCase):
     @mock.patch('insuree.gql_queries.load_photo_file')
     def test_pull_photo_file_path(self, load_photo_file, create_file, insuree_config, insuree_config2):
         load_photo_file.return_value = self.photo_base64
-        create_file.return_value = self., self.test_photo_uuid
+        create_file.return_value = self.test_photo_path, self.test_photo_uuid
         insuree_config.insuree_photos_root_path = PropertyMock(
             return_value="insuree_root_path")
         insuree_config.get_insuree_number_validator = PropertyMock(
@@ -124,7 +124,7 @@ class InsureePhotoTest(TestCase):
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
         self.assertEqual(gql_photo['photo'], self.photo_base64)
         load_photo_file.assert_called_once_with(
-            self., str(self.test_photo_uuid))
+            self.test_photo_path, str(self.test_photo_uuid))
 
     def __call_photo_mutation(self):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
