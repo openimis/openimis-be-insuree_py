@@ -82,7 +82,7 @@ class InsureePhotoTest(TestCase):
         insuree_config.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
 
-        self.__call_photo_mutation()
+        self.()
 
         self.assertEqual(self.insuree.photo.folder, InsureeConfig.insuree_photos_root_path)
         self.assertEqual(self.insuree.photo.filename,
@@ -117,7 +117,7 @@ class InsureePhotoTest(TestCase):
             return_value=None)
         insuree_config2.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
-        self.__call_photo_mutation()
+        self.()
         query_result = self.__call_photo_query()
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
         self.assertEqual(gql_photo['photo'], self.photo_base64)
@@ -128,7 +128,7 @@ class InsureePhotoTest(TestCase):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
         context = self.BaseTestContext(self._TEST_USER)
         self.insuree_client.execute(mutation, context=context)
-        self.insuree.refresh_from_db()
+        self.insuree = Insuree.object.get(pk=self.insuree.pk)
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
