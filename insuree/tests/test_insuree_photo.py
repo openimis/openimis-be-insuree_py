@@ -116,7 +116,7 @@ class InsureePhotoTest(TestCase):
             return_value=None)
         insuree_config2.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
-        self.()
+        self.__call_photo_mutation()
         query_result = self.__call_photo_query()
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
         self.assertEqual(gql_photo['photo'], self.photo_base64)
