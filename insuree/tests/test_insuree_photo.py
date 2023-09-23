@@ -81,9 +81,8 @@ class InsureePhotoTest(TestCase):
             return_value=None)
         insuree_config.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
-
-        self.()
-
+        
+        self.__call_photo_mutation()
         self.assertEqual(self.insuree.photo.folder, InsureeConfig.insuree_photos_root_path)
         self.assertEqual(self.insuree.photo.filename,
                          str(self.test_photo_uuid))
