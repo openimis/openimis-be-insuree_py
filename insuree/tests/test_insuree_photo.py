@@ -134,7 +134,7 @@ class InsureePhotoTest(TestCase):
             self.test_photo_path, str(self.test_photo_uuid))
 
     def __call_photo_mutation(self):
-        mutation = self.__update_photo_mutation(self.insuree, self.test_user)
+        mutation = self.__update_photo_mutation()
         context = self.BaseTestContext(self.test_user)
         result = self.insuree_client.execute(mutation, context=context)
         return result
