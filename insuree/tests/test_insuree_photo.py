@@ -140,7 +140,7 @@ class InsureePhotoTest(TestCase):
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
         context = self.BaseTestContext(self._TEST_USER)
-        return self.insuree_client.execute(query, context=context)
+        return await self.insuree_client.execute(query, context=context)
 
     def __update_photo_mutation(self, insuree: Insuree, officer: User):
         return f'''
