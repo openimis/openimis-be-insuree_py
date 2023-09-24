@@ -24,8 +24,9 @@ class InsureePhotoTest(TestCase):
     _TEST_USER_NAME = None
     _TEST_USER_PASSWORD = None
     _TEST_DATA_USER = None
-    photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
-    test_photo_path, test_photo_uuid = InsureeConfig.insuree_photos_root_path, str(uuid.uuid4())
+
+    photo_base64 = None
+    test_photo_path, test_photo_uuid = None, None
 
     class BaseTestContext:
         def __init__(self, user):
@@ -43,7 +44,9 @@ class InsureePhotoTest(TestCase):
             "language": "en",
             "roles": [4],
         }
-        super(InsureePhotoTest, cls).setUp()
+        cls.test_photo_path=InsureeConfig.insuree_photos_root_path
+        cls.test_photo_uuid = str(uuid.uuid4())
+        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
         cls._TEST_USER = cls._get_or_create_user_api()
         cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
@@ -86,10 +89,9 @@ class InsureePhotoTest(TestCase):
             return_value=None)
         insuree_config.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
-
+        
         self.__call_photo_mutation()
-
-        self.assertEqual(self.insuree.photo.folder, "some/file/path")
+        self.assertEqual(self.insuree.photo.folder, InsureeConfig.insuree_photos_root_path)
         self.assertEqual(self.insuree.photo.filename,
                          str(self.test_photo_uuid))
         create_file.assert_called_once_with(
@@ -133,7 +135,7 @@ class InsureePhotoTest(TestCase):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
         context = self.BaseTestContext(self._TEST_USER)
         self.insuree_client.execute(mutation, context=context)
-        self.insuree.refresh_from_db()
+        self.insuree = Insuree.objects.get(pk=self.insuree.pk)
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
@@ -179,6 +181,7 @@ class InsureePhotoTest(TestCase):
     @classmethod
     def __create_user_interactive_core(cls):
         data = cls._TEST_DATA_USER
+
         i_user, i_user_created = create_or_update_interactive_user(
             user_id=None, data=data, audit_user_id=999, connected=False
         )
