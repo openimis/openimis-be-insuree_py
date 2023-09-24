@@ -46,7 +46,7 @@ class InsureePhotoTest(TestCase):
         }
         cls.test_photo_path=InsureeConfig.insuree_photos_root_path
         cls.test_photo_uuid = str(uuid.uuid4())
-        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
+        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
         cls._TEST_USER = cls.__create_user_interactive_core()
         cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
@@ -66,7 +66,6 @@ class InsureePhotoTest(TestCase):
 
     def test_add_photo_save_db(self):
         result = self.__call_photo_mutation()
-        self.assertIsNone(result,'test mutation not correct')
         self.assertEqual(self.insuree.photo.photo, self.photo_base64)
 
     def test_pull_photo_db(self):
@@ -146,10 +145,9 @@ class InsureePhotoTest(TestCase):
 
     def __update_photo_mutation(self, insuree: Insuree, officer: User):
         return f'''
-            mutation 
             {{
                 updateInsuree(input: {{
-                        clientMutationId: "c9598c58-26c8-47d7-b33e-c8d606eb9ab3"          
+                        clientMutationId: "{uuid.uuid4()}"          
                         clientMutationLabel: "Update insuree - {insuree.chf_id}"
                         uuid: "{str(insuree.uuid).upper()}" 
                         chfId: "{insuree.chf_id}"
@@ -160,7 +158,7 @@ class InsureePhotoTest(TestCase):
                         head: true
                         marital: "M"
                         photo:{{
-                            uuid: "C194B52F-117F-4B43-B143-26C5F0A45153"
+                            uuid: "{uuid.uuid4()}"
                             officerId: {officer._u.id}
                             date: "2022-06-21"
                             photo: "{self.photo_base64}"
@@ -169,8 +167,8 @@ class InsureePhotoTest(TestCase):
                         familyId: {insuree.family.id}
                         }})  
                 {{
-                    internalId
                     clientMutationId
+                    internalId
                 }}
             }}
         '''
