@@ -65,7 +65,8 @@ class InsureePhotoTest(TestCase):
         insuree_schema.bind_signals()
 
     def test_add_photo_save_db(self):
-        self.__call_photo_mutation()
+        result = self.__call_photo_mutation()
+        self.assertIsNone(result,'test mutation not correct')
         self.assertEqual(self.insuree.photo.photo, self.photo_base64)
 
     def test_pull_photo_db(self):
@@ -134,10 +135,9 @@ class InsureePhotoTest(TestCase):
     def __call_photo_mutation(self):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
         context = self.BaseTestContext(self._TEST_USER)
-        self.insuree_client.execute(mutation, context=context)
-        # wait for the async task to complete
-        time.sleep(5)
+        result = self.insuree_client.execute(mutation, context=context)
         self.insuree = Insuree.objects.get(pk=self.insuree.pk)
+        return result
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
