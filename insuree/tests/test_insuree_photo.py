@@ -190,7 +190,7 @@ class InsureePhotoTest(TestCase):
         return User.objects.filter(username=cls._TEST_USER_NAME).get()
 
     def __get_insuree_query(self, insuree):
-        return F'''
+        return f'''
 {{
     insurees(uuid: "{insuree.uuid}", ignoreLocation:true) {{
         pageInfo {{
