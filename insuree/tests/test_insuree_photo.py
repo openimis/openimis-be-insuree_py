@@ -19,30 +19,35 @@ from django.conf import settings
 
 
 class InsureePhotoTest(TestCase):
-    _TEST_USER_NAME = "TestUserTest2"
-    _TEST_USER_PASSWORD = "TestPasswordTest2"
-    _TEST_DATA_USER = {
-        "username": _TEST_USER_NAME,
-        "last_name": _TEST_USER_NAME,
-        "password": _TEST_USER_PASSWORD,
-        "other_names": _TEST_USER_NAME,
-        "user_types": "INTERACTIVE",
-        "language": "en",
-        "roles": [4],
-    }
+
+    _TEST_USER = None
+    _TEST_USER_NAME = None
+    _TEST_USER_PASSWORD = None
+    _TEST_DATA_USER = None
     photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
     test_photo_path, test_photo_uuid = InsureeConfig.insuree_photos_root_path, str(uuid.uuid4())
 
     class BaseTestContext:
         def __init__(self, user):
             self.user = user
-
-    def setUp(self):
-        super(InsureePhotoTest, self).setUp()
-        self._TEST_USER = self._get_or_create_user_api()
-        self.insuree = create_test_insuree(
+    @classmethod
+    def setUpTestData(cls):
+        _TEST_USER_NAME = "TestUserTest2"
+        _TEST_USER_PASSWORD = "TestPasswordTest2"
+        _TEST_DATA_USER = {
+            "username": _TEST_USER_NAME,
+            "last_name": _TEST_USER_NAME,
+            "password": _TEST_USER_PASSWORD,
+            "other_names": _TEST_USER_NAME,
+            "user_types": "INTERACTIVE",
+            "language": "en",
+            "roles": [4],
+        }
+        super(InsureePhotoTest, cls).setUp()
+        cls._TEST_USER = cls._get_or_create_user_api()
+        cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
-        self.row_sec = settings.ROW_SECURITY
+        cls.row_sec = settings.ROW_SECURITY
         settings.ROW_SECURITY = False
 
     def tearDown(self) -> None:
@@ -165,21 +170,21 @@ class InsureePhotoTest(TestCase):
                 }}
             }}
         '''
-
-    def _get_or_create_user_api(self):
+    @classmethod
+    def _get_or_create_user_api(cls):
         try:
-            return User.objects.filter(username=self._TEST_USER_NAME).get()
+            return User.objects.filter(username=cls._TEST_USER_NAME).get()
         except User.DoesNotExist:
-            return self.__create_user_interactive_core()
-
-    def __create_user_interactive_core(self):
-        data = self._TEST_DATA_USER
+            return cls.__create_user_interactive_core()
+    @classmethod
+    def __create_user_interactive_core(cls):
+        data = cls._TEST_DATA_USER
         i_user, i_user_created = create_or_update_interactive_user(
             user_id=None, data=data, audit_user_id=999, connected=False
         )
         create_or_update_core_user(
-            user_uuid=None, username=self._TEST_USER_NAME, i_user=i_user)
-        return User.objects.filter(username=self._TEST_USER_NAME).get()
+            user_uuid=None, username=cls._TEST_USER_NAME, i_user=i_user)
+        return User.objects.filter(username=cls._TEST_USER_NAME).get()
 
     def __get_insuree_query(self, insuree):
         return F'''
