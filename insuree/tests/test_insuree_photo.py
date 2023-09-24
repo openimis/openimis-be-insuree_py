@@ -160,7 +160,7 @@ class InsureePhotoTest(TestCase):
                         marital: "M"
                         photo:{{
                             uuid: "{self.test_photo_uuid}"
-                            officerId: {self.officer._u.id}
+                            officerId: {self.test_user.id}
                             date: "2022-06-21"
                             photo: "{self.photo_base64}"
                             }}
