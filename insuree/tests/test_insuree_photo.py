@@ -4,7 +4,7 @@ from unittest.mock import PropertyMock
 
 from django.test import TestCase
 from core.forms import User
-
+import time
 from graphene import Schema
 from graphene.test import Client
 from insuree.apps import InsureeConfig
@@ -135,12 +135,14 @@ class InsureePhotoTest(TestCase):
         mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
         context = self.BaseTestContext(self._TEST_USER)
         self.insuree_client.execute(mutation, context=context)
+        # wait for the async task to complete
+        time.sleep(5)
         self.insuree = Insuree.objects.get(pk=self.insuree.pk)
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
         context = self.BaseTestContext(self._TEST_USER)
-        return await self.insuree_client.execute(query, context=context)
+        return self.insuree_client.execute(query, context=context)
 
     def __update_photo_mutation(self, insuree: Insuree, officer: User):
         return f'''
