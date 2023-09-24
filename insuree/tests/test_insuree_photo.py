@@ -20,9 +20,9 @@ from django.conf import settings
 
 class InsureePhotoTest(TestCase):
 
-    _TEST_USER = None
+    test_user = None
     _TEST_USER_NAME = None
-    _TEST_USER_PASSWORD = None
+    test_user_PASSWORD = None
     _TEST_DATA_USER = None
 
     photo_base64 = None
@@ -34,11 +34,11 @@ class InsureePhotoTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls. _TEST_USER_NAME = "TestUserTest2"
-        cls._TEST_USER_PASSWORD = "TestPasswordTest2"
+        cls.test_user_PASSWORD = "TestPasswordTest2"
         cls._TEST_DATA_USER = {
             "username": cls._TEST_USER_NAME,
             "last_name": cls._TEST_USER_NAME,
-            "password": cls._TEST_USER_PASSWORD,
+            "password": cls.test_user_PASSWORD,
             "other_names": cls._TEST_USER_NAME,
             "user_types": "INTERACTIVE",
             "language": "en",
@@ -47,7 +47,7 @@ class InsureePhotoTest(TestCase):
         cls.test_photo_path=InsureeConfig.insuree_photos_root_path
         cls.test_photo_uuid = str(uuid.uuid4())
         cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
-        cls._TEST_USER = cls.__create_user_interactive_core()
+        cls.test_user = cls.__create_user_interactive_core()
         cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
         cls.row_sec = settings.ROW_SECURITY
@@ -91,6 +91,7 @@ class InsureePhotoTest(TestCase):
             return_value=None)
         
         self.__call_photo_mutation()
+        self.insuree = Insuree.objects.get(pk=self.insuree.pk)
         self.assertEqual(self.insuree.photo.folder, InsureeConfig.insuree_photos_root_path)
         self.assertEqual(self.insuree.photo.filename,
                          str(self.test_photo_uuid))
@@ -125,6 +126,7 @@ class InsureePhotoTest(TestCase):
         insuree_config2.get_insuree_number_modulo_root = PropertyMock(
             return_value=None)
         self.__call_photo_mutation()
+        self.insuree = Insuree.objects.get(pk=self.insuree.pk)
         query_result = self.__call_photo_query()
         gql_photo = query_result['data']['insurees']['edges'][0]['node']['photo']
         self.assertEqual(gql_photo['photo'], self.photo_base64)
@@ -132,39 +134,38 @@ class InsureePhotoTest(TestCase):
             self.test_photo_path, str(self.test_photo_uuid))
 
     def __call_photo_mutation(self):
-        mutation = self.__update_photo_mutation(self.insuree, self._TEST_USER)
-        context = self.BaseTestContext(self._TEST_USER)
+        mutation = self.__update_photo_mutation(self.insuree, self.test_user)
+        context = self.BaseTestContext(self.test_user)
         result = self.insuree_client.execute(mutation, context=context)
-        self.insuree = Insuree.objects.get(pk=self.insuree.pk)
         return result
 
     def __call_photo_query(self):
         query = self.__get_insuree_query(self.insuree)
-        context = self.BaseTestContext(self._TEST_USER)
+        context = self.BaseTestContext(self.test_user)
         return self.insuree_client.execute(query, context=context)
 
-    def __update_photo_mutation(self, insuree: Insuree, officer: User):
+    def __update_photo_mutation(self):
         return f'''
             {{
                 updateInsuree(input: {{
                         clientMutationId: "{uuid.uuid4()}"          
-                        clientMutationLabel: "Update insuree - {insuree.chf_id}"
-                        uuid: "{str(insuree.uuid).upper()}" 
-                        chfId: "{insuree.chf_id}"
-                        lastName: "{insuree.last_name}"
-                        otherNames: "{insuree.other_names}"
+                        clientMutationLabel: "Update insuree - {self.insuree.chf_id}"
+                        uuid: "{str(self.insuree.uuid).upper()}" 
+                        chfId: "{self.insuree.chf_id}"
+                        lastName: "{self.insuree.last_name}"
+                        otherNames: "{self.insuree.other_names}"
                         genderId: "M"
                         dob: "1950-07-12"
                         head: true
                         marital: "M"
                         photo:{{
-                            uuid: "{uuid.uuid4()}"
-                            officerId: {officer._u.id}
+                            uuid: "{self.test_photo_uuid}"
+                            officerId: {self.officer._u.id}
                             date: "2022-06-21"
                             photo: "{self.photo_base64}"
                             }}
                         cardIssued:false
-                        familyId: {insuree.family.id}
+                        familyId: {self.insuree.family.id}
                         }})  
                 {{
                     clientMutationId
