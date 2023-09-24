@@ -143,7 +143,7 @@ class InsureePhotoTest(TestCase):
         return self.insuree_client.execute(query, context=context)
 
     def __update_photo_mutation(self, insuree: Insuree, officer: User):
-        return F'''
+        return f'''
             mutation 
             {{
                 updateInsuree(input: {{
