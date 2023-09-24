@@ -19,17 +19,12 @@ from django.conf import settings
 
 
 class InsureePhotoTest(TestCase):
-    _TEST_USER_NAME = "TestUserTest2"
-    _TEST_USER_PASSWORD = "TestPasswordTest2"
-    _TEST_DATA_USER = {
-        "username": _TEST_USER_NAME,
-        "last_name": _TEST_USER_NAME,
-        "password": _TEST_USER_PASSWORD,
-        "other_names": _TEST_USER_NAME,
-        "user_types": "INTERACTIVE",
-        "language": "en",
-        "roles": [4],
-    }
+
+    _TEST_USER = None
+    _TEST_USER_NAME = None
+    _TEST_USER_PASSWORD = None
+    _TEST_DATA_USER = None
+
     photo_base64 = None
     test_photo_path, test_photo_uuid = None, None
 
@@ -38,10 +33,20 @@ class InsureePhotoTest(TestCase):
             self.user = user
     @classmethod
     def setUpTestData(cls):
+        _TEST_USER_NAME = "TestUserTest2"
+        _TEST_USER_PASSWORD = "TestPasswordTest2"
+        _TEST_DATA_USER = {
+            "username": _TEST_USER_NAME,
+            "last_name": _TEST_USER_NAME,
+            "password": _TEST_USER_PASSWORD,
+            "other_names": _TEST_USER_NAME,
+            "user_types": "INTERACTIVE",
+            "language": "en",
+            "roles": [4],
+        }
         cls.test_photo_path=InsureeConfig.insuree_photos_root_path
         cls.test_photo_uuid = str(uuid.uuid4())
         cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
-
         cls._TEST_USER = cls._get_or_create_user_api()
         cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
@@ -175,7 +180,8 @@ class InsureePhotoTest(TestCase):
             return cls.__create_user_interactive_core()
     @classmethod
     def __create_user_interactive_core(cls):
-        data = self._TEST_DATA_USER
+        data = cls._TEST_DATA_USER
+
         i_user, i_user_created = create_or_update_interactive_user(
             user_id=None, data=data, audit_user_id=999, connected=False
         )
