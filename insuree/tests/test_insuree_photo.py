@@ -47,7 +47,7 @@ class InsureePhotoTest(TestCase):
         cls.test_photo_path=InsureeConfig.insuree_photos_root_path
         cls.test_photo_uuid = str(uuid.uuid4())
         cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAB7SURBVAiZLc0xDsIwEETRP+t1wpGoaDg6DUgpEAUNNyH2DkXon/S03W+uKiIaANmS07Jim2ytc75cAWMbAJF8Xg9iycQV1AywALCh9yTWtXN4Yx9Agu++EyAkA0IxQQcdc5BjDCJEGST9T3AZvZ+bXUYhMhtzFlWmZvEDKAM9L8CDZ0EAAAAASUVORK5CYII="
-        cls._TEST_USER = cls._get_or_create_user_api()
+        cls._TEST_USER = cls.__create_user_interactive_core()
         cls.insuree = create_test_insuree(
             custom_props={'chf_id': '110707070'})
         cls.row_sec = settings.ROW_SECURITY
