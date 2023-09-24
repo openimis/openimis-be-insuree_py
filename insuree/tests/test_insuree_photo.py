@@ -36,10 +36,10 @@ class InsureePhotoTest(TestCase):
         cls. _TEST_USER_NAME = "TestUserTest2"
         cls._TEST_USER_PASSWORD = "TestPasswordTest2"
         cls._TEST_DATA_USER = {
-            "username": _TEST_USER_NAME,
-            "last_name": _TEST_USER_NAME,
-            "password": _TEST_USER_PASSWORD,
-            "other_names": _TEST_USER_NAME,
+            "username": cls._TEST_USER_NAME,
+            "last_name": cls._TEST_USER_NAME,
+            "password": cls._TEST_USER_PASSWORD,
+            "other_names": cls._TEST_USER_NAME,
             "user_types": "INTERACTIVE",
             "language": "en",
             "roles": [4],
