@@ -236,17 +236,15 @@ class InsureeService:
         data['validity_from'] = now
         status = data.get('status', InsureeStatus.ACTIVE)
 
-        if status == InsureeStatus.ACTIVE:
-            data['status_date'] = None
-            data['status_reason'] = None
-        if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
-            data['status_date'] = datetime.datetime.now()
-            status_reason = data.get('status_reason', None)
-            if (status_reason is None or
-                    InsureeStatusReason.objects.get(id=status_reason, validity_to_isnull=True).status_type != status):
-                raise ValidationError(_("mutation.insuree.wrong_status"))
-        else:
+        if status not in [choice[0] for choice in InsureeStatus.choices]:
             raise ValidationError(_("mutation.insuree.wrong_status"))
+        if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
+            status_reason = InsureeStatusReason.objects.get(code=data.get('status_reason', None),
+                                                            validity_to__isnull=True)
+            if status_reason is None or status_reason.status_type != status:
+                raise ValidationError(_("mutation.insuree.wrong_status"))
+
+            data['status_reason'] = status_reason
 
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
