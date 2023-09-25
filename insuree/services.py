@@ -13,7 +13,7 @@ from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
 from django.core.exceptions import ValidationError
-
+from policy.models import Policy
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +250,12 @@ class InsureeService:
         else:
             insuree = Insuree.objects.create(**data)
         insuree.save()
+        ## If an insuree is considered Dead, we suspend all family policy linked to this insuree
+        if insuree.dead == True:
+            listPolicy = Policy.objects.filter(family=insuree.family).all()
+            for policy in listPolicy :
+                policy.status=4
+                policy.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
             insuree.photo = photo

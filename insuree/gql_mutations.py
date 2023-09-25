@@ -55,6 +55,9 @@ class InsureeBase:
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
+    dod = graphene.Date(required=False)
+    dead = graphene.Boolean(required=False)
+    deathReason = graphene.String(max_length=500, required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
