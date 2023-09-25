@@ -223,19 +223,19 @@ def load_photo_file(file_dir, file_name):
 
 def validate_insuree_data(data):
     dob = data.get("dob", None)
-    if dob:
+    if not dob:
         raise ValidationError(_("insuree.validation.insuree_requires_dob"))
-    gender = data.get("gender", None)
-    if gender:
+    gender = data.get("gender_id", None)
+    if not gender:
         raise ValidationError(_("insuree.validation.insuree_requires_gender"))
 
 
 def validate_worker_data(data):
     first_name = data.get("first_name", None)
-    if first_name:
+    if not first_name:
         raise ValidationError(_("worker_requires_first_name"))
     last_name = data.get("last_name", None)
-    if last_name:
+    if not last_name:
         raise ValidationError(_("worker_requires_last_name"))
 
 
