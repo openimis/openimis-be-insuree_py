@@ -33,6 +33,8 @@ DEFAULT_CFG = {
     "validation_code_invalid_insuree_number_checksum": 4,
     "validation_code_invalid_insuree_number_exception": 5,
     "insuree_fsp_mandatory": False,
+    "insuree_generate_qr_code": False,
+    "insuree_notify_mconnect": False,
 
 }
 
@@ -67,6 +69,8 @@ class InsureeConfig(AppConfig):
     insuree_number_length = None
     insuree_number_modulo_root = None
     insuree_fsp_mandatory = None
+    insuree_generate_qr_code = None
+    insuree_notify_mconnect = None
 
     def __load_config(self, cfg):
         for field in cfg:

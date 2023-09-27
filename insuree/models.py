@@ -375,3 +375,8 @@ class PolicyRenewalDetail(core_models.VersionedModel):
     class Meta:
         managed = True
         db_table = 'tblPolicyRenewalDetails'
+
+
+class InsureeQr(core_models.HistoryModel):
+    insuree = models.ForeignKey('insuree.Insuree', models.DO_NOTHING, null=False, blank=False)
+    qr_svg = models.TextField(blank=False, null=False)

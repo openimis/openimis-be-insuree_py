@@ -10,9 +10,11 @@ from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from core.signals import register_service_signal
+from core.utils import generate_qr_code_svg
 from insuree.apps import InsureeConfig
-from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy
+from insuree.models import InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeQr
 from django.core.exceptions import ValidationError
+from core.models import User
 
 
 logger = logging.getLogger(__name__)
@@ -222,6 +224,22 @@ def load_photo_file(file_dir, file_name):
         return base64.b64encode(f.read()).decode("utf-8")
 
 
+def create_or_update_insuree_qr(insuree):
+    user = User.objects.filter(i_user__id=insuree.audit_user_id).first()
+    data = {
+        "id": insuree.chf_id,
+        "first_name": insuree.other_names,
+        "last_name": insuree.last_name,
+    }
+    qr_code = generate_qr_code_svg(data)
+    instance = InsureeQr.objects.filter(insuree_id=insuree.id).first()
+    if instance:
+        instance.qr_svg = qr_code
+    else:
+        instance = InsureeQr(insuree_id=insuree.id, qr_svg=qr_code)
+    instance.save(username=user.username)
+
+
 class InsureeService:
     def __init__(self, user):
         self.user = user
@@ -251,6 +269,10 @@ class InsureeService:
             insuree = Insuree.objects.create(**data)
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
+        if InsureeConfig.insuree_generate_qr_code:
+            create_or_update_insuree_qr(insuree)
+        if InsureeConfig.insuree_notify_mconnect:
+            pass
         if photo:
             insuree.photo = photo
             insuree.photo_date = photo.date
