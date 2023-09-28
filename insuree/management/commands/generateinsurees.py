@@ -48,7 +48,6 @@ class Command(BaseCommand):
                 last_name=fake.last_name(),
                 other_names=fake.first_name(),
                 dob=fake.date_between(start_date='-105y', end_date='today'),
-                chf_id=random.randrange(100000000, 999999999),
             )
             family_props = dict(
                 location_id=self.get_random_village(),
@@ -61,7 +60,6 @@ class Command(BaseCommand):
                 props["other_names"] = fake.first_name()
                 props["dob"] = fake.date_between(start_date='-105y', end_date='today')
                 props["family_id"] = insuree.family_id
-                props["chf_id"] = random.randrange(100000000, 999999999)
                 member = create_test_insuree(with_family=False, custom_props=props)
                 if verbose:
                     print("Created family member", member_num, member.other_names)

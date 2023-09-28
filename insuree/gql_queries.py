@@ -128,7 +128,7 @@ class InsureeGQLType(DjangoObjectType):
     class Meta:
         model = Insuree
         filter_fields = {
-            "uuid": ["exact"],
+            "uuid": ["exact","iexact"],
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
@@ -188,7 +188,7 @@ class FamilyGQLType(DjangoObjectType):
             "is_offline": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
             **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
-            ** prefix_filterset("members__", InsureeGQLType._meta.filter_fields)
+            **prefix_filterset("members__", InsureeGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection

@@ -49,7 +49,7 @@ def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if insuree and insuree.uuid != uuid:
+    if insuree and str(insuree.uuid).lower() != str(uuid).lower():
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
@@ -152,11 +152,13 @@ def handle_insuree_photo(user, now, insuree, data):
     data['audit_user_id'] = user.id_for_audit
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
+    if 'uuid' not in data:
+        data['uuid'] =  str(uuid.uuid4())
+    
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
             and (insuree_photo is None or insuree_photo.photo != photo_bin):
-        (file_dir, file_name) = create_file(now, insuree.id, photo_bin)
-        data.pop('photo', None)
+        (file_dir, file_name) = create_file(now, insuree.id, photo_bin,data['uuid'] )
         data['folder'] = file_dir
         data['filename'] = file_name
 
@@ -193,11 +195,10 @@ def _create_dir(file_dir):
     pathlib.Path(path.join(root, file_dir)) \
         .mkdir(parents=True, exist_ok=True)
 
-
-def create_file(date, insuree_id, photo_bin):
+def create_file(date, insuree_id, photo_bin, name ):
     file_dir = path.join(str(date.year), str(date.month),
                          str(date.day), str(insuree_id))
-    file_name = str(uuid.uuid4())
+    file_name = name
 
     _create_dir(file_dir)
     with open(_photo_dir(file_dir, file_name), "xb") as f:
@@ -235,21 +236,27 @@ class InsureeService:
         data['validity_from'] = now
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
-        insuree_uuid = data.pop('uuid', None)
+        insuree_uuid = data.get('uuid', None)
         errors = validate_insuree_number(data["chf_id"], insuree_uuid)
         if errors:
             raise Exception("Invalid insuree number")
         if insuree_uuid:
-            insuree = Insuree.objects.prefetch_related(
-                "photo").get(uuid=insuree_uuid)
-            insuree.save_history()
-            # reset the non required fields
-            # (each update is 'complete', necessary to be able to set 'null')
-            reset_insuree_before_update(insuree)
-            [setattr(insuree, key, data[key]) for key in data]
+            # create insuree with uuid if not foudn in the database
+            try:
+                insuree = Insuree.objects.prefetch_related(
+                    "photo").get(uuid__iexact=insuree_uuid)
+                insuree.save_history()
+                # reset the non required fields
+                # (each update is 'complete', necessary to be able to set 'null')
+                reset_insuree_before_update(insuree)
+                [setattr(insuree, key, data[key]) for key in data]
+                insuree.save()
+            except:
+                insuree = Insuree.objects.create(**data)
         else:
+            data['uuid'] = uuid.uuid4()
             insuree = Insuree.objects.create(**data)
-        insuree.save()
+        
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
             insuree.photo = photo
@@ -344,7 +351,7 @@ class FamilyService:
         data["head_insuree"] = head_insuree
         family_uuid = data.pop('uuid', None)
         if family_uuid:
-            family = Family.objects.get(uuid=family_uuid)
+            family = Family.objects.get(uuid__iexact=family_uuid)
             family.save_history()
             # reset the non required fields
             # (each update is 'complete', necessary to be able to set 'null')
