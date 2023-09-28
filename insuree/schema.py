@@ -186,9 +186,10 @@ class Query(graphene.ObjectType):
             # Limit the list by the logged in user location mapping
             user_districts = UserDistrict.get_user_districts(
                 info.context.user._u)
-
-            filters += [Q(family__location__parent__parent__in=Location.objects.filter(
-                uuid__in=user_districts.values_list('location__uuid', flat=True)))]
+            user_disctricts = Location.objects.filter(
+                uuid__in=user_districts.values_list('location__uuid', flat=True))
+            filters += [Q(family__location__parent__parent__in=user_disctricts)|
+                        Q(current_village__parent__parent__in=user_disctricts)]
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
