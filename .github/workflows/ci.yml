@@ -17,7 +17,7 @@ on:
 jobs:
   call:
     name: Default CI Flow
-    uses: openimis/openimis-be_py/.github/workflows/ci_module.yml@develop
+    uses: openimis/openimis-be_py/.github/workflows/ci_module.yml@ci_fhir_patch
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     with:
