@@ -247,50 +247,6 @@ class InsureeService:
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
         insuree_uuid = data.pop('uuid', None)
-        location_id = data.pop('location_id', False)
-        gender = data.get('gender_id', False)
-        family_id = data.get('family_id', False)
-        # This function is designed to generate a random insuree ID with 5 characters, ranging from 1 to 99999. 
-        # It returns a string of 9 characters for the insuree ID.
-        min_num = 1
-        max_num = 9999999999999
-        val = 13
-        first_part = ""
-        if location_id or family_id:
-            max_num = 99999
-            val = 5
-            if family_id:
-                family = Family.objects.get(id=family_id)
-                location = Location.objects.get(id=family.location_id)
-            else:
-                location = Location.objects.get(id=location_id)
-            municipality = location.parent.code
-            district = location.parent.parent.code
-            region = location.parent.parent.parent.code
-
-            region = self.normalize_code(region)
-            district = self.normalize_code(district)
-            municipality = self.normalize_code(municipality, maxi=3)
-            
-            print("region ", region)
-            print("district ", district)
-            print("municipality ", municipality)
-            gender_code = '1'
-            if gender == 'F':
-                gender_code = '2'
-            first_part = region + district + municipality + gender_code
-
-        formatted_num = 0
-        print(formatted_num)
-        # We try if the insuree number and generate a new id till a unique insureeId is generated
-        while formatted_num==0 or Insuree.objects.filter(chf_id=formatted_num).exists():
-            random_num = random.randint(min_num, max_num)
-            formatted_num = str(random_num).zfill(val)
-            data["chf_id"] = first_part + formatted_num
-        print(data["chf_id"])
-        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
-        if errors:
-            raise Exception("Invalid insuree number")
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
             insuree.save_history()
@@ -299,6 +255,49 @@ class InsureeService:
             reset_insuree_before_update(insuree)
             [setattr(insuree, key, data[key]) for key in data]
         else:
+            location_id = data.pop('location_id', False)
+            gender = data.get('gender_id', False)
+            family_id = data.get('family_id', False)
+            # This function is designed to generate a random insuree ID with 5 characters, ranging from 1 to 99999. 
+            # It returns a string of 9 characters for the insuree ID.
+            min_num = 1
+            max_num = 9999999999999
+            val = 13
+            first_part = ""
+            if location_id or family_id:
+                max_num = 99999
+                val = 5
+                if family_id:
+                    family = Family.objects.get(id=family_id)
+                    location = Location.objects.get(id=family.location_id)
+                else:
+                    location = Location.objects.get(id=location_id)
+                municipality = location.parent.code
+                district = location.parent.parent.code
+                region = location.parent.parent.parent.code
+
+                region = self.normalize_code(region)
+                district = self.normalize_code(district)
+                municipality = self.normalize_code(municipality, maxi=3)
+                
+                print("region ", region)
+                print("district ", district)
+                print("municipality ", municipality)
+                gender_code = '1'
+                if gender == 'F':
+                    gender_code = '2'
+                first_part = region + district + municipality + gender_code
+
+            formatted_num = 0
+            # We try if the insuree number and generate a new id till a unique insureeId is generated
+            while formatted_num==0 or Insuree.objects.filter(chf_id=formatted_num).exists():
+                random_num = random.randint(min_num, max_num)
+                formatted_num = str(random_num).zfill(val)
+                data["chf_id"] = first_part + formatted_num
+            print(data["chf_id"])
+            errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+            if errors:
+                raise Exception("Invalid insuree number")
             insuree = Insuree.objects.create(**data)
         insuree.save()
         photo = handle_insuree_photo(self.user, now, insuree, photo)
