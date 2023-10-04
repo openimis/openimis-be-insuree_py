@@ -19,41 +19,20 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
     insuree = Insuree.objects.filter(chf_id=ref, validity_to__isnull=True).first()
     if insuree is None:
         #managing location
-        qs_location = Location.objects.filter(type="V")
-        if family_custom_props and "location" in family_custom_props:
-            location= family_custom_props.pop('location')
-        elif family_custom_props and "location_id" in family_custom_props:
-            location= qs_location.filter(location_id =family_custom_props.pop('location_id')).first()
+        qs_location = Location.objects.filter(type="V", validity_to__isnull=True)
+
         if custom_props and "current_village" in custom_props:
             village = custom_props.pop('current_village')
         elif custom_props and "current_village_id" in custom_props:
             village= qs_location.filter(current_village_id =custom_props.pop('current_village_id')).first()
-        if location is None and village is None :
-            location = qs_location.first()
-            village = location
-        elif location is None:
-            location = village
-        else:
-            village = location
-            
+        elif custom_props and "family" in custom_props:
+            village = custom_props[family].location
+        elif  not (custom_props and "family_id" in custom_props) and not (family_custom_props and ("location" in family_custom_props or "location_id" in family_custom_props ) ) :
+            village=qs_location.first()
+    
+        family = get_from_custom_props(custom_props, 'family',  None)
         
-        family = get_from_custom_props(custom_props, 'family',None)
-        
-           
-        if family is None and with_family:
-            if family_custom_props and "id" in family_custom_props:
-                family = Family.objects.filter(id=family_custom_props['id']).first()
-                
-            if family is None:
- 
-                family = Family.objects.create(
-                    validity_from=get_from_custom_props(family_custom_props, 'audit_user_id',"2019-01-01"),
-                    head_insuree_id=get_from_custom_props(custom_props, 'id',1),
-                    audit_user_id=get_from_custom_props(family_custom_props, 'audit_user_id',-1),
-                    location=location,
-                    **(family_custom_props if family_custom_props else {})
-                )
-            
+
         
         insuree = Insuree.objects.create(
                 last_name = get_from_custom_props(custom_props, 'last_name',"last" ),
@@ -69,14 +48,45 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
                 current_village= village,
                 **(custom_props if custom_props else {})
         )
-        if with_family:
-            family.head_insuree_id = insuree.id
-            if family_custom_props:
-                for k, v in family_custom_props.items():
-                    setattr(family, k, v)
-            family.save()
+    if with_family and family is None and insuree.family is None:
+        if not family_custom_props:
+            family_custom_props={}
+        if 'head_insuree' not in family_custom_props and 'head_insuree_id' not in family_custom_props:
+            family_custom_props['head_insuree']=insuree
+        family_custom_props['location']=village
+        family= create_test_family(custom_props=family_custom_props)
+        insuree.family = family
+        insuree.save()
 
     return insuree
+
+def create_test_family(custom_props={}):
+    family = None
+    if custom_props and "id" in custom_props:
+        family = Family.objects.filter(id=custom_props['id']).first()
+    if family is None and  custom_props and "uuid" in custom_props:    
+        family = Family.objects.filter(uuid=custom_props['uuid']).first()      
+    if family is None:
+        qs_location = Location.objects.filter(type="V")
+        if custom_props and "location" in custom_props:
+            location= custom_props.pop('location')
+        elif custom_props and "location_id" in custom_props:
+            location= qs_location.filter(location_id =custom_props.pop('location_id')).first()
+        else:
+            location=qs_location.filter(validity_to__isnull=True).first() 
+            ## manage head
+        head_insuree = custom_props.pop('head_insuree', Insuree.objects.filter(validity_to__isnull=True).first())    
+            
+
+        family = Family.objects.create(
+            validity_from=get_from_custom_props(custom_props, 'validity_from',"2019-01-01"),
+            audit_user_id=get_from_custom_props(custom_props, 'audit_user_id',-1),
+            head_insuree= head_insuree,
+            location=location,
+            **(custom_props if custom_props else {})
+        )
+    return family
+
 
 
 base64_blank_jpg = """
