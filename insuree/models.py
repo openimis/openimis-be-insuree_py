@@ -79,6 +79,7 @@ class ConfirmationType(models.Model):
         db_column='SortOrder', blank=True, null=True)
     alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
+    is_confirmation_number_required = models.BooleanField(default=False)
 
     class Meta:
         managed = True
