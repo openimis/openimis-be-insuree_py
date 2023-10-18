@@ -10,7 +10,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 from location.models import Location, UserDistrict
 
-from .apps import InsureeConfig
+from insuree.apps import InsureeConfig
 from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
@@ -81,6 +81,10 @@ class Query(graphene.ObjectType):
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
     relations = graphene.List(RelationGQLType)
+    insuree_status_reasons = DjangoFilterConnectionField(
+        InsureeStatusReasonGQLType,
+        str=graphene.String()
+    )
     families = FamiliesConnectionField(
         FamilyGQLType,
         null_as_false_poverty=graphene.Boolean(),
@@ -186,16 +190,17 @@ class Query(graphene.ObjectType):
             # Limit the list by the logged in user location mapping
             user_districts = UserDistrict.get_user_districts(
                 info.context.user._u)
-
-            filters += [Q(family__location__parent__parent__in=Location.objects.filter(
-                uuid__in=user_districts.values_list('location__uuid', flat=True)))]
+            user_disctricts = Location.objects.filter(
+                uuid__in=user_districts.values_list('location__uuid', flat=True))
+            filters += [Q(family__location__parent__parent__in=user_disctricts)|
+                        Q(current_village__parent__parent__in=user_disctricts)]
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_family_members):
             raise PermissionDenied(_("unauthorized"))
-        family = Family.objects.get(Q(uuid=kwargs.get('family_uuid')))
+        family = Family.objects.get(Q(uuid__iexact=kwargs.get('family_uuid')))
         return Insuree.objects.filter(
             Q(family=family),
             *filter_validity(**kwargs)
@@ -246,7 +251,7 @@ class Query(graphene.ObjectType):
         officer = kwargs.get('officer', None)
         if officer:
             officer_policies_families = Policy.objects.filter(
-                officer__uuid=officer).values_list('family', flat=True)
+                officer__uuid__iexact=officer).values_list('family', flat=True)
             filters.append(Q(id__in=officer_policies_families))
 
         null_as_false_poverty = kwargs.get('null_as_false_poverty')
@@ -336,7 +341,7 @@ def on_family_mutation(kwargs, k='uuid'):
     family_uuid = kwargs['data'].get('uuid', None)
     if not family_uuid:
         return []
-    impacted_family = Family.objects.get(Q(uuid=family_uuid))
+    impacted_family = Family.objects.get(Q(uuid__iexact=family_uuid))
     FamilyMutation.objects.create(
         family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
@@ -360,7 +365,7 @@ def on_insuree_mutation(kwargs, k='uuid'):
     insuree_uuid = kwargs['data'].get('uuid', None)
     if not insuree_uuid:
         return []
-    impacted_insuree = Insuree.objects.get(Q(uuid=insuree_uuid))
+    impacted_insuree = Insuree.objects.get(Q(uuid__iexact=insuree_uuid))
     InsureeMutation.objects.create(
         insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
     return []
