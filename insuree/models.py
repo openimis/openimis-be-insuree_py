@@ -136,9 +136,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
             )
         if settings.ROW_SECURITY:
-            dist = UserDistrict.get_user_districts(user._u)
+            from location.schema import  LocationManager
             return queryset.filter(
-                location__parent__parent_id__in=[l.location_id for l in dist]
+                LocationManager().build_user_location_filter_query( user, prefix='familly__location__parent__parent', loc_type='D') | LocationManager().build_user_location_filter_query( user, prefix='current_village__parent__parent', loc_type='D')
             )
         return queryset
 
