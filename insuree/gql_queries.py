@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 
 from .apps import InsureeConfig
 from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation
+    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation, InsureeStatusReason
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -90,6 +90,18 @@ class RelationGQLType(DjangoObjectType):
         }
 
 
+class InsureeStatusReasonGQLType(DjangoObjectType):
+    class Meta:
+        model = InsureeStatusReason
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "code": ["exact"],
+            "insuree_status_reason": ["exact", 'icontains', 'istartswith'],
+            "status_type": ["exact"]
+        }
+        connection_class = ExtendedConnection
+
+
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
     client_mutation_id = graphene.String()
@@ -131,6 +143,7 @@ class InsureeGQLType(DjangoObjectType):
             "passport": ["exact", "istartswith", "icontains", "iexact", "isnull"],
             "gender__code": ["exact", "isnull"],
             "marital": ["exact", "isnull"],
+            "status": ["exact"],
             "validity_from": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             "validity_to": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             **prefix_filterset("photo__", PhotoGQLType._meta.filter_fields),
