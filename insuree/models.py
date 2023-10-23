@@ -142,6 +142,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             return  LocationManager().build_user_location_filter_query( user._u, prefix='family__location__parent__parent', loc_type='D',queryset= queryset)
 
             
+
         return queryset
 
     class Meta:
