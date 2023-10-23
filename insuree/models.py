@@ -140,6 +140,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             from location.schema import  LocationManager
             return queryset.filter(
                 LocationManager().build_user_location_filter_query( user._u, prefix='familly__location__parent__parent', loc_type='D') | LocationManager().build_user_location_filter_query( user._u, prefix='current_village__parent__parent', loc_type='D')
+
             )
         return queryset
 
