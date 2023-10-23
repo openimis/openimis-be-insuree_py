@@ -26,7 +26,8 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
         elif custom_props and "current_village_id" in custom_props:
             village= qs_location.filter(current_village_id =custom_props.pop('current_village_id')).first()
         elif custom_props and "family" in custom_props:
-            village = custom_props[family].location
+
+            village = custom_props["family"].location
         elif  not (custom_props and "family_id" in custom_props) and not (family_custom_props and ("location" in family_custom_props or "location_id" in family_custom_props ) ) :
             village=qs_location.first()
     
