@@ -66,6 +66,10 @@ class Query(graphene.ObjectType):
     family_types = graphene.List(FamilyTypeGQLType)
     confirmation_types = graphene.List(ConfirmationTypeGQLType)
     relations = graphene.List(RelationGQLType)
+    insuree_status_reasons = DjangoFilterConnectionField(
+        InsureeStatusReasonGQLType,
+        str=graphene.String()
+    )
     families = FamiliesConnectionField(
         FamilyGQLType,
         null_as_false_poverty=graphene.Boolean(),
