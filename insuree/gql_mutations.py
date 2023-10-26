@@ -55,7 +55,7 @@ class InsureeBase:
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
-    status = graphene.String(required=True)
+    status = graphene.String(required=False)
     status_reason = graphene.String(required=False)
     status_date = graphene.Date(required=False)
 

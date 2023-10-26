@@ -231,21 +231,33 @@ def validate_insuree_data(data):
     gender = data.get("gender_id", None)
     if not gender:
         raise ValidationError(_("insuree.validation.insuree_requires_gender"))
+    status = data.get("status", None)
+    if not status:
+        raise ValidationError(_("insuree.validation.insuree_requires_status"))
 
 
 def validate_worker_data(data):
-    first_name = data.get("first_name", None)
-    if not first_name:
-        raise ValidationError(_("worker_requires_first_name"))
+    other_names = data.get("other_names", None)
+    if not other_names:
+        raise ValidationError(_("worker_requires_other_names"))
     last_name = data.get("last_name", None)
     if not last_name:
         raise ValidationError(_("worker_requires_last_name"))
 
 
 def validate_insuree(data, insuree_uuid):
+    """
+    This function checks if the CHF ID is valid for the insuree or worker and
+    then performs additional validation based on the type of insuree.
+
+    Note:
+        - If InsureeConfig.insuree_as_worker is True, the function performs worker data validation.
+        - If InsureeConfig.insuree_as_worker is False, the function performs insuree data validation.
+    """
     errors = validate_insuree_number(data["chf_id"], insuree_uuid)
     if errors:
         raise ValidationError("invalid_insuree_number")
+
     if InsureeConfig.insuree_as_worker:
         validate_worker_data(data)
     else:

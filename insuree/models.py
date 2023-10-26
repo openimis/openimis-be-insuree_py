@@ -276,7 +276,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
-    status = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+    status = models.CharField(
+        max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE, blank=True, null=True
+    )
     status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
     status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
                                       blank=True, null=True, related_name='insurees')
