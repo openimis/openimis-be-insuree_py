@@ -58,3 +58,78 @@ class InsureeGQLTestCase(GraphQLTestCase):
         content = json.loads(response.content)
 
         self.assertResponseNoErrors(response)
+        
+
+
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.admin_user = create_test_interactive_user(username="testLocationAdmin")
+        cls.admin_token = get_token(cls.admin_user, DummyContext(user=cls.admin_user))
+    
+    def test_insuree_query(self):
+        
+        response = self.query(
+            '''
+            query {
+                
+      insurees
+      {
+        totalCount
+        
+    pageInfo { hasNextPage, hasPreviousPage, startCursor, endCursor}
+    edges
+    {
+      node
+      {
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+      }
+    }
+      }
+    
+            }
+            ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
+        )
+
+        content = json.loads(response.content)
+
+        # This validates the status code and if you get errors
+        self.assertResponseNoErrors(response)
+
+        # Add some more asserts if you like
+        ...
+
+    def test_query_with_variables(self):
+        response = self.query(
+            '''
+    
+            query insurees( $first:  Int! ) 
+    {
+      insurees(first: $first,orderBy: ["chfId"])
+      {
+        totalCount
+        
+    pageInfo { hasNextPage, hasPreviousPage, startCursor, endCursor}
+    edges
+    {
+      node
+      {
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+      }
+    }
+      }
+    }
+            ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
+            variables={ 'first':10}
+        )
+
+        content = json.loads(response.content)
+
+        # This validates the status code and if you get errors
+        self.assertResponseNoErrors(response)
+
+       
+

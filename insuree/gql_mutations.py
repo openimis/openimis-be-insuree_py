@@ -3,10 +3,9 @@ import uuid
 import pathlib
 import base64
 import graphene
-
+from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number, InsureeService, FamilyService, InsureePolicyService
 
-from .apps import InsureeConfig
 from core.schema import OpenIMISMutation
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -56,6 +55,9 @@ class InsureeBase:
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
+    status = graphene.String(required=True)
+    status_reason = graphene.String(required=False)
+    status_date = graphene.Date(required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
@@ -99,23 +101,6 @@ class CreateFamilyInputType(FamilyInputType):
 class UpdateFamilyInputType(FamilyInputType):
     pass
 
-
-def create_file(date, insuree_id, photo_bin):
-    date_iso = date.isoformat()
-    root = InsureeConfig.insuree_photos_root_path
-    file_dir = '%s/%s/%s/%s' % (
-        date_iso[0:4],
-        date_iso[5:7],
-        date_iso[8:10],
-        insuree_id
-    )
-    file_name = uuid.uuid4()
-    file_path = '%s/%s' % (file_dir, file_name)
-    pathlib.Path('%s/%s' % (root, file_dir)).mkdir(parents=True, exist_ok=True)
-    f = open('%s/%s' % (root, file_path), "xb")
-    f.write(base64.b64decode(photo_bin))
-    f.close()
-    return file_dir, file_name
 
 
 def update_or_create_insuree(data, user):
@@ -215,7 +200,7 @@ class DeleteFamiliesMutation(OpenIMISMutation):
         for family_uuid in data["uuids"]:
             family = Family.objects \
                 .prefetch_related('members') \
-                .filter(uuid=family_uuid) \
+                .filter(uuid__iexact=family_uuid) \
                 .first()
             if family is None:
                 errors.append({
@@ -319,7 +304,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
         for insuree_uuid in data["uuids"]:
             insuree = Insuree.objects \
                 .prefetch_related('family') \
-                .filter(uuid=insuree_uuid) \
+                .filter(uuid__iexact=insuree_uuid) \
                 .first()
             if insuree is None:
                 errors.append({
@@ -361,7 +346,7 @@ class RemoveInsureesMutation(OpenIMISMutation):
         for insuree_uuid in data["uuids"]:
             insuree = Insuree.objects \
                 .prefetch_related('family') \
-                .filter(uuid=insuree_uuid) \
+                .filter(uuid__iexact=insuree_uuid) \
                 .first()
             if insuree is None:
                 errors += {
@@ -402,8 +387,8 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid=data['uuid'])
-            insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
+            family = Family.objects.get(uuid__iexact=data['uuid'])
+            insuree = Insuree.objects.get(uuid__iexact=data['insuree_uuid'])
             family.save_history()
             prev_head = family.head_insuree
             if prev_head:
@@ -442,8 +427,8 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
                 not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid=data['family_uuid'])
-            insuree = Insuree.objects.get(uuid=data['insuree_uuid'])
+            family = Family.objects.get(uuid__iexact=data['family_uuid'])
+            insuree = Insuree.objects.get(uuid__iexact=data['insuree_uuid'])
             insuree.save_history()
             insuree.family = family
             insuree.save()

@@ -79,6 +79,7 @@ class ConfirmationType(models.Model):
         db_column='SortOrder', blank=True, null=True)
     alt_language = models.CharField(
         db_column='AltLanguage', max_length=50, blank=True, null=True)
+    is_confirmation_number_required = models.BooleanField(default=False)
 
     class Meta:
         managed = True
@@ -136,10 +137,12 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
             )
         if settings.ROW_SECURITY:
-            dist = UserDistrict.get_user_districts(user._u)
-            return queryset.filter(
-                location__parent__parent_id__in=[l.location_id for l in dist]
-            )
+            from location.schema import  LocationManager
+            queryset = LocationManager().build_user_location_filter_query( user._u, prefix='current_village__parent__parent',  loc_type='D',queryset=queryset)
+            return  LocationManager().build_user_location_filter_query( user._u, prefix='family__location__parent__parent', loc_type='D',queryset= queryset)
+
+            
+
         return queryset
 
     class Meta:
@@ -195,6 +198,23 @@ class Relation(models.Model):
     class Meta:
         managed = True
         db_table = 'tblRelations'
+
+
+class InsureeStatus(models.TextChoices):
+    ACTIVE = "AC"
+    INACTIVE = "IN"
+    DEAD = "DE"
+
+
+class InsureeStatusReason(core_models.VersionedModel):
+    id = models.SmallIntegerField(db_column='StatusReasonId', primary_key=True)
+    insuree_status_reason = models.CharField(db_column='StatusReason', max_length=50)
+    code = models.CharField(db_column='Code', max_length=5)
+    status_type = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+
+    class Meta:
+        managed = True
+        db_table = 'tblInsureeStatusReason'
 
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
@@ -256,6 +276,10 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
+    status = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+    status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
+    status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
+                                      blank=True, null=True, related_name='insurees')
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
