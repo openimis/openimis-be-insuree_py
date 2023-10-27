@@ -11,6 +11,10 @@ def generate_error_return(instance_name_str, checksum_return=False):
                  "message": _(f"{instance_name_str}_national_id_not_valid")}]
 
 
+ZERO_CHAR = '0'
+NINE_CHAR = '9'
+
+
 class IdentifierValidator:
     """
     A class for validating Moldovan national identification numbers (IDs).
@@ -24,12 +28,12 @@ class IdentifierValidator:
             return False
         crc = 0
         for i in range(12):
-            if not ('0' <= idn[i] <= '9'):
+            if not (ZERO_CHAR <= idn[i] <= NINE_CHAR):
                 return False
-            crc += (ord(idn[i]) - ord('0')) * (7 if i % 3 == 0 else (3 if i % 3 == 1 else 1))
-        if not ('0' <= idn[12] <= '9'):
+            crc += (ord(idn[i]) - ord(ZERO_CHAR)) * (7 if i % 3 == 0 else (3 if i % 3 == 1 else 1))
+        if not (ZERO_CHAR <= idn[12] <= NINE_CHAR):
             return False
-        return crc % 10 == (ord(idn[12]) - ord('0'))
+        return crc % 10 == (ord(idn[12]) - ord(ZERO_CHAR))
 
     @staticmethod
     def is_valid_resident_identifier(idnp):
