@@ -24,9 +24,9 @@ def create_insuree_renewal_detail(policy_renewal):
     now = datetime.datetime.now()
     adult_birth_date = now - datetimedelta(years=CoreConfig.age_of_majority)
     photo_renewal_date_adult = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
     photo_renewal_date_child = now - \
-        datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
+                               datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
     photos_to_renew = InsureePhoto.objects.filter(insuree__family=policy_renewal.insuree.family) \
         .filter(insuree__validity_to__isnull=True) \
         .filter(Q(insuree__photo_date__isnull=True)
@@ -155,7 +155,7 @@ def handle_insuree_photo(user, now, insuree, data):
     data['insuree_id'] = insuree.id
     if 'uuid' not in data:
         data['uuid'] =  str(uuid.uuid4())
-    
+
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
             and (insuree_photo is None or insuree_photo.photo != photo_bin):
@@ -224,6 +224,46 @@ def load_photo_file(file_dir, file_name):
         return base64.b64encode(f.read()).decode("utf-8")
 
 
+def validate_insuree_data(data):
+    dob = data.get("dob", None)
+    if not dob:
+        raise ValidationError(_("insuree.validation.insuree_requires_dob"))
+    gender = data.get("gender_id", None)
+    if not gender:
+        raise ValidationError(_("insuree.validation.insuree_requires_gender"))
+    status = data.get("status", None)
+    if not status:
+        raise ValidationError(_("insuree.validation.insuree_requires_status"))
+
+
+def validate_worker_data(data):
+    other_names = data.get("other_names", None)
+    if not other_names:
+        raise ValidationError(_("worker_requires_other_names"))
+    last_name = data.get("last_name", None)
+    if not last_name:
+        raise ValidationError(_("worker_requires_last_name"))
+
+
+def validate_insuree(data, insuree_uuid):
+    """
+    This function checks if the CHF ID is valid for the insuree or worker and
+    then performs additional validation based on the type of insuree.
+
+    Note:
+        - If InsureeConfig.insuree_as_worker is True, the function performs worker data validation.
+        - If InsureeConfig.insuree_as_worker is False, the function performs insuree data validation.
+    """
+    errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+    if errors:
+        raise ValidationError("invalid_insuree_number")
+
+    if InsureeConfig.insuree_as_worker:
+        validate_worker_data(data)
+    else:
+        validate_insuree_data(data)
+
+
 class InsureeService:
     def __init__(self, user):
         self.user = user
@@ -250,9 +290,7 @@ class InsureeService:
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
         insuree_uuid = data.get('uuid', None)
-        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
-        if errors:
-            raise Exception("Invalid insuree number")
+        validate_insuree(data, insuree_uuid)
         if insuree_uuid:
             # create insuree with uuid if not foudn in the database
             try:
@@ -269,7 +307,7 @@ class InsureeService:
         else:
             data['uuid'] = uuid.uuid4()
             insuree = Insuree.objects.create(**data)
-        
+
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
             insuree.photo = photo

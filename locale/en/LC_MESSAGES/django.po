@@ -84,3 +84,36 @@ msgstr "Failed to change insuree from family"
 #: insuree/schema.py:83
 msgid "insuree.validation.policy_above_max_members"
 msgstr "Policy %(product_code)s - %(start_date)s covers max %(max)s insurees. Current family members count: %(count)s"
+
+msgid "insuree.validation.insuree_requires_dob"
+msgstr "Insuree requires date of birth."
+
+msgid "insuree.validation.insuree_requires_gender"
+msgstr "Insuree requires gender."
+
+msgid "insuree.validation.insuree_requires_status"
+msgstr "Insuree requires status."
+
+msgid "insuree.validation.worker_requires_other_names"
+msgstr "Worker requires other names."
+
+msgid "insuree.validation.worker_requires_last_name"
+msgstr "Worker requires last name."
+
+msgid "resident_national_id_not_valid"
+msgstr "Worker national id not valid."
+
+msgid "organization_national_id_not_valid"
+msgstr "Organization national id not valid."
+
+msgid "vehicle_national_id_not_valid"
+msgstr "Vehicle national id not valid."
+
+msgid "resident_national_id_checksum_not_valid"
+msgstr "Worker national id checksum not valid."
+
+msgid "organization_national_id_checksum_not_valid"
+msgstr "Organization national id checksum not valid."
+
+msgid "vehicle_national_id_checksum_not_valid"
+msgstr "Vehicle national id checksum not valid."
