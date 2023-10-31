@@ -3,7 +3,6 @@ import os
 from django.apps import AppConfig
 from django.conf import settings
 
-from insuree.utils import IdentifierValidator  # do not remove
 
 MODULE_NAME = "insuree"
 
@@ -26,7 +25,7 @@ DEFAULT_CFG = {
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
     "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number for example
-                                       # IdentifierValidator().is_valid_resident_identifier
+                                       # 'msystems.utils.is_valid_resident_identifier'
     "insuree_number_length": None,  # Insuree number length to validate
     "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
     "validation_code_taken_insuree_number": 1,
@@ -34,6 +33,8 @@ DEFAULT_CFG = {
     "validation_code_invalid_insuree_number_len": 3,
     "validation_code_invalid_insuree_number_checksum": 4,
     "validation_code_invalid_insuree_number_exception": 5,
+    "validation_code_validator_import_error": 6,
+    "validation_code_validator_function_error": 7,
     "insuree_fsp_mandatory": False,
     "insuree_as_worker": False,
 
@@ -62,6 +63,8 @@ class InsureeConfig(AppConfig):
     validation_code_invalid_insuree_number_len = None
     validation_code_invalid_insuree_number_checksum = None
     validation_code_invalid_insuree_number_exception = None
+    validation_code_validator_import_error = None
+    validation_code_validator_function_error = None
     insuree_photos_root_path = None
     excluded_insuree_chfids = []
     renewal_photo_age_adult = None

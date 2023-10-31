@@ -100,20 +100,8 @@ msgstr "Worker requires other names."
 msgid "insuree.validation.worker_requires_last_name"
 msgstr "Worker requires last name."
 
-msgid "resident_national_id_not_valid"
-msgstr "Worker national id not valid."
+msgid "validator_module_import_error"
+msgstr "Validator module import error."
 
-msgid "organization_national_id_not_valid"
-msgstr "Organization national id not valid."
-
-msgid "vehicle_national_id_not_valid"
-msgstr "Vehicle national id not valid."
-
-msgid "resident_national_id_checksum_not_valid"
-msgstr "Worker national id checksum not valid."
-
-msgid "organization_national_id_checksum_not_valid"
-msgstr "Organization national id checksum not valid."
-
-msgid "vehicle_national_id_checksum_not_valid"
-msgstr "Vehicle national id checksum not valid."
+msgid "validator_function_not_found"
+msgstr "Validator function not found."
