@@ -36,7 +36,7 @@ DEFAULT_CFG = {
     "validation_code_validator_import_error": 6,
     "validation_code_validator_function_error": 7,
     "insuree_fsp_mandatory": False,
-    "insuree_as_worker": True,
+    "insuree_as_worker": False,
 
 }
 
