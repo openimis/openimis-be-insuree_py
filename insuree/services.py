@@ -3,6 +3,7 @@ import logging
 import pathlib
 import shutil
 import uuid
+from importlib import import_module
 from os import path
 
 from core.apps import CoreConfig
@@ -46,6 +47,22 @@ def create_insuree_renewal_detail(policy_renewal):
                      photo.insuree_id, detail.id, detail_created)
 
 
+def custom_insuree_number_validation(insuree_number):
+    function_string = InsureeConfig.get_insuree_number_validator()
+    try:
+        mod, name = function_string.rsplit('.', 1)
+        module = import_module(mod)
+        function = getattr(module, name)
+        return function(insuree_number)
+    except ImportError:
+        return [{"errorCode": InsureeConfig.validation_code_validator_import_error,
+                 "message": _("validator_module_import_error")}]
+
+    except AttributeError:
+        return [{"errorCode": InsureeConfig.validation_code_validator_function_error,
+                 "message": _("validator_function_not_found")}]
+
+
 def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
@@ -55,7 +72,7 @@ def validate_insuree_number(insuree_number, uuid=None):
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
     if InsureeConfig.get_insuree_number_validator():
-        return InsureeConfig.get_insuree_number_validator()(insuree_number)
+        return custom_insuree_number_validation(insuree_number)
     if InsureeConfig.get_insuree_number_length():
         if not insuree_number:
             return [
