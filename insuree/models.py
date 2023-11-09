@@ -136,7 +136,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             queryset = queryset.exclude(
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
             )
-        if settings.ROW_SECURITY:
+        if settings.ROW_SECURITY and not user.is_imis_admin:
             from location.schema import  LocationManager
             return queryset.filter(
                 LocationManager().build_user_location_filter_query( user._u, prefix='familly__location__parent__parent', loc_type='D') | LocationManager().build_user_location_filter_query( user._u, prefix='current_village__parent__parent', loc_type='D')

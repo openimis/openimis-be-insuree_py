@@ -34,7 +34,7 @@ class InsureePhotoTest(TestCase):
             self.user = user
     @classmethod
     def setUpTestData(cls):
-        cls. _TEST_USER_NAME = "TestUserTest2"
+        cls._TEST_USER_NAME = "TestUserTest2"
         cls.test_user_PASSWORD = "TestPasswordTest2"
         cls._TEST_DATA_USER = {
             "username": cls._TEST_USER_NAME,
