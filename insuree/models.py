@@ -138,11 +138,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             )
         if settings.ROW_SECURITY:
             from location.schema import  LocationManager
-            queryset = LocationManager().build_user_location_filter_query( user._u, prefix='current_village__parent__parent',  loc_type='D',queryset=queryset)
-            return  LocationManager().build_user_location_filter_query( user._u, prefix='family__location__parent__parent', loc_type='D',queryset= queryset)
-
-            
-
+            return queryset.filter(
+                LocationManager().build_user_location_filter_query( user, prefix='familly__location__parent__parent', loc_type='D') | LocationManager().build_user_location_filter_query( user, prefix='current_village__parent__parent', loc_type='D')
+            )
         return queryset
 
     class Meta:
