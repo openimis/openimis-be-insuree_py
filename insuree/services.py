@@ -172,7 +172,6 @@ def handle_insuree_photo(user, now, insuree, data):
     data['insuree_id'] = insuree.id
     if 'uuid' not in data:
         data['uuid'] =  str(uuid.uuid4())
-
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
             and (insuree_photo is None or insuree_photo.photo != photo_bin):
@@ -308,6 +307,9 @@ class InsureeService:
             raise ValidationError("mutation.insuree.fsp_required")
         insuree_uuid = data.get('uuid', None)
         validate_insuree(data, insuree_uuid)
+        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+        if errors:
+            raise Exception("Invalid insuree number")
         if insuree_uuid:
             # create insuree with uuid if not foudn in the database
             try:
@@ -324,7 +326,6 @@ class InsureeService:
         else:
             data['uuid'] = uuid.uuid4()
             insuree = Insuree.objects.create(**data)
-
         photo = handle_insuree_photo(self.user, now, insuree, photo)
         if photo:
             insuree.photo = photo

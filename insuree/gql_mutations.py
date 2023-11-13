@@ -32,9 +32,8 @@ class InsureeBase:
     chf_id = graphene.String(max_length=12, required=False)
     last_name = graphene.String(max_length=100, required=True)
     other_names = graphene.String(max_length=100, required=True)
-    gender_id = graphene.String(max_length=1, required=False,
-                                description="Was mandatory in Legacy but not in modular")
-    dob = graphene.Date(required=False)
+    gender_id = graphene.String(max_length=1, required=True)
+    dob = graphene.Date(required=True)
     head = graphene.Boolean(required=False)
     marital = graphene.String(max_length=1, required=False)
     passport = graphene.String(max_length=25, required=False)
