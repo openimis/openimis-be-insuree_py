@@ -136,10 +136,11 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             queryset = queryset.exclude(
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
             )
-        if settings.ROW_SECURITY:
-            dist = UserDistrict.get_user_districts(user._u)
+        if settings.ROW_SECURITY and not user.is_imis_admin:
+            from location.schema import  LocationManager
             return queryset.filter(
-                location__parent__parent_id__in=[l.location_id for l in dist]
+                LocationManager().build_user_location_filter_query( user._u, prefix='familly__location__parent__parent', loc_type='D') | LocationManager().build_user_location_filter_query( user._u, prefix='current_village__parent__parent', loc_type='D')
+
             )
         return queryset
 
@@ -221,13 +222,13 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 
     family = models.ForeignKey(Family, models.DO_NOTHING, blank=True, null=True,
                                db_column='FamilyID', related_name="members")
-    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
+    chf_id = models.CharField(db_column='CHFID', max_length=50, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
-    dob = core.fields.DateField(db_column='DOB')
+    dob = core.fields.DateField(db_column='DOB', blank=True, null=True)
 
     def age(self, reference_date=None):
         if self.dob:
@@ -244,7 +245,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         else:
             return None
 
-    head = models.BooleanField(db_column='IsHead')
+    head = models.BooleanField(db_column='IsHead', default=False)
     marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)
@@ -274,7 +275,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
-    status = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+    status = models.CharField(
+        max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE, blank=True, null=True
+    )
     status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
     status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
                                       blank=True, null=True, related_name='insurees')
