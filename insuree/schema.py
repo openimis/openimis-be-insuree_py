@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
-from location.models import Location, UserDistrict
+from location.models import Location, LocationManager
 
 from insuree.apps import InsureeConfig
 from .models import FamilyMutation, InsureeMutation
@@ -186,14 +186,10 @@ class Query(graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
                         (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
 
-        if (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None):
+        if not info.context.user._u.is_imis_admin and (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None):
             # Limit the list by the logged in user location mapping
-            user_districts = UserDistrict.get_user_districts(
-                info.context.user._u)
-            user_disctricts = Location.objects.filter(
-                uuid__in=user_districts.values_list('location__uuid', flat=True))
-            filters += [Q(family__location__parent__parent__in=user_disctricts)|
-                        Q(current_village__parent__parent__in=user_disctricts)]
+            filters += [Q(LocationManager().build_user_location_filter_query(info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']) |
+                        LocationManager().build_user_location_filter_query(info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']))]
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
@@ -278,11 +274,8 @@ class Query(graphene.ObjectType):
             filters += [Q(**{f: parent_location})]
 
         # Limit the list by the logged in user location mapping
-        user_districts = UserDistrict.get_user_districts(
-            info.context.user._u)
-
-        filters += [Q(location__parent__parent__in=Location.objects.filter(
-            uuid__in=user_districts.values_list('location__uuid', flat=True)))]
+        if not info.context.user._u.is_imis_admin:
+            filters += [LocationManager().build_user_location_filter_query(info.context.user._u, prefix= 'location__parent__parent', loc_types = ['D'])]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
