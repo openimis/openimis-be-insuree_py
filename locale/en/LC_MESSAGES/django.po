@@ -84,3 +84,24 @@ msgstr "Failed to change insuree from family"
 #: insuree/schema.py:83
 msgid "insuree.validation.policy_above_max_members"
 msgstr "Policy %(product_code)s - %(start_date)s covers max %(max)s insurees. Current family members count: %(count)s"
+
+msgid "insuree.validation.insuree_requires_dob"
+msgstr "Insuree requires date of birth."
+
+msgid "insuree.validation.insuree_requires_gender"
+msgstr "Insuree requires gender."
+
+msgid "insuree.validation.insuree_requires_status"
+msgstr "Insuree requires status."
+
+msgid "insuree.validation.worker_requires_other_names"
+msgstr "Worker requires other names."
+
+msgid "insuree.validation.worker_requires_last_name"
+msgstr "Worker requires last name."
+
+msgid "validator_module_import_error"
+msgstr "Validator module import error."
+
+msgid "validator_function_not_found"
+msgstr "Validator function not found."
