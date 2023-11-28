@@ -104,6 +104,39 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
 
 
+    def test_family_query(self):
+        
+        response = self.query(
+            '''
+            query {
+
+      families(first: 10,orderBy: ["-validityFrom"])
+      {
+        totalCount
+        
+    pageInfo { hasNextPage, hasPreviousPage, startCursor, endCursor}
+    edges
+    {
+      node
+      {
+        id,uuid,poverty,confirmationNo,validityFrom,validityTo,headInsuree{id,uuid,chfId,lastName,otherNames,email,phone, dob},location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+      }
+    }
+      }
+    }
+
+            ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_dist_user}"},
+
+        )
+
+        content = json.loads(response.content)
+
+        # This validates the status code and if you get errors
+        self.assertEqual(content['errors'][0]['message'],'User not authorized for this operation')
+
+
+
     def test_query_with_variables(self):
         response = self.query(
             '''
