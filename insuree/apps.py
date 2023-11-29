@@ -9,8 +9,9 @@ MODULE_NAME = "insuree"
 DEFAULT_CFG = {
     "gql_query_insurees_perms": ["101101"],
     "gql_query_insuree_perms": ["101101"],
+    "gql_query_insuree_photo_perms": ["101101"],
     "gql_query_insuree_officers_perms": [],
-    "gql_insuree_family_members": ["101101"],
+    "gql_query_insuree_family_members": ["101101"],
     "gql_query_families_perms": ["101001"],
     "gql_query_insuree_policy_perms": ["101500"],
     "gql_mutation_create_families_perms": ["101002"],
@@ -35,16 +36,22 @@ class InsureeConfig(AppConfig):
     gql_query_insurees_perms = []
     gql_query_insuree_perms = []
 
-    gql_insuree_family_members = []
+    gql_query_insuree_family_members = []
     gql_query_families_perms = []
     gql_query_insuree_officers_perms = []
     gql_query_insuree_policy_perms = []
+    gql_query_insuree_photo_perms = []
     gql_mutation_create_families_perms = []
     gql_mutation_update_families_perms = []
     gql_mutation_delete_families_perms = []
     gql_mutation_create_insurees_perms = []
     gql_mutation_update_insurees_perms = []
     gql_mutation_delete_insurees_perms = []
+    validation_code_taken_insuree_number = 1
+    validation_code_no_insuree_number = 2
+    validation_code_invalid_insuree_number_len = 3
+    validation_code_invalid_insuree_number_checksum = 4
+    validation_code_invalid_insuree_number_exception = 5
     insuree_photos_root_path = None
     excluded_insuree_chfids = ['999999999']
     renewal_photo_age_adult = 60
@@ -56,8 +63,9 @@ class InsureeConfig(AppConfig):
     def _configure_permissions(self, cfg):
         InsureeConfig.gql_query_insurees_perms = cfg["gql_query_insurees_perms"]
         InsureeConfig.gql_query_insuree_perms = cfg["gql_query_insuree_perms"]
+        InsureeConfig.gql_query_insuree_photo_perms = cfg["gql_query_insuree_photo_perms"]
         InsureeConfig.gql_query_insuree_officers_perms = cfg["gql_query_insuree_officers_perms"]
-        InsureeConfig.gql_insuree_family_members = cfg["gql_insuree_family_members"]
+        InsureeConfig.gql_query_insuree_family_members = cfg["gql_query_insuree_family_members"]
         InsureeConfig.gql_query_families_perms = cfg["gql_query_families_perms"]
         InsureeConfig.gql_query_insuree_policy_perms = cfg["gql_query_insuree_policy_perms"]
         InsureeConfig.gql_mutation_create_families_perms = cfg["gql_mutation_create_families_perms"]

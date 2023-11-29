@@ -3,7 +3,6 @@ import uuid
 import pathlib
 import base64
 import graphene
-
 from insuree.services import validate_insuree_number, InsureeService, FamilyService
 
 from .apps import InsureeConfig
@@ -26,6 +25,18 @@ class PhotoInputType(InputObjectType):
     filename = graphene.String(required=False)
     folder = graphene.String(required=False)
 
+class AttachmentInputType(InputObjectType):
+    idAttachment = graphene.Int(required=False, read_only=True)
+    folder = graphene.String(required=False)
+    title = graphene.String(required=False)
+    mime = graphene.String(required=False)
+    filename = graphene.String(required=False)
+    date = graphene.Date(required=False)
+    document = graphene.String(required=True) # Ficher
+
+class MembershipGroupInputType(InputObjectType):
+    id = graphene.Int(required=False, read_only=True)
+    name = graphene.String(required=False)
 
 class InsureeBase:
     id = graphene.Int(required=False, read_only=True)
@@ -33,6 +44,8 @@ class InsureeBase:
     chf_id = graphene.String(max_length=12, required=False)
     last_name = graphene.String(max_length=100, required=True)
     other_names = graphene.String(max_length=100, required=True)
+    arab_last_name = graphene.String(max_length=100, required=False)
+    arab_other_names = graphene.String(max_length=100, required=False)
     gender_id = graphene.String(max_length=1, required=True, description="Was mandatory in Legacy but not in modular")
     dob = graphene.Date(required=True)
     head = graphene.Boolean(required=False)
@@ -46,15 +59,17 @@ class InsureeBase:
     photo_id = graphene.Int(required=False)
     photo_date = graphene.Date(required=False)
     photo = graphene.Field(PhotoInputType, required=False)
+    attachments = graphene.List(AttachmentInputType, required=True)
     card_issued = graphene.Boolean(required=False)
     family_id = graphene.Int(required=False)
     relationship_id = graphene.Int(required=False)
     profession_id = graphene.Int(required=False)
     education_id = graphene.Int(required=False)
-    type_of_id_id = graphene.String(max_length=1, required=False)
+    type_of_id_id = graphene.String(max_length=1, required=True)
     health_facility_id = graphene.Int(required=False)
     offline = graphene.Boolean(required=False)
     json_ext = graphene.types.json.JSONString(required=False)
+    membershipgroup_id = graphene.Int(required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
@@ -151,10 +166,6 @@ class CreateFamilyMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
-            # Validate insuree number right away
-            errors = validate_insuree_number(data.get("head_insuree", {}).get("chf_id", None), True)
-            if errors:
-                return errors
             family = update_or_create_family(data, user)
             FamilyMutation.object_mutated(user, client_mutation_id=client_mutation_id, family=family)
             return None
@@ -252,10 +263,6 @@ class CreateInsureeMutation(OpenIMISMutation):
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
             client_mutation_id = data.get("client_mutation_id")
-            # Validate insuree number right away
-            errors = validate_insuree_number(data.get("chf_id", None), True)
-            if errors:
-                return errors
             insuree = update_or_create_insuree(data, user)
             InsureeMutation.object_mutated(user, client_mutation_id=client_mutation_id, insuree=insuree)
             return None
@@ -285,6 +292,8 @@ class UpdateInsureeMutation(OpenIMISMutation):
                     _("mutation.authentication_required"))
             if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
                 raise PermissionDenied(_("unauthorized"))
+            if 'uuid' not in data:
+                raise ValidationError("There is no uuid in updateMutation input!")
             data['audit_user_id'] = user.id_for_audit
             client_mutation_id = data.get("client_mutation_id")
             insuree = update_or_create_insuree(data, user)

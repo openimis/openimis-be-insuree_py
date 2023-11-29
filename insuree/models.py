@@ -9,7 +9,7 @@ from graphql import ResolveInfo
 from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import UserDistrict
-
+from django.utils import timezone as django_tz
 
 class Gender(models.Model):
     code = models.CharField(db_column='Code', primary_key=True, max_length=1)
@@ -21,7 +21,7 @@ class Gender(models.Model):
         db_column='SortOrder', blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblGender'
 
 
@@ -33,7 +33,7 @@ class InsureePhoto(core_models.VersionedModel):
     insuree = models.ForeignKey("Insuree", on_delete=models.DO_NOTHING,
                                 db_column='InsureeID', blank=True, null=True, related_name="photos")
     chf_id = models.CharField(
-        db_column='CHFID', max_length=12, blank=True, null=True)
+        db_column='CHFID', max_length=13, blank=True, null=True)
     folder = models.CharField(db_column='PhotoFolder', max_length=255, blank=True, null=True)
     filename = models.CharField(
         db_column='PhotoFileName', max_length=250, blank=True, null=True)
@@ -52,7 +52,7 @@ class InsureePhoto(core_models.VersionedModel):
         return os.path.join(InsureeConfig.insuree_photos_root_path, self.folder, self.filename)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblPhotos'
 
 
@@ -66,7 +66,7 @@ class FamilyType(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblFamilyTypes'
 
 
@@ -81,7 +81,7 @@ class ConfirmationType(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblConfirmationTypes'
 
 
@@ -143,7 +143,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblFamilies'
 
 
@@ -156,7 +156,7 @@ class Profession(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblProfessions'
 
 
@@ -169,7 +169,7 @@ class Education(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblEducations'
 
 
@@ -180,7 +180,7 @@ class IdentificationType(models.Model):
     sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblIdentificationTypes'
 
 
@@ -193,9 +193,54 @@ class Relation(models.Model):
         db_column='AltLanguage', max_length=50, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblRelations'
 
+class InsureeAttachment(models.Model):
+    """ Class Attachment :
+    Class for isurees attachments
+    """
+    idAttachment = models.AutoField(
+        primary_key=True, db_column='idAttachment'
+    )
+    folder = models.CharField(db_column='Folder', max_length=250, null=True)
+    filename = models.CharField(db_column='FileName', max_length=250, null=True)
+    title = models.CharField(db_column='Title', max_length=250, null=True)
+    insuree = models.ForeignKey(
+        'Insuree',
+        models.DO_NOTHING,
+        db_column='InsureeID',
+        related_name="attachments"
+    )
+    date = core.fields.DateField(db_column='AttachmentDate',
+        null=True, blank=True
+    )
+    document = models.TextField(blank=False, null=False)
+    mime = models.CharField(db_column='Mime', max_length=250, null=False)
+
+    """ Class Meta :
+    Class Meta to define specific table
+    """
+
+    class Meta:
+        db_table = "tblattachment"
+
+
+class MembershipGroup(models.Model):
+    """ Class membership group :
+    Class for isurees membership
+    """
+    idMembershipgroup = models.AutoField(
+        primary_key=True, db_column='idMembershipGroup'
+    )
+    name = models.CharField(db_column='Name', max_length=250, null=True)
+
+    """ Class Meta :
+    Class Meta to define specific table
+    """
+
+    class Meta:
+        db_table = "tblMembershipGroup"
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
@@ -203,9 +248,11 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 
     family = models.ForeignKey(Family, models.DO_NOTHING, blank=True, null=True,
                                db_column='FamilyID', related_name="members")
-    chf_id = models.CharField(db_column='CHFID', max_length=12, blank=True, null=True)
+    chf_id = models.CharField(db_column='CHFID', max_length=13, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
+    arab_last_name = models.CharField(db_column='ArabLastName', max_length=100, null=True, blank=True)
+    arab_other_names = models.CharField(db_column='ArabOtherNames', max_length=100,  null=True, blank=True)
 
     gender = models.ForeignKey(Gender, models.DO_NOTHING, db_column='Gender', blank=True, null=True,
                                related_name='insurees')
@@ -254,6 +301,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFID', blank=True, null=True,
         related_name='insurees')
+    membershipgroup = models.ForeignKey(
+        MembershipGroup, models.DO_NOTHING, db_column='MembershipGroupID', blank=True, null=True,
+        related_name='insurees')
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
@@ -295,9 +345,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblInsuree'
-
 
 class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
@@ -336,7 +385,7 @@ class InsureePolicy(core_models.VersionedModel):
         return queryset
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblInsureePolicy'
 
 
@@ -373,5 +422,5 @@ class PolicyRenewalDetail(core_models.VersionedModel):
     audit_user_id = models.IntegerField(db_column='AuditCreateUser', null=True, blank=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'tblPolicyRenewalDetails'
