@@ -129,7 +129,7 @@ class InsureePhotoTest(TestCase):
                         dob: "1950-07-12"
                         head: true
                         marital: "M"
-                        
+                        status: "AC"
                         photo:{{
                             uuid: "{self.test_photo_uuid}"
                             officerId: {self.test_user.i_user_id}
