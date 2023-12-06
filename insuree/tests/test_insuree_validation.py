@@ -1,18 +1,21 @@
 from django.test import TestCase
 
+from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number
+
+
+def fail1(x):
+    if x == "fail1":
+        return ["fail1"]
+    else:
+        return []
 
 
 class InsureeValidationTest(TestCase):
     def test_validator(self):
-        def fail1(x):
-            if x == "fail1":
-                return ["fail1"]
-            else:
-                return []
 
         with self.settings(
-                INSUREE_NUMBER_VALIDATOR=fail1,
+                INSUREE_NUMBER_VALIDATOR='insuree.tests.test_insuree_validation.fail1',
                 INSUREE_NUMBER_LENGTH=None,
                 INSUREE_NUMBER_MODULE_ROOT=None):
             self.assertEqual(validate_insuree_number(None), [])
