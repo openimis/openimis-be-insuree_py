@@ -133,7 +133,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
         content = json.loads(response.content)
 
         # This validates the status code and if you get errors
-        self.assertEqual(content['errors'][0]['message'],'User not authorized for this operation')
+        self.assertEqual(content['errors'][0]['message'],_('unauthorized'))
 
 
 
