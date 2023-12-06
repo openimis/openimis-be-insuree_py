@@ -236,9 +236,11 @@ def copy_file(date, insuree_id, original_file):
 
 def load_photo_file(file_dir, file_name):
     photo_path = _photo_dir(file_dir, file_name)
-    with open(photo_path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
-
+    try:
+        with open(photo_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    except FileNotFoundError:
+        logger.error(f"{photo_path} not found")
 
 def validate_insuree_data(data):
     dob = data.get("dob", None)

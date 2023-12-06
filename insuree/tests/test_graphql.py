@@ -1,7 +1,7 @@
 import base64
 import json
 from dataclasses import dataclass
-
+from django.utils.translation import gettext as _
 from core.models import User
 from core.test_helpers import create_test_interactive_user
 from django.conf import settings
@@ -100,7 +100,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
         content = json.loads(response.content)
 
         # This validates the status code and if you get errors
-        self.assertEqual(content['errors'][0]['message'],'User not authorized for this operation')
+        self.assertEqual(content['errors'][0]['message'],_('unauthorized'))
 
 
 
@@ -133,7 +133,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
         content = json.loads(response.content)
 
         # This validates the status code and if you get errors
-        self.assertEqual(content['errors'][0]['message'],'User not authorized for this operation')
+        self.assertEqual(content['errors'][0]['message'],_('unauthorized'))
 
 
 
