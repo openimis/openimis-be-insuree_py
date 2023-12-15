@@ -196,7 +196,7 @@ class Query(graphene.ObjectType):
     def resolve_family_members(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_family_members):
             raise PermissionDenied(_("unauthorized"))
-        family = Family.objects.get(Q(uuid=pper(kwargs.get('family_uuid'))))
+        family = Family.objects.get(Q(uuid=(kwargs.get('family_uuid'))))
         return Insuree.objects.filter(
             Q(family=family),
             *filter_validity(**kwargs)
