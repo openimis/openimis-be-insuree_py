@@ -334,7 +334,9 @@ def on_family_mutation(kwargs, k='uuid'):
     family_uuid = kwargs['data'].get('uuid', None)
     if not family_uuid:
         return []
-    impacted_family = Family.objects.get(Q(uuid__iexact=family_uuid))
+    impacted_family = Family.objects.filter(Q(uuid__iexact=family_uuid)).first()
+    if impacted_family is None:
+        return []
     FamilyMutation.objects.create(
         family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
@@ -358,7 +360,9 @@ def on_insuree_mutation(kwargs, k='uuid'):
     insuree_uuid = kwargs['data'].get('uuid', None)
     if not insuree_uuid:
         return []
-    impacted_insuree = Insuree.objects.get(Q(uuid__iexact=insuree_uuid))
+    impacted_insuree = Insuree.objects.filter(Q(uuid__iexact=insuree_uuid)).first()
+    if impacted_insuree is None:
+        return []
     InsureeMutation.objects.create(
         insuree=impacted_insuree, mutation_id=kwargs['mutation_log_id'])
     return []
