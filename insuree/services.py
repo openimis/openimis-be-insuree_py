@@ -246,7 +246,7 @@ def load_photo_file(file_dir, file_name):
         logger.error(f"{photo_path} not found")
 
 
-def validate_insuree_data(data):
+def validate_insuree_data(insuree):
     if not insuree.dob:
         raise ValidationError(_("insuree.validation.insuree_requires_dob"))
     if not insuree.gender:
