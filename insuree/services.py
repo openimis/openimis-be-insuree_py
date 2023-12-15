@@ -171,7 +171,7 @@ def handle_insuree_photo(user, now, insuree, data):
     data['audit_user_id'] = user.id_for_audit
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
-    if 'uuid' not in data or data['uuid'] == existing_insuree_photo.uuid:
+    if 'uuid' not in data or (existing_insuree_photo and data['uuid'] == existing_insuree_photo.uuid):
         data['uuid'] =  str(uuid.uuid4())
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
