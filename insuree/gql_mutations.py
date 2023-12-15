@@ -199,7 +199,7 @@ class DeleteFamiliesMutation(OpenIMISMutation):
         for family_uuid in data["uuids"]:
             family = Family.objects \
                 .prefetch_related('members') \
-                .filter(uuid__iexact=family_uuid) \
+                .filter(uuid=(family_uuid)) \
                 .first()
             if family is None:
                 errors.append({
@@ -345,7 +345,7 @@ class RemoveInsureesMutation(OpenIMISMutation):
         for insuree_uuid in data["uuids"]:
             insuree = Insuree.objects \
                 .prefetch_related('family') \
-                .filter(uuid__iexact=insuree_uuid) \
+                .filter(uuid=(insuree_uuid)) \
                 .first()
             if insuree is None:
                 errors += {
@@ -386,8 +386,8 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid__iexact=data['uuid'])
-            insuree = Insuree.objects.get(uuid__iexact=data['insuree_uuid'])
+            family = Family.objects.get(uuid=(data['uuid']))
+            insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))
             family.save_history()
             prev_head = family.head_insuree
             if prev_head:
@@ -426,8 +426,8 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
                 not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid__iexact=data['family_uuid'])
-            insuree = Insuree.objects.get(uuid__iexact=data['insuree_uuid'])
+            family = Family.objects.get(uuid=(data['family_uuid']))
+            insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))
             insuree.save_history()
             insuree.family = family
             insuree.save()

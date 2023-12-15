@@ -67,7 +67,7 @@ def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if insuree and str(insuree.uuid).lower() != str(uuid).lower():
+    if insuree and str(insuree.uuid) != str(uuid):
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
@@ -316,7 +316,7 @@ class InsureeService:
             # remove it from now3 to avoid id at creation
             insuree.id = None
         elif insuree.uuid:
-            filters = Q(uuid__iexact = insuree.uuid )
+            filters = Q(uuid = (insuree.uuid) )
         else:
             filters = None   
         existing_insuree = Insuree.objects.filter(filters).prefetch_related(
@@ -436,9 +436,9 @@ class FamilyService:
             # remove it from now3 to avoid id at creation
             family.id = None
         elif family.uuid:
-            filters = Q(uuid__iexact = family.uuid )
+            filters = Q(uuid = (family.uuid) )
         else:
-            filters = None            
+            filters = None   
         existing_family = Family.objects.filter(*filter_validity(),filters).first() if filters else None            
         if existing_family:
             return self._update(existing_family, family)

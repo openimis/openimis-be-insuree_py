@@ -115,13 +115,13 @@ class InsureePhotoTest(TestCase):
         return self.insuree_client.execute(query, context=context)
 
     def __update_photo_mutation(self):
-        self.test_photo_uuid = str(uuid.uuid4()).upper()
+        self.test_photo_uuid = str(uuid.uuid4()).lower()
         return f'''mutation
             {{
                 updateInsuree(input: {{
-                        clientMutationId: "{str(uuid.uuid4()).upper()}"          
+                        clientMutationId: "{str(uuid.uuid4()).lower()}"          
                         clientMutationLabel: "Update insuree - {self.insuree.chf_id}"
-                        uuid: "{str(self.insuree.uuid).upper()}" 
+                        uuid: "{str(self.insuree.uuid).lower()}" 
                         chfId: "{self.insuree.chf_id}"
                         lastName: "{self.insuree.last_name}"
                         otherNames: "{self.insuree.other_names}"
@@ -166,7 +166,7 @@ class InsureePhotoTest(TestCase):
     def __get_insuree_query(self):
         return f'''
 {{
-    insurees(uuid:"{str(self.insuree.uuid).upper()}") {{
+    insurees(uuid:"{str(self.insuree.uuid).lower()}") {{
         pageInfo {{
             hasNextPage,
             hasPreviousPage,
