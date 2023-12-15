@@ -2,7 +2,7 @@ import base64
 import json
 from dataclasses import dataclass
 from django.utils.translation import gettext as _
-from core.models import User
+from core.models import User, filter_validity
 from core.test_helpers import create_test_interactive_user
 from django.conf import settings
 from graphene_django.utils.testing import GraphQLTestCase
@@ -12,7 +12,7 @@ from location.test_helpers import create_test_location, assign_user_districts
 from rest_framework import status
 from insuree.test_helpers import create_test_insuree
 from location.test_helpers import create_test_location, create_test_health_facility, create_test_village
-
+from insuree.models import Family
 
 
 # from openIMIS import schema
@@ -34,6 +34,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
     ca_token = None
     test_village = None
     test_insuree = None
+    test_photo = None
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -46,6 +47,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
         cls.admin_dist_user = create_test_interactive_user(username="testLocationDist")
         assign_user_districts(cls.admin_dist_user, ["R1D1", "R2D1", "R2D2", "R2D1", cls.test_village.parent.parent.code])
         cls.admin_dist_token = get_token(cls.admin_dist_user, DummyContext(user=cls.admin_dist_user))
+        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
 
     def test_query_insuree_number_validity(self):
         response = self.query(
@@ -195,3 +197,133 @@ class InsureeGQLTestCase(GraphQLTestCase):
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
 
+    def test_create_insuree(self):
+      response = self.query(f'''
+    mutation {{
+      createInsuree(
+        input: {{
+          clientMutationId: "ffa465c5-6807-4de0-847e-202b7f42122b"
+          clientMutationLabel: "Create insuree - 12343456234"
+          
+          chfId: "12343456234"
+    lastName: "test"
+    otherNames: "create insuree"
+    genderId: "M"
+    dob: "1951-12-05"
+    head: false
+    marital: "N"
+    currentVillageId: {self.test_village.id}
+    photo:{{
+    officerId: 1
+    date: "2023-12-15"
+    photo: "{self.photo_base64}"
+  }}
+    cardIssued:false
+    status: "AC"
+        }}
+      ) {{
+        clientMutationId
+        internalId
+      }}
+    }}
+    ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_dist_token}"},
+        )
+
+      content = json.loads(response.content)
+
+    # This validates the status code and if you get errors
+      self.assertResponseNoErrors(response)
+      
+      
+      
+    def test_create_family(self):
+      response = self.query(f'''
+    mutation {{
+      createFamily(
+        input: {{
+          clientMutationId: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46470"
+          clientMutationLabel: "Create Family - test create family (445566778899)"
+          headInsuree: {{
+    chfId: "4455667788"
+    lastName: "test"
+    otherNames: "create family"
+    genderId: "M"
+    uuid: "50f8f2c9-7685-4cd5-a778-b1fa78d46470"
+    dob: "1999-12-15"
+    head: true
+    photo:{{
+    officerId: 1
+    date: "2023-12-15"
+    photo: "{self.photo_base64}"
+
+  }}
+    cardIssued:false
+    status: "AC"
+  }}
+    locationId: {self.test_village.id}
+    poverty: false
+    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    jsonExt: "{{}}"
+        }}
+      ) {{
+        clientMutationId
+        internalId
+      }}
+    }}
+      ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_dist_token}"},
+        )
+
+      content = json.loads(response.content)
+
+    # This validates the status code and if you get errors
+      self.assertResponseNoErrors(response)
+      
+      # update
+      response = self.query(f'''
+    mutation {{
+      updateFamily(
+        input: {{
+          clientMutationId: "50f8f2c9-7685-4cd5-a778-b1fa78d46470"
+          clientMutationLabel: "Update Family - test create family (445566778899)"
+          headInsuree: {{
+    chfId: "4455667788"
+    uuid: "50f8f2c9-7685-4cd5-a778-b1fa78d46470"
+    lastName: "test"
+    otherNames: "create family"
+    genderId: "M"
+    dob: "1999-12-15"
+    head: true
+    photo:{{
+    officerId: 1
+    date: "2023-12-15"
+    photo: "{self.photo_base64}"
+
+  }}
+    cardIssued:false
+    status: "AC"
+  }}
+    locationId: {self.test_village.id}
+    poverty: true
+    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    jsonExt: "{{}}"
+        }}
+      ) {{
+        clientMutationId
+        internalId
+      }}
+    }}
+      ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_dist_token}"},
+        )
+
+      content = json.loads(response.content)
+
+    # This validates the status code and if you get errors
+      self.assertResponseNoErrors(response)
+            
+      family = Family.objects.filter(*filter_validity(),uuid= "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475").first()
+      self.assertEqual(family.poverty, True)
+
+      
