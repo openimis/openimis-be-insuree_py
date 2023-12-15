@@ -214,6 +214,7 @@ def _create_dir(file_dir):
     pathlib.Path(path.join(root, file_dir)) \
         .mkdir(parents=True, exist_ok=True)
 
+
 def create_file(date, insuree_id, photo_bin, name ):
     file_dir = path.join(str(date.year), str(date.month),
                          str(date.day), str(insuree_id))
@@ -244,13 +245,15 @@ def load_photo_file(file_dir, file_name):
     except FileNotFoundError:
         logger.error(f"{photo_path} not found")
 
-def validate_insuree_data(insuree):
+
+def validate_insuree_data(data):
     if not insuree.dob:
         raise ValidationError(_("insuree.validation.insuree_requires_dob"))
     if not insuree.gender:
         raise ValidationError(_("insuree.validation.insuree_requires_gender"))
     if not insuree.status:
         raise ValidationError(_("insuree.validation.insuree_requires_status"))
+
 
 
 def validate_worker_data(insuree):
