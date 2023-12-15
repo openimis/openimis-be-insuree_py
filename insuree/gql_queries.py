@@ -191,7 +191,7 @@ class FamilyGQLType(DjangoObjectType):
     class Meta:
         model = Family
         filter_fields = {
-            "uuid": ["exact"],
+            "uuid": ["exact","iexact"],
             "poverty": ["exact", "isnull"],
             "confirmation_no": ["exact", "istartswith", "icontains", "iexact"],
             "confirmation_type": ["exact"],

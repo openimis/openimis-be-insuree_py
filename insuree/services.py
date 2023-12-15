@@ -15,7 +15,7 @@ from insuree.apps import InsureeConfig
 from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
                             InsureeStatusReason)
 from django.core.exceptions import ValidationError
-
+from core.models import filter_validity
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if insuree and str(insuree.uuid).lower() != str(uuid).lower():
+    if insuree and str(insuree.uuid) != str(uuid):
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
@@ -164,32 +164,34 @@ def reset_family_before_update(family):
 
 
 def handle_insuree_photo(user, now, insuree, data):
-    insuree_photo = insuree.photo
-    if not photo_changed(insuree_photo, data):
+    existing_insuree_photo = insuree.photo
+    insuree_photo = None
+    if not photo_changed(existing_insuree_photo, data):
         return None
     data['audit_user_id'] = user.id_for_audit
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
-    if 'uuid' not in data:
+    if 'uuid' not in data or (existing_insuree_photo and data['uuid'] == existing_insuree_photo.uuid):
         data['uuid'] =  str(uuid.uuid4())
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
-            and (insuree_photo is None or insuree_photo.photo != photo_bin):
+            and (existing_insuree_photo is None or existing_insuree_photo.photo != photo_bin):
         (file_dir, file_name) = create_file(now, insuree.id, photo_bin,data['uuid'] )
         data['folder'] = file_dir
         data['filename'] = file_name
+        insuree_photo = InsureePhoto(**data)
 
-    if insuree_photo:
-        insuree_photo.save_history()
+    if existing_insuree_photo and insuree_photo:
+        existing_insuree_photo.save_history()
+        insuree_photo.id = existing_insuree_photo.id
         insuree_photo.date = None
         insuree_photo.officer_id = None
         insuree_photo.folder = None
         insuree_photo.filename = None
         insuree_photo.photo = None
         [setattr(insuree_photo, key, data[key]) for key in data if key != 'id']
-    else:
-        insuree_photo = InsureePhoto.objects.create(**data)
-    insuree_photo.save()
+    if insuree_photo:
+        insuree_photo.save()
     return insuree_photo
 
 
@@ -244,25 +246,24 @@ def load_photo_file(file_dir, file_name):
         logger.error(f"{photo_path} not found")
 
 
-def validate_insuree_data(data):
-    dob = data.get("dob", None)
-    if not dob:
+def validate_insuree_data(insuree):
+    if not insuree.dob:
         raise ValidationError(_("insuree.validation.insuree_requires_dob"))
-    gender = data.get("gender_id", None)
-    if not gender:
+    if not insuree.gender:
         raise ValidationError(_("insuree.validation.insuree_requires_gender"))
+    if not insuree.status:
+        raise ValidationError(_("insuree.validation.insuree_requires_status"))
 
 
-def validate_worker_data(data):
-    other_names = data.get("other_names", None)
-    if not other_names:
+
+def validate_worker_data(insuree):
+    if not insuree.other_names:
         raise ValidationError(_("worker_requires_other_names"))
-    last_name = data.get("last_name", None)
-    if not last_name:
+    if not insuree.last_name:
         raise ValidationError(_("worker_requires_last_name"))
 
 
-def validate_insuree(data, insuree_uuid):
+def validate_insuree(insuree):
     """
     This function checks if the CHF ID is valid for the insuree or worker and
     then performs additional validation based on the type of insuree.
@@ -271,14 +272,14 @@ def validate_insuree(data, insuree_uuid):
         - If InsureeConfig.insuree_as_worker is True, the function performs worker data validation.
         - If InsureeConfig.insuree_as_worker is False, the function performs insuree data validation.
     """
-    errors = validate_insuree_number(data["chf_id"], insuree_uuid)
+    errors = validate_insuree_number(insuree.chf_id, insuree.uuid)
     if errors:
         raise ValidationError("invalid_insuree_number")
 
     if InsureeConfig.insuree_as_worker:
-        validate_worker_data(data)
+        validate_worker_data(insuree)
     else:
-        validate_insuree_data(data)
+        validate_insuree_data(insuree)
 
 
 class InsureeService:
@@ -287,13 +288,12 @@ class InsureeService:
 
     @register_service_signal('insuree_service.create_or_update')
     def create_or_update(self, data):
-        photo = data.pop('photo', None)
+        photo_data = data.pop('photo', None)
         from core import datetime
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
         status = data.get('status', InsureeStatus.ACTIVE)
-
         if status not in [choice[0] for choice in InsureeStatus.choices]:
             raise ValidationError(_("mutation.insuree.wrong_status"))
         if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
@@ -301,38 +301,39 @@ class InsureeService:
                                                             validity_to__isnull=True)
             if status_reason is None or status_reason.status_type != status:
                 raise ValidationError(_("mutation.insuree.wrong_status"))
-
             data['status_reason'] = status_reason
-
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
-        insuree_uuid = data.get('uuid', None)
-        validate_insuree(data, insuree_uuid)
-        errors = validate_insuree_number(data["chf_id"], insuree_uuid)
-        if errors:
-            raise Exception("Invalid insuree number")
-        if insuree_uuid:
-            # create insuree with uuid if not foudn in the database
-            try:
-                insuree = Insuree.objects.prefetch_related(
-                    "photo").get(uuid__iexact=insuree_uuid)
-                insuree.save_history()
-                # reset the non required fields
-                # (each update is 'complete', necessary to be able to set 'null')
-                reset_insuree_before_update(insuree)
-                [setattr(insuree, key, data[key]) for key in data]
-                insuree.save()
-            except:
-                insuree = Insuree.objects.create(**data)
+    
+        insuree = Insuree(**data)
+        return self._create_or_update(insuree, photo_data)
+
+    
+    def _create_or_update(self, insuree, photo_data = None):    
+        validate_insuree(insuree)
+        if insuree.id:
+            filters = Q(id = insuree.id )
+            # remove it from now3 to avoid id at creation
+            insuree.id = None
+        elif insuree.uuid:
+            filters = Q(uuid = (insuree.uuid) )
         else:
-            data['uuid'] = uuid.uuid4()
-            insuree = Insuree.objects.create(**data)
-        photo = handle_insuree_photo(self.user, now, insuree, photo)
-        if photo:
-            insuree.photo = photo
-            insuree.photo_date = photo.date
-            insuree.save()
+            filters = None   
+        existing_insuree = Insuree.objects.filter(filters).prefetch_related(
+                    "photo").first() if filters else None
+        if existing_insuree:
+            existing_insuree.save_history()
+            insuree.id = existing_insuree.id
+        insuree.save()
+        if photo_data:
+            photo = handle_insuree_photo(self.user, insuree.validity_from, insuree, photo_data)
+            if photo:
+                insuree.photo = photo
+                insuree.photo_date = photo.date
+                insuree.save()
         return insuree
+            
+
 
     def remove(self, insuree):
         try:
@@ -414,22 +415,45 @@ class FamilyService:
         self.user = user
 
     def create_or_update(self, data):
+        # this should be in the mutation file
         head_insuree_data = data.pop('head_insuree')
         head_insuree_data["head"] = True
         head_insuree = InsureeService(
             self.user).create_or_update(head_insuree_data)
         data["head_insuree"] = head_insuree
-        family_uuid = data.pop('uuid', None)
-        if family_uuid:
-            family = Family.objects.get(uuid__iexact=family_uuid)
-            family.save_history()
-            # reset the non required fields
-            # (each update is 'complete', necessary to be able to set 'null')
-            reset_family_before_update(family)
-            [setattr(family, key, data[key]) for key in data]
+        from core import datetime
+
+        now = datetime.datetime.now()
+
+        data['audit_user_id'] = self.user.id_for_audit
+        data['validity_from'] = now
+        family = Family(**data)
+        return self._create_or_update(family)
+        
+    def _create_or_update(self, family):
+        if family.id:
+            filters = Q(id = family.id )
+            # remove it from now3 to avoid id at creation
+            family.id = None
+        elif family.uuid:
+            filters = Q(uuid = (family.uuid) )
         else:
-            data.pop('contribution', None)
-            family = Family.objects.create(**data)
+            filters = None   
+        existing_family = Family.objects.filter(*filter_validity(),filters).first() if filters else None            
+        if existing_family:
+            return self._update(existing_family, family)
+        else:
+            return self._create(family)
+        
+    def _create(self, family):
+        family.save()
+        family.head_insuree.family = family
+        family.head_insuree.save()
+        return family
+        
+    def _update(self, existing_family, family):     
+        existing_family.save_history()
+        family.id = existing_family.id
         family.save()
         head_insuree.family = family
         head_insuree.save()
