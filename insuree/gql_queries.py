@@ -156,6 +156,7 @@ class InsureeGQLType(DjangoObjectType):
             "validity_to": ["exact", "lt", "lte", "gt", "gte", "isnull"],
             **prefix_filterset("photo__", PhotoGQLType._meta.filter_fields),
             "photo": ["isnull"],
+            "family": ["isnull"],
             **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
         }
         interfaces = (graphene.relay.Node,)
