@@ -37,7 +37,7 @@ DEFAULT_CFG = {
     "validation_code_validator_function_error": 7,
     "insuree_fsp_mandatory": False,
     "insuree_as_worker": False,
-
+    "is_insuree_photo_required": False,
 }
 
 
@@ -74,6 +74,7 @@ class InsureeConfig(AppConfig):
     insuree_number_modulo_root = None
     insuree_fsp_mandatory = None
     insuree_as_worker = None
+    is_insuree_photo_required = None
 
     def __load_config(self, cfg):
         for field in cfg:

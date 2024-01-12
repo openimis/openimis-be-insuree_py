@@ -296,6 +296,8 @@ class InsureeService:
         status = data.get('status', InsureeStatus.ACTIVE)
         if status not in [choice[0] for choice in InsureeStatus.choices]:
             raise ValidationError(_("mutation.insuree.wrong_status"))
+        if InsureeConfig.is_insuree_photo_required and photo_data is None:
+            raise ValidationError(_("mutation.insuree.no_required_photo"))
         if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
             status_reason = InsureeStatusReason.objects.get(code=data.get('status_reason', None),
                                                             validity_to__isnull=True)
