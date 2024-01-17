@@ -206,9 +206,18 @@ class InsureeService:
         insuree_uuid = data.pop('uuid', None)
         if insuree_uuid:
             insuree = Insuree.objects.prefetch_related("photo").get(uuid=insuree_uuid)
-            if insuree.email != 'newhivuser_XM7dw70J0M3N@gmail.com':
-                pass
-                # raise Exception("Sorry you can't update an insuree that does not have HIV")
+            print("Old Mail ", insuree.email)
+            if 'email' in data:
+                new_email = data.get('email')
+                print("new email ", new_email)
+                # if the patient is HIV, you can't set him as NON HIV
+                if insuree.email == 'newhivuser_XM7dw70J0M3N@gmail.com':
+                    if new_email != 'newhivuser_XM7dw70J0M3N@gmail.com':
+                        raise Exception("Sorry you can't pass an insuree from HIV to Non HIV")
+                else:
+                    # if the patient is NON HIV, you can't set him as HIV
+                    if new_email == 'newhivuser_XM7dw70J0M3N@gmail.com':
+                        raise Exception("Sorry you can't pass an insuree from non HIV to HIV")
             insuree.save_history()
             # reset the non required fields
             # (each update is 'complete', necessary to be able to set 'null')
