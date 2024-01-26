@@ -327,3 +327,86 @@ class InsureeGQLTestCase(GraphQLTestCase):
       self.assertEqual(family.poverty, True)
 
       
+      
+    def test_inquire(self):
+      response = self.query("""
+query GetInsureeInquire($chfId: String) {
+  insurees(chfId: $chfId) {
+    __typename
+    edges {
+      __typename
+      node {
+        __typename
+        chfId
+        lastName
+        otherNames
+        dob
+        gender {
+          __typename
+          gender
+        }
+        photos {
+          __typename
+          folder
+          filename
+          photo
+        }
+        insureePolicies {
+          __typename
+          edges {
+            __typename
+            node {
+              __typename
+              policy {
+                __typename
+                product {
+                  __typename
+                  name
+                  code
+                  ceiling
+                  ceilingIp
+                  ceilingOp
+                  deductible
+                  deductibleIp
+                  deductibleOp
+                  maxNoAntenatal
+                  maxAmountAntenatal
+                  maxNoSurgery
+                  maxAmountSurgery
+                  maxNoConsultation
+                  maxAmountConsultation
+                  maxNoDelivery
+                  maxAmountDelivery
+                  maxNoHospitalization
+                  maxAmountHospitalization
+                  maxMembers
+                  maxNoVisits
+                  maxInstallments
+                  maxCeilingPolicy
+                  maxCeilingPolicyIp
+                  maxCeilingPolicyOp
+                  maxPolicyExtraMember
+                  maxPolicyExtraMemberIp
+                  maxPolicyExtraMemberOp
+                }
+                enrollDate
+                expiryDate
+                status
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+     
+      """,
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.ca_token}"},
+        )
+
+      content = json.loads(response.content)
+
+    # This validates the status code and if you get errors
+      self.assertResponseNoErrors(response)
