@@ -15,7 +15,7 @@ from insuree.apps import InsureeConfig
 from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
                             InsureeStatusReason)
 from django.core.exceptions import ValidationError
-from core.models import filter_validity
+from core.models import filter_validity, resolved_id_reference
 
 logger = logging.getLogger(__name__)
 
@@ -417,12 +417,18 @@ class FamilyService:
         self.user = user
 
     def create_or_update(self, data):
+        data = resolved_id_reference(Family, data)
         # this should be in the mutation file
-        head_insuree_data = data.pop('head_insuree')
-        head_insuree_data["head"] = True
-        head_insuree = InsureeService(
-            self.user).create_or_update(head_insuree_data)
-        data["head_insuree"] = head_insuree
+        if 'head_insuree' in data:
+            head_insuree_data = data.pop('head_insuree')
+        
+            if not head_insuree_data["head"]:
+                head_insuree_data["head"] = True
+            head_insuree = InsureeService(
+                    self.user).create_or_update(head_insuree_data)
+            data["head_insuree"] = head_insuree
+        else:
+            raise Exception(f'no head insuree found')
         from core import datetime
 
         now = datetime.datetime.now()
@@ -457,8 +463,9 @@ class FamilyService:
         existing_family.save_history()
         family.id = existing_family.id
         family.save()
-        head_insuree.family = family
-        head_insuree.save()
+        if family.head_insuree.family != family:
+            family.head_insuree.family = family
+            family.head_insuree.save()
         return family
 
     def set_deleted(self, family, delete_members):
