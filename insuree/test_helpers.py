@@ -4,7 +4,7 @@ from insuree.services import validate_insuree_number
 from location.models import Location
 import random
 import re
-from datetime import datatime
+from datetime import datetime
     
 def create_test_insuree(with_family=True, is_head=False, custom_props=None, family_custom_props=None):
     # insuree has a mandatory reference to family and family has a mandatory reference to insuree
