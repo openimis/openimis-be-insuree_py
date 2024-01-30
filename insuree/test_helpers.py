@@ -112,8 +112,8 @@ def get_from_custom_props( custom_props, elm, default):
     value= custom_props.pop(elm) if custom_props and elm in custom_props else default
 
     regex = re.compile("(19|20)[0-9]{2}-[0-9]{2}-[0-9]{2}")
-    if regex.match(value):
-        value = datatime.strptime(date_valuestring, "%Y-%m-%d")
+    if isinstance(value, str) and regex.match(value):
+        value = datetime.strptime(value, "%Y-%m-%d")
     return value
     
 
