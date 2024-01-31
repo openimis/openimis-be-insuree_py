@@ -457,8 +457,9 @@ class FamilyService:
         existing_family.save_history()
         family.id = existing_family.id
         family.save()
-        head_insuree.family = family
-        head_insuree.save()
+        if not family.head_insuree.family == family:
+            family.head_insuree.family = family
+            family.head_insuree.save()
         return family
 
     def set_deleted(self, family, delete_members):
