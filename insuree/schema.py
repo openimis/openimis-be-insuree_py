@@ -1,6 +1,7 @@
 import graphene
 
 from claim.apps import ClaimConfig
+from core.gql.export_mixin import ExportableQueryMixin
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -58,7 +59,10 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
 
-class Query(graphene.ObjectType):
+class Query(ExportableQueryMixin, graphene.ObjectType):
+    exportable_fields = ['insurees']
+
+
     can_add_insuree = graphene.Field(
         graphene.List(graphene.String),
         family_id=graphene.Int(required=True),
