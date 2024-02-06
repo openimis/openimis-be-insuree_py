@@ -418,11 +418,13 @@ class FamilyService:
 
     def create_or_update(self, data):
         # this should be in the mutation file
-        head_insuree_data = data.pop('head_insuree')
-        head_insuree_data["head"] = True
-        head_insuree = InsureeService(
-            self.user).create_or_update(head_insuree_data)
-        data["head_insuree"] = head_insuree
+        head_insuree_data = data.pop('head_insuree', None)
+        
+        if head_insuree_data:
+            head_insuree_data["head"] = True
+            head_insuree = InsureeService(
+                self.user).create_or_update(head_insuree_data)
+            data["head_insuree_id"] = head_insuree.id
         from core import datetime
 
         now = datetime.datetime.now()
