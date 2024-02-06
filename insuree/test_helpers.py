@@ -111,9 +111,12 @@ def get_from_custom_props( custom_props, elm, default):
 
     value= custom_props.pop(elm) if custom_props and elm in custom_props else default
 
-    regex = re.compile("(19|20)[0-9]{2}-[0-9]{2}-[0-9]{2}")
+    regex = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+    regex_dt = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$")
     if isinstance(value, str) and regex.match(value):
         value = datetime.strptime(value, "%Y-%m-%d")
+    elif isinstance(value, str) and regex_dt.match(value):
+        value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
     return value
     
 
