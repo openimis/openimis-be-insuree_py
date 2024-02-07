@@ -356,8 +356,8 @@ class InsureePolicy(core_models.VersionedModel):
         if settings.ROW_SECURITY and not user.is_imis_admin:
                         # Limit the list by the logged in user location mapping
             return queryset.filter(                
-                Q(LocationManager().build_user_location_filter_query(user._u, prefix='current_village__parent__parent', loc_types=['D']) |
-                    LocationManager().build_user_location_filter_query(user._u, prefix='family__location__parent__parent', loc_types=['D']))
+                Q(LocationManager().build_user_location_filter_query(user._u, prefix='insuree__current_village__parent__parent', loc_types=['D']) |
+                    LocationManager().build_user_location_filter_query(user._u, prefix='insuree__family__location__parent__parent', loc_types=['D']))
             )
  
         return queryset

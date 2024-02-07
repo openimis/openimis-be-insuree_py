@@ -1,6 +1,7 @@
 import graphene
 
 from claim.apps import ClaimConfig
+from core.gql.export_mixin import ExportableQueryMixin
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -58,7 +59,10 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
 
-class Query(graphene.ObjectType):
+class Query(ExportableQueryMixin, graphene.ObjectType):
+    exportable_fields = ['insurees']
+
+
     can_add_insuree = graphene.Field(
         graphene.List(graphene.String),
         family_id=graphene.Int(required=True),
@@ -311,10 +315,10 @@ class Query(graphene.ObjectType):
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
                 f = "parent__" + f
-            current_village = "current_village__" + f
-            family_location = "family__location__" + f
-            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
-                        (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+            current_village = "insuree__current_village__" + f
+            family_location = "insuree__family__location__" + f
+            filters += [(Q(insuree__current_village__isnull=False) & Q(**{current_village: parent_location})) |
+                        (Q(insuree__current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(InsureePolicy.objects.filter(*filters).all(), info)
 
 
