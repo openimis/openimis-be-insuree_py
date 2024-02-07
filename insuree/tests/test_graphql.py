@@ -211,7 +211,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
     genderId: "M"
     dob: "1951-12-05"
     head: false
-    marital: "N"
+    marital: "M"
     currentVillageId: {self.test_village.id}
     photo:{{
     officerId: 1

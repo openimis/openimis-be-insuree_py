@@ -417,17 +417,14 @@ class FamilyService:
         self.user = user
 
     def create_or_update(self, data):
-        data = resolved_id_reference(Family, data)
-        # this should be in the mutation file
-        if 'head_insuree' in data:
-            head_insuree_data = data.pop('head_insuree')
+        head_insuree_data = data.pop('head_insuree', None)
         
-            if not head_insuree_data["head"]:
-                head_insuree_data["head"] = True
+        if head_insuree_data:
+            head_insuree_data["head"] = True
             head_insuree = InsureeService(
-                    self.user).create_or_update(head_insuree_data)
-            data["head_insuree"] = head_insuree
-        else:
+                self.user).create_or_update(head_insuree_data)
+            data["head_insuree_id"] = head_insuree.id
+        elif 'head_insuree_id' not in data:
             raise Exception(f'no head insuree found')
         from core import datetime
 
