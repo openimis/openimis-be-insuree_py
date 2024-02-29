@@ -306,20 +306,18 @@ class InsureeService:
             data['status_reason'] = status_reason
             if "uuid" in data:
                 insuree = Insuree.objects.get(uuid=data["uuid"])
-                self.disable_policies_of_insuree(insuree)
+                self.disable_policies_of_insuree(insuree=insuree, status_date=data['status_date'])
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
 
         insuree = Insuree(**data)
         return self._create_or_update(insuree, photo_data)
 
-    def disable_policies_of_insuree(self, insuree):
-        from core import datetime
+    def disable_policies_of_insuree(self, insuree, status_date):
         policies_to_cancel = InsureePolicy.objects.filter(insuree=insuree.id, validity_to__isnull=True).all()
-        current_date = datetime.datetime.now()
         for policy in policies_to_cancel:
-            policy.expiry_date = current_date
-            policy.validity_to = current_date
+            policy.expiry_date = status_date
+            policy.validity_to = status_date
             policy.save()
 
     def _create_or_update(self, insuree, photo_data=None):
