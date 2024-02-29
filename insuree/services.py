@@ -307,6 +307,9 @@ class InsureeService:
             if "uuid" in data:
                 insuree = Insuree.objects.get(uuid=data["uuid"])
                 self.disable_policies_of_insuree(insuree=insuree, status_date=data['status_date'])
+        elif "uuid" in data:
+            insuree = Insuree.objects.get(uuid=data["uuid"])
+            self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
 
@@ -317,8 +320,21 @@ class InsureeService:
         policies_to_cancel = InsureePolicy.objects.filter(insuree=insuree.id, validity_to__isnull=True).all()
         for policy in policies_to_cancel:
             policy.expiry_date = status_date
-            policy.validity_to = status_date
             policy.save()
+
+    def activate_policies_of_insuree(self, insuree, audit_user_id):
+        from core import datetime
+        now = datetime.date.today()
+        from policy.models import Policy
+        policies_to_activate = Policy.objects.filter(family=insuree.family, validity_to__isnull=True)
+        for policy in policies_to_activate:
+            if policy.expiry_date >= now:
+                current_policy_dict = {"effective_date": now, "expiry_date": policy.expiry_date,
+                                       "audit_user_id": audit_user_id, "offline": policy.offline,
+                                       "start_date": policy.start_date, "policy": policy, "insuree": insuree,
+                                       "enrollment_date": policy.enroll_date}
+                current_policy = InsureePolicy(**current_policy_dict)
+                current_policy.save()
 
     def _create_or_update(self, insuree, photo_data=None):
         validate_insuree(insuree)
@@ -343,8 +359,6 @@ class InsureeService:
                 insuree.photo_date = photo.date
                 insuree.save()
         return insuree
-
-
 
     def remove(self, insuree):
         try:
