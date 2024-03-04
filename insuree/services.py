@@ -67,7 +67,7 @@ def validate_insuree_number(insuree_number, uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if insuree and str(insuree.uuid.lower()) != str(uuid.lower()):
+    if uuid and insuree and str(insuree.uuid.lower()) != str(uuid.lower()):
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
@@ -308,7 +308,9 @@ class InsureeService:
                 insuree = Insuree.objects.get(uuid=data["uuid"])
                 self.disable_policies_of_insuree(insuree=insuree, status_date=data['status_date'])
         elif "uuid" in data:
-            insuree = Insuree.objects.get(uuid=data["uuid"])
+            insuree = Insuree.objects.filter(uuid=data["uuid"]).first()
+            if not insuree:
+                insuree = Insuree.objects.create(**data)
             self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
@@ -447,6 +449,7 @@ class FamilyService:
             head_insuree = InsureeService(
                 self.user).create_or_update(head_insuree_data)
             data["head_insuree_id"] = head_insuree.id
+        
         elif 'head_insuree_id' not in data:
             raise Exception(f'no head insuree found')
         from core import datetime
