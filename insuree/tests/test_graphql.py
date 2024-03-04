@@ -323,7 +323,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
             
-      family = Family.objects.filter(*filter_validity(),uuid= "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475").first()
+      family = Family.objects.filter(*filter_validity(),uuid= "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475".upper()).first()
       self.assertEqual(family.poverty, True)
 
       
@@ -410,3 +410,23 @@ query GetInsureeInquire($chfId: String) {
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
+      
+      
+    def test_validate_number_validditiy_with_variables(self):
+        response = self.query(
+            '''
+    query ($insuranceNumber: String!) {
+      insureeNumberValidity(insureeNumber: $insuranceNumber) {
+        isValid
+        errorCode
+        errorMessage
+      }
+    }
+            ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
+            variables={"insuranceNumber": "070707070"}        )
+
+        content = json.loads(response.content)
+
+        # This validates the status code and if you get errors
+        self.assertResponseNoErrors(response)
