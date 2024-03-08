@@ -1,9 +1,11 @@
 import base64
 import json
+import time
+import uuid
 from dataclasses import dataclass
 from django.utils.translation import gettext as _
 from core.models import User, filter_validity
-from core.test_helpers import create_test_interactive_user
+from core.test_helpers import create_test_interactive_user, AssertMutation
 from django.conf import settings
 from graphene_django.utils.testing import GraphQLTestCase
 from graphql_jwt.shortcuts import get_token
@@ -22,6 +24,7 @@ from insuree.models import Family
 class DummyContext:
     """ Just because we need a context to generate. """
     user: User
+
 
 
 class InsureeGQLTestCase(GraphQLTestCase):
@@ -198,11 +201,12 @@ class InsureeGQLTestCase(GraphQLTestCase):
       self.assertResponseNoErrors(response)
 
     def test_create_insuree(self):
+      muuid = 'ffa465c5-6807-4de0-847e-202b7f42122b'
       response = self.query(f'''
     mutation {{
       createInsuree(
         input: {{
-          clientMutationId: "ffa465c5-6807-4de0-847e-202b7f42122b"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Create insuree - 12343456234"
           
           chfId: "12343456234"
@@ -234,15 +238,17 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      
+      AssertMutation(self,muuid, self.admin_dist_token )
       
       
     def test_create_family(self):
+      muuid='50f8f2c9-7685-4cd5-a7d8-b1fa78d46470'
+      fuuid='50f8f2c9-7685-4cd5-a770-b1fa34d46470'
       response = self.query(f'''
     mutation {{
       createFamily(
         input: {{
-          clientMutationId: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46470"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Create Family - test create family (445566778899)"
           headInsuree: {{
     chfId: "4455667788"
@@ -263,7 +269,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
   }}
     locationId: {self.test_village.id}
     poverty: false
-    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    uuid: "{fuuid}"
     jsonExt: "{{}}"
         }}
       ) {{
@@ -279,13 +285,14 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      
+      AssertMutation(self,muuid, self.admin_dist_token )
+      mmuid = '50f8f2c9-7685-4cd5-a778-b1fa78d46471'
       # update
       response = self.query(f'''
     mutation {{
       updateFamily(
         input: {{
-          clientMutationId: "50f8f2c9-7685-4cd5-a778-b1fa78d46470"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Update Family - test create family (445566778899)"
           headInsuree: {{
     chfId: "4455667788"
@@ -306,7 +313,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
   }}
     locationId: {self.test_village.id}
     poverty: true
-    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    uuid: "{fuuid}"
     jsonExt: "{{}}"
         }}
       ) {{
@@ -322,8 +329,8 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-            
-      family = Family.objects.filter(*filter_validity(),uuid= "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475".upper()).first()
+      content= AssertMutation(self,muuid, self.admin_dist_token )
+      family = Family.objects.filter(*filter_validity(),uuid= uuid.UUID(fuuid)).first()
       self.assertEqual(family.poverty, True)
 
       

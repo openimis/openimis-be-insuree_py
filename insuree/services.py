@@ -63,11 +63,11 @@ def custom_insuree_number_validation(insuree_number):
                  "message": _("validator_function_not_found")}]
 
 
-def validate_insuree_number(insuree_number, uuid=None):
+def validate_insuree_number(insuree_number, insuree_uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if uuid and insuree and str(insuree.uuid.lower()) != str(uuid.lower()):
+    if insuree_uuid and insuree and uuid.UUID(insuree.uuid) != uuid.UUID(insuree_uuid):
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 

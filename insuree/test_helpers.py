@@ -43,7 +43,7 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
 
         
         insuree = Insuree.objects.create(
-                last_name = get_from_custom_props(custom_props, 'last_name',"last" ),
+                last_name = get_from_custom_props(custom_props, 'last_name',"Test Last" ),
                 other_names= get_from_custom_props(custom_props, 'other_names', "First Second"),
                 family= family,
                 gender= get_from_custom_props(custom_props, 'gender', Gender.objects.get(code='M')),
