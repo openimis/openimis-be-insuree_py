@@ -1,5 +1,9 @@
 from django.conf import settings
-from django.db.models import Q, F
+from django.db import connection
+
+from tools.utils import dictfetchall
+import logging
+logger = logging.getLogger(__name__)
 
 # If manually pasting from reportbro and you have test data, search and replace \" with \\"
 template = """
@@ -13,7 +17,10 @@ template = """
       "y": 20,
       "width": 575,
       "height": 40,
-      "content": "Families and Insurees",
+      "content": "Insurees without photos",
+      "richText": false,
+      "richTextContent": null,
+      "richTextHtml": "",
       "eval": false,
       "styleId": "",
       "bold": true,
@@ -70,7 +77,8 @@ template = """
       "spreadsheet_hide": false,
       "spreadsheet_column": "",
       "spreadsheet_colspan": "",
-      "spreadsheet_addEmptyRow": false
+      "spreadsheet_addEmptyRow": false,
+      "spreadsheet_textWrap": false
     },
     {
       "elementType": "line",
@@ -91,7 +99,10 @@ template = """
       "y": 10,
       "width": 575,
       "height": 20,
-      "content": "List of families and insurees",
+      "content": "List of insurees without photos",
+      "richText": false,
+      "richTextContent": null,
+      "richTextHtml": "",
       "eval": false,
       "styleId": "",
       "bold": true,
@@ -148,7 +159,8 @@ template = """
       "spreadsheet_hide": false,
       "spreadsheet_column": "",
       "spreadsheet_colspan": "",
-      "spreadsheet_addEmptyRow": false
+      "spreadsheet_addEmptyRow": false,
+      "spreadsheet_textWrap": false
     },
     {
       "elementType": "table",
@@ -160,7 +172,7 @@ template = """
       "dataSource": "${data}",
       "columns": 4,
       "header": true,
-      "contentRows": 4,
+      "contentRows": 5,
       "footer": false,
       "border": "grid",
       "borderColor": "#000000",
@@ -219,7 +231,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
+            "spreadsheet_textWrap": false,
             "printIf": "",
+            "growWeight": 0,
             "borderWidth": 1
           },
           {
@@ -264,14 +278,16 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
+            "spreadsheet_textWrap": false,
             "printIf": "",
+            "growWeight": 0,
             "borderWidth": 1
           },
           {
             "elementType": "table_text",
             "id": 206,
             "width": 168,
-            "content": "Enroll Date",
+            "content": "Gender",
             "eval": false,
             "colspan": "",
             "styleId": "33",
@@ -309,14 +325,16 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
+            "spreadsheet_textWrap": false,
             "printIf": "",
+            "growWeight": 0,
             "borderWidth": 1
           },
           {
             "elementType": "table_text",
             "id": 239,
             "width": 71,
-            "content": "Status",
+            "content": "Is Head",
             "eval": false,
             "colspan": "",
             "styleId": "33",
@@ -354,7 +372,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
+            "spreadsheet_textWrap": false,
             "printIf": "",
+            "growWeight": 0,
             "borderWidth": 1
           }
         ]
@@ -369,12 +389,14 @@ template = """
           "groupExpression": "${district}",
           "printIf": "",
           "alwaysPrintOnSamePage": true,
+          "pageBreak": false,
+          "repeatGroupHeader": false,
           "columnData": [
             {
               "elementType": "table_text",
               "id": 258,
               "width": 160,
-              "content": "${district}",
+              "content": "${district_name}",
               "eval": false,
               "colspan": "4",
               "styleId": "33",
@@ -412,7 +434,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -456,7 +480,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -500,7 +526,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -544,7 +572,207 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
+            }
+          ]
+        },
+        {
+          "elementType": "none",
+          "id": 266,
+          "height": 20,
+          "backgroundColor": "",
+          "alternateBackgroundColor": "",
+          "groupExpression": "${officer_code}",
+          "printIf": "",
+          "alwaysPrintOnSamePage": true,
+          "pageBreak": false,
+          "repeatGroupHeader": false,
+          "columnData": [
+            {
+              "elementType": "table_text",
+              "id": 267,
+              "width": 160,
+              "content": "('  ' + ${officer_last_name} + ' ' + ${officer_other_names} + ' (' + ${officer_code} + ')') if officer_code else '  No officer'",
+              "eval": true,
+              "colspan": "4",
+              "styleId": "",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false,
+              "horizontalAlignment": "left",
+              "verticalAlignment": "top",
+              "textColor": "#000000",
+              "backgroundColor": "",
+              "font": "helvetica",
+              "fontSize": 12,
+              "lineSpacing": 1,
+              "paddingLeft": 2,
+              "paddingTop": 2,
+              "paddingRight": 2,
+              "paddingBottom": 2,
+              "pattern": "",
+              "link": "",
+              "cs_condition": "",
+              "cs_styleId": "",
+              "cs_bold": false,
+              "cs_italic": false,
+              "cs_underline": false,
+              "cs_strikethrough": false,
+              "cs_horizontalAlignment": "left",
+              "cs_verticalAlignment": "top",
+              "cs_textColor": "#000000",
+              "cs_backgroundColor": "",
+              "cs_font": "helvetica",
+              "cs_fontSize": 12,
+              "cs_lineSpacing": 1,
+              "cs_paddingLeft": 2,
+              "cs_paddingTop": 2,
+              "cs_paddingRight": 2,
+              "cs_paddingBottom": 2,
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
+            },
+            {
+              "elementType": "table_text",
+              "id": 268,
+              "width": 175,
+              "content": "",
+              "eval": false,
+              "colspan": "",
+              "styleId": "",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false,
+              "horizontalAlignment": "left",
+              "verticalAlignment": "top",
+              "textColor": "#000000",
+              "backgroundColor": "",
+              "font": "helvetica",
+              "fontSize": 12,
+              "lineSpacing": 1,
+              "paddingLeft": 2,
+              "paddingTop": 2,
+              "paddingRight": 2,
+              "paddingBottom": 2,
+              "pattern": "",
+              "link": "",
+              "cs_condition": "",
+              "cs_styleId": "",
+              "cs_bold": false,
+              "cs_italic": false,
+              "cs_underline": false,
+              "cs_strikethrough": false,
+              "cs_horizontalAlignment": "left",
+              "cs_verticalAlignment": "top",
+              "cs_textColor": "#000000",
+              "cs_backgroundColor": "",
+              "cs_font": "helvetica",
+              "cs_fontSize": 12,
+              "cs_lineSpacing": 1,
+              "cs_paddingLeft": 2,
+              "cs_paddingTop": 2,
+              "cs_paddingRight": 2,
+              "cs_paddingBottom": 2,
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
+            },
+            {
+              "elementType": "table_text",
+              "id": 269,
+              "width": 168,
+              "content": "",
+              "eval": false,
+              "colspan": "",
+              "styleId": "",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false,
+              "horizontalAlignment": "left",
+              "verticalAlignment": "top",
+              "textColor": "#000000",
+              "backgroundColor": "",
+              "font": "helvetica",
+              "fontSize": 12,
+              "lineSpacing": 1,
+              "paddingLeft": 2,
+              "paddingTop": 2,
+              "paddingRight": 2,
+              "paddingBottom": 2,
+              "pattern": "",
+              "link": "",
+              "cs_condition": "",
+              "cs_styleId": "",
+              "cs_bold": false,
+              "cs_italic": false,
+              "cs_underline": false,
+              "cs_strikethrough": false,
+              "cs_horizontalAlignment": "left",
+              "cs_verticalAlignment": "top",
+              "cs_textColor": "#000000",
+              "cs_backgroundColor": "",
+              "cs_font": "helvetica",
+              "cs_fontSize": 12,
+              "cs_lineSpacing": 1,
+              "cs_paddingLeft": 2,
+              "cs_paddingTop": 2,
+              "cs_paddingRight": 2,
+              "cs_paddingBottom": 2,
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
+            },
+            {
+              "elementType": "table_text",
+              "id": 270,
+              "width": 71,
+              "content": "",
+              "eval": false,
+              "colspan": "",
+              "styleId": "",
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "strikethrough": false,
+              "horizontalAlignment": "left",
+              "verticalAlignment": "top",
+              "textColor": "#000000",
+              "backgroundColor": "",
+              "font": "helvetica",
+              "fontSize": 12,
+              "lineSpacing": 1,
+              "paddingLeft": 2,
+              "paddingTop": 2,
+              "paddingRight": 2,
+              "paddingBottom": 2,
+              "pattern": "",
+              "link": "",
+              "cs_condition": "",
+              "cs_styleId": "",
+              "cs_bold": false,
+              "cs_italic": false,
+              "cs_underline": false,
+              "cs_strikethrough": false,
+              "cs_horizontalAlignment": "left",
+              "cs_verticalAlignment": "top",
+              "cs_textColor": "#000000",
+              "cs_backgroundColor": "",
+              "cs_font": "helvetica",
+              "cs_fontSize": 12,
+              "cs_lineSpacing": 1,
+              "cs_paddingLeft": 2,
+              "cs_paddingTop": 2,
+              "cs_paddingRight": 2,
+              "cs_paddingBottom": 2,
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             }
           ]
         },
@@ -557,12 +785,14 @@ template = """
           "groupExpression": "${ward}",
           "printIf": "",
           "alwaysPrintOnSamePage": true,
+          "pageBreak": false,
+          "repeatGroupHeader": false,
           "columnData": [
             {
               "elementType": "table_text",
               "id": 253,
               "width": 160,
-              "content": "   ${ward}",
+              "content": "   ${ward_name}",
               "eval": false,
               "colspan": "4",
               "styleId": "33",
@@ -600,7 +830,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -644,7 +876,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -688,7 +922,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -732,7 +968,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             }
           ]
         },
@@ -745,12 +983,14 @@ template = """
           "groupExpression": "${village}",
           "printIf": "",
           "alwaysPrintOnSamePage": true,
+          "pageBreak": false,
+          "repeatGroupHeader": false,
           "columnData": [
             {
               "elementType": "table_text",
               "id": 246,
               "width": 160,
-              "content": "      ${village}",
+              "content": "      ${village_name}",
               "eval": false,
               "colspan": "4",
               "styleId": "33",
@@ -788,7 +1028,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -832,7 +1074,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -876,7 +1120,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -920,7 +1166,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             }
           ]
         },
@@ -933,6 +1181,8 @@ template = """
           "groupExpression": "",
           "printIf": "",
           "alwaysPrintOnSamePage": false,
+          "pageBreak": false,
+          "repeatGroupHeader": false,
           "columnData": [
             {
               "elementType": "table_text",
@@ -976,7 +1226,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
@@ -1020,13 +1272,15 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
               "id": 209,
               "width": 168,
-              "content": "${enroll_date}",
+              "content": "${gender}",
               "eval": false,
               "colspan": "",
               "styleId": "",
@@ -1064,13 +1318,15 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             },
             {
               "elementType": "table_text",
               "id": 240,
               "width": 71,
-              "content": "${status}",
+              "content": "${is_head}",
               "eval": false,
               "colspan": "",
               "styleId": "",
@@ -1108,7 +1364,9 @@ template = """
               "cs_paddingTop": 2,
               "cs_paddingRight": 2,
               "cs_paddingBottom": 2,
-              "borderWidth": 1
+              "spreadsheet_textWrap": false,
+              "borderWidth": 1,
+              "growWeight": 0
             }
           ]
         }
@@ -1161,7 +1419,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
-            "borderWidth": 1
+            "spreadsheet_textWrap": false,
+            "borderWidth": 1,
+            "growWeight": 0
           },
           {
             "elementType": "table_text",
@@ -1205,7 +1465,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
-            "borderWidth": 1
+            "spreadsheet_textWrap": false,
+            "borderWidth": 1,
+            "growWeight": 0
           },
           {
             "elementType": "table_text",
@@ -1249,7 +1511,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
-            "borderWidth": 1
+            "spreadsheet_textWrap": false,
+            "borderWidth": 1,
+            "growWeight": 0
           },
           {
             "elementType": "table_text",
@@ -1293,7 +1557,9 @@ template = """
             "cs_paddingTop": 2,
             "cs_paddingRight": 2,
             "cs_paddingBottom": 2,
-            "borderWidth": 1
+            "spreadsheet_textWrap": false,
+            "borderWidth": 1,
+            "growWeight": 0
           }
         ]
       }
@@ -1307,6 +1573,9 @@ template = """
       "width": 255,
       "height": 30,
       "content": "Page ${page_number} / ${page_count}",
+      "richText": false,
+      "richTextContent": null,
+      "richTextHtml": "",
       "eval": false,
       "styleId": "",
       "bold": false,
@@ -1363,7 +1632,8 @@ template = """
       "spreadsheet_hide": false,
       "spreadsheet_column": "",
       "spreadsheet_colspan": "",
-      "spreadsheet_addEmptyRow": false
+      "spreadsheet_addEmptyRow": false,
+      "spreadsheet_textWrap": false
     },
     {
       "elementType": "text",
@@ -1374,6 +1644,9 @@ template = """
       "width": 290,
       "height": 30,
       "content": "Created on ${current_date}",
+      "richText": false,
+      "richTextContent": null,
+      "richTextHtml": "",
       "eval": false,
       "styleId": "",
       "bold": false,
@@ -1430,7 +1703,8 @@ template = """
       "spreadsheet_hide": false,
       "spreadsheet_column": "",
       "spreadsheet_colspan": "",
-      "spreadsheet_addEmptyRow": false
+      "spreadsheet_addEmptyRow": false,
+      "spreadsheet_textWrap": false
     }
   ],
   "parameters": [
@@ -1480,7 +1754,7 @@ template = """
       "pattern": "",
       "expression": "",
       "showOnlyNameType": false,
-      "testData": "[{\\"chf_id\\":\\"1234567\\",\\"other_names\\":\\"oth\\",\\"last_name\\":\\"last\\",\\"enroll_date\\":\\"2022-01-01\\",\\"status\\":\\"READY\\",\\"village\\":\\"foo\\",\\"ward\\":\\"bar\\",\\"district\\":\\"klet\\"}]",
+      "testData": "",
       "children": [
         {
           "id": 234,
@@ -1532,19 +1806,7 @@ template = """
         },
         {
           "id": 237,
-          "name": "enroll_date",
-          "type": "date",
-          "arrayItemType": "string",
-          "eval": false,
-          "nullable": true,
-          "pattern": "",
-          "expression": "",
-          "showOnlyNameType": false,
-          "testData": ""
-        },
-        {
-          "id": 242,
-          "name": "status",
+          "name": "gender",
           "type": "string",
           "arrayItemType": "string",
           "eval": false,
@@ -1555,8 +1817,20 @@ template = """
           "testData": ""
         },
         {
+          "id": 242,
+          "name": "is_head",
+          "type": "boolean",
+          "arrayItemType": "string",
+          "eval": false,
+          "nullable": true,
+          "pattern": "",
+          "expression": "",
+          "showOnlyNameType": false,
+          "testData": ""
+        },
+        {
           "id": 244,
-          "name": "village",
+          "name": "village_name",
           "type": "string",
           "arrayItemType": "string",
           "eval": false,
@@ -1568,7 +1842,7 @@ template = """
         },
         {
           "id": 250,
-          "name": "ward",
+          "name": "ward_name",
           "type": "string",
           "arrayItemType": "string",
           "eval": false,
@@ -1580,7 +1854,43 @@ template = """
         },
         {
           "id": 251,
-          "name": "district",
+          "name": "district_name",
+          "type": "string",
+          "arrayItemType": "string",
+          "eval": false,
+          "nullable": true,
+          "pattern": "",
+          "expression": "",
+          "showOnlyNameType": false,
+          "testData": ""
+        },
+        {
+          "id": 263,
+          "name": "officer_last_name",
+          "type": "string",
+          "arrayItemType": "string",
+          "eval": false,
+          "nullable": true,
+          "pattern": "",
+          "expression": "",
+          "showOnlyNameType": false,
+          "testData": ""
+        },
+        {
+          "id": 264,
+          "name": "officer_other_names",
+          "type": "string",
+          "arrayItemType": "string",
+          "eval": false,
+          "nullable": true,
+          "pattern": "",
+          "expression": "",
+          "showOnlyNameType": false,
+          "testData": ""
+        },
+        {
+          "id": 265,
+          "name": "officer_code",
           "type": "string",
           "arrayItemType": "string",
           "eval": false,
@@ -1698,33 +2008,62 @@ template = """
 """
 
 
-def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
-    from ..models import Insuree
-    from core import datetimedelta
+# The CTE for recursive location isn't readily available in Django, leaving as raw SQL
+missing_photo_sql = f"""
+WITH {"" if settings.MSSQL else "RECURSIVE"} locations AS (SELECT "LocationId", "ParentLocationId"
+                   FROM "tblLocations"
+                   WHERE "ValidityTo" IS NULL
+                     AND ("LocationId" = %(location_id)s OR
+                          CASE WHEN %(location_id)s IS NULL THEN coalesce("ParentLocationId", 0) ELSE 0 END =
+                          coalesce(%(location_id)s, 0))
+                   UNION ALL
+                   SELECT l."LocationId", l."ParentLocationId"
+                   FROM "tblLocations" l
+                            INNER JOIN locations ON locations."LocationId" = l."ParentLocationId"
+                   WHERE l."ValidityTo" IS NULL)
+SELECT i."CHFID" as chf_id, i."LastName" as last_name, i."OtherNames" as other_names, i."Gender" as gender, 
+       i."IsHead" as is_head, d."DistrictName" as district_name, w."WardName" as ward_name,v."VillageName" as village_name,
+       o."Code" as officer_code, o."LastName" as officer_last_name, o."OtherNames" as officer_other_names,
+       {
+           "IIF(coalesce(CAST("'"'"WorksTo"'"'" AS DATE), DATEADD(DAY, 1, GETDATE())) <= CAST(GETDATE() AS DATE), 'N', 'A') OfficerStatus"
+           if settings.MSSQL else
+           "CASE WHEN COALESCE(CAST("'"'"WorksTo"'"'" AS DATE), CURRENT_DATE + INTERVAL '1 day') <= CAST(CURRENT_DATE AS DATE) THEN 'N' ELSE 'A' END AS OfficerStatus"
+       }
+FROM "tblFamilies" f
+         INNER JOIN locations ON locations."LocationId" = f."LocationId"
+         INNER JOIN "tblInsuree" i ON f."FamilyID" = i."FamilyID"
+         LEFT OUTER JOIN "tblPhotos" ph ON i."InsureeID" = ph."InsureeID"
+         LEFT OUTER JOIN "tblPolicy" p ON f."FamilyID" = p."FamilyID"
+         LEFT OUTER JOIN "tblOfficer" o ON p."OfficerID" = o."OfficerID"
+         INNER JOIN "tblVillages" v ON v."VillageId" = f."LocationId"
+         INNER JOIN "tblWards" w ON w."WardId" = v."WardId"
+         INNER JOIN "tblDistricts" d ON d."DistrictId" = w."DistrictId"
+         INNER JOIN "tblRegions" r ON r."RegionId" = d."Region"
+WHERE f."ValidityTo" Is NULL And i."ValidityTo" Is NULL And p."ValidityTo" Is NULL And ph."ValidityTo" Is NULL
+  And d."ValidityTo" Is NULL And w."ValidityTo" Is NULL And v."ValidityTo" Is NULL AND r."ValidityTo" IS NULL
+  AND ({"LEN" if settings.MSSQL else "length"}(RTRIM(LTRIM(ph."PhotoFileName"))) = 0
+          OR ph."PhotoFileName" IS NULL)
+  AND (p."OfficerID" = %(officer_id)s OR %(officer_id)s = 0)
+GROUP BY i."CHFID", i."LastName", i."OtherNames", i."Gender", i."IsHead", d."DistrictName", w."WardName",
+         v."VillageName", o."Code", o."LastName", o."OtherNames", o."WorksTo"
+ORDER BY d."DistrictName", o."Code", w."WardName", v."VillageName"
+"""
 
-    filters = Q(legacy_id__isnull=True) & Q(family__legacy_id__isnull=True)
-    # TODO verify that we should use the validity_from and not the enrolment_date
-    # TODO verify the day+1 approach
-    if date_from:
-        filters &= Q(validity_from__gte=date_from)
-    if date_to:
-        filters &= Q(validity_from__lte=date_to + datetimedelta(days=1))
-    queryset = Insuree.objects
-    if settings.ROW_SECURITY:
-        from location.models import LocationManager
-        queryset = LocationManager().build_user_location_filter_query(user._u, queryset = queryset, loc_types = ['V'] )   
-    queryset = (
-        queryset.filter(filters)
-        .values(
-            "chf_id",
-            "other_names",
-            "last_name",
-            enroll_date=F("validity_from"),
-            village=F("family__location__name"),
-            ward=F("family__location__parent__name"),
-            district=F("family__location__parent__parent__name"),
-        )
-        .order_by("district", "ward", "village", "chf_id")
-    )
 
-    return {"data": list(queryset)}
+def insuree_missing_photo_query(user, officerId=0, locationId=0, **kwargs):
+    with connection.cursor() as cur:
+        try:
+            cur.execute(
+                missing_photo_sql,
+                {
+                    "officer_id": officerId,
+                    "location_id": locationId,
+                },
+            )
+            return {"data": dictfetchall(cur)}
+        except Exception as e:
+            logger.exception("Error fetching missing photo query")
+            raise e
+
+    logger.error("Missing photo query arrived at end of function")
+    return {"data": None}
