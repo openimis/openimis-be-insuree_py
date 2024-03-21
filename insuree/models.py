@@ -86,6 +86,9 @@ class ConfirmationType(models.Model):
         managed = True
         db_table = 'tblConfirmationTypes'
 
+class FamilyLevels(models.TextChoices):
+    ONE = "1", "1"
+    TWO = "2", "2"
 
 class Family(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
@@ -115,6 +118,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         related_name='families')
     audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
+    parent = models.ForeignKey(
+        'Family', models.DO_NOTHING, db_column='ParentFamily', blank=True, null=True)
+    family_level = models.CharField(db_column='FamilyLevel', choices=FamilyLevels.choices, max_length=1, default=FamilyLevels.ONE)
 
     def __str__(self):
         return str(self.head_insuree)
