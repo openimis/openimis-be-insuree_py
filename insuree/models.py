@@ -121,6 +121,12 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     parent = models.ForeignKey(
         'Family', models.DO_NOTHING, db_column='ParentFamily', blank=True, null=True)
     family_level = models.CharField(db_column='FamilyLevel', choices=FamilyLevels.choices, max_length=1, default=FamilyLevels.ONE)
+    poligamous = models.BooleanField(
+        db_column='PoligamousFamily', blank=True, null=True)
+    coordinates = models.CharField(
+        db_column='Coordinates', max_length=255, blank=True, null=True)
+    preferred_payment_method = models.CharField(
+        db_column='PreferredPaymentMethod', max_length=50, blank=True, null=True)
 
     def __str__(self):
         return str(self.head_insuree)
