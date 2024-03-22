@@ -70,6 +70,13 @@ class FamilyType(models.Model):
         managed = True
         db_table = 'tblFamilyTypes'
 
+class IncomeLevels(models.Model):
+    id  = models.AutoField(db_column='IncomeLevelID', primary_key=True)
+    french_version = models.CharField(db_column='FrenchVersion', max_length=200, blank=True, null=True)
+    english_version = models.CharField(db_column='EnglishVersion', max_length=200, blank=True, null=True)
+    class Meta:
+        managed = True
+        db_table = 'tblIncomeLevels'
 
 class ConfirmationType(models.Model):
     code = models.CharField(
@@ -127,6 +134,8 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         db_column='Coordinates', max_length=255, blank=True, null=True)
     preferred_payment_method = models.CharField(
         db_column='PreferredPaymentMethod', max_length=50, blank=True, null=True)
+    income_level = models.ForeignKey(
+        IncomeLevels, models.DO_NOTHING, db_column='IncomeLevel', blank=True, null=True)
 
     def __str__(self):
         return str(self.head_insuree)
@@ -159,15 +168,6 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     class Meta:
         managed = True
         db_table = 'tblFamilies'
-
-
-class IncomeLevels(models.Model):
-    id  = models.AutoField(db_column='IncomeLevelID', primary_key=True)
-    french_version = models.CharField(db_column='FrenchVersion', max_length=200, blank=True, null=True)
-    english_version = models.CharField(db_column='EnglishVersion', max_length=200, blank=True, null=True)
-    class Meta:
-        managed = True
-        db_table = 'tblIncomeLevels'
 
 class Profession(models.Model):
     id = models.SmallIntegerField(db_column='ProfessionId', primary_key=True)
