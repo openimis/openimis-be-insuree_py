@@ -88,6 +88,7 @@ class FamilyBase:
     poligamous = graphene.Boolean(required=False)
     coordinates = graphene.String(max_length=255, required=False)
     preferred_payment_method = graphene.String(max_length=50, required=False)
+    income_level_id = graphene.Int(required=False)
 
     contribution = graphene.types.json.JSONString(required=False)
 
