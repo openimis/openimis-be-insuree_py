@@ -313,6 +313,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         db_column='Coordinates', max_length=255, blank=True, null=True)
     preferred_payment_method = models.CharField(
         db_column='PreferredPaymentMethod', max_length=50, blank=True, null=True)
+    income_level = models.ForeignKey(
+        IncomeLevels, models.DO_NOTHING, db_column='IncomeLevel', blank=True, null=True)
     professional_situation = models.CharField(
         db_column='ProfessionalSituation', max_length=255, blank=True, null=True)
     bank_coordinates = models.CharField(

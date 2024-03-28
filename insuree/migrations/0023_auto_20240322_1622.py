@@ -16,4 +16,9 @@ class Migration(migrations.Migration):
             name='income_level',
             field=models.ForeignKey(blank=True, db_column='IncomeLevel', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='insuree.incomelevels'),
         ),
+        migrations.AddField(
+            model_name='insuree',
+            name='income_level',
+            field=models.ForeignKey(blank=True, db_column='IncomeLevel', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='insuree.incomelevels'),
+        ),
     ]
