@@ -385,7 +385,7 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
 
 class DeleteFamiliesFromParentMutation(OpenIMISMutation):
     """
-    Moves a family to a parent one
+    Deletes the parent on a family
     """
     _mutation_module = "insuree"
     _mutation_class = "DeleteFamiliesFromParentMutation"
