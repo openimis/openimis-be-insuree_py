@@ -214,6 +214,8 @@ class FamilyGQLType(DjangoObjectType):
             "address": ["exact", "istartswith", "icontains", "iexact"],
             "ethnicity": ["exact"],
             "is_offline": ["exact"],
+            "parent__id": ["exact"],
+            "parent__uuid": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
             **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
             **prefix_filterset("members__", InsureeGQLType._meta.filter_fields)
