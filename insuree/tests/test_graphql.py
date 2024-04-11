@@ -5,7 +5,8 @@ import uuid
 from dataclasses import dataclass
 from django.utils.translation import gettext as _
 from core.models import User, filter_validity
-from core.test_helpers import create_test_interactive_user, AssertMutation
+from core.models.openimis_graphql_test_case import openIMISGraphQLTestCase
+from core.test_helpers import create_test_interactive_user
 from django.conf import settings
 from graphene_django.utils.testing import GraphQLTestCase
 from graphql_jwt.shortcuts import get_token
@@ -27,11 +28,8 @@ class DummyContext:
 
 
 
-class InsureeGQLTestCase(GraphQLTestCase):
-    GRAPHQL_URL = f'/{settings.SITE_ROOT()}graphql'
-    # This is required by some version of graphene but is never used. It should be set to the schema but the import
-    # is shown as an error in the IDE, so leaving it as True.
-    GRAPHQL_SCHEMA = True
+class InsureeGQLTestCase(openIMISGraphQLTestCase):
+
     admin_user = None
     ca_user = None
     ca_token = None
@@ -238,7 +236,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      AssertMutation(self,muuid, self.admin_dist_token )
+      self.get_mutation_result(muuid, self.admin_dist_token )
       
       
     def test_create_family(self):
@@ -285,7 +283,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      AssertMutation(self,muuid, self.admin_dist_token )
+      self.get_mutation_result(muuid, self.admin_dist_token )
       mmuid = '50f8f2c9-7685-4cd5-a778-b1fa78d46471'
       # update
       response = self.query(f'''
@@ -329,7 +327,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      content= AssertMutation(self,muuid, self.admin_dist_token )
+      content=  self.get_mutation_result(muuid, self.admin_dist_token )
       family = Family.objects.filter(*filter_validity(),uuid= uuid.UUID(fuuid)).first()
       self.assertEqual(family.poverty, True)
 
