@@ -279,7 +279,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u, prefix= 'location__parent__parent', loc_types = ['D'])]
+            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
+                                                                           prefix='location__parent__parent', loc_types=['D'])]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
@@ -417,19 +418,24 @@ def bind_signals():
 
 
 def _insuree_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_policy_query)
+    return _get_additional_filter(sender or Insuree, additional_filter, user, signal_before_insuree_policy_query)
+
 
 def _insuree_insuree_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_search_query)
+    return _get_additional_filter(sender or InsureePolicy, additional_filter, user, signal_before_insuree_search_query)
 
 
 def _family_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_family_query)
+    return _get_additional_filter(sender or Family, additional_filter, user, signal_before_family_query)
 
 
 def _get_additional_filter(sender, additional_filter, user, signal: Signal):
     # function to retrieve additional filters from signal
     filters_from_signal = []
+
+    if sender is None:
+        raise Exception("Missing sender")
+
     if additional_filter:
         # send signal to append additional filter
         results_signal = signal.send(
