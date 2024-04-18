@@ -57,6 +57,12 @@ class InsureeBase:
     status = graphene.String(required=False)
     status_reason = graphene.String(required=False)
     status_date = graphene.Date(required=False)
+    poligamous = graphene.Boolean(required=False)
+    coordinates = graphene.String(max_length=255, required=False)
+    preferred_payment_method = graphene.String(max_length=50, required=False)
+    income_level_id = graphene.Int(required=False)
+    professional_situation = graphene.String(max_length=255, required=False)
+    bank_coordinates = graphene.String(max_length=255, required=False)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
@@ -89,9 +95,9 @@ class FamilyBase:
     coordinates = graphene.String(max_length=255, required=False)
     preferred_payment_method = graphene.String(max_length=50, required=False)
     income_level_id = graphene.Int(required=False)
-
+    professional_situation = graphene.String(max_length=255, required=False)
+    bank_coordinates = graphene.String(max_length=255, required=False)
     contribution = graphene.types.json.JSONString(required=False)
-
     head_insuree = graphene.Field(FamilyHeadInsureeInputType, required=False)
 
 
