@@ -38,6 +38,7 @@ DEFAULT_CFG = {
     "insuree_fsp_mandatory": False,
     "insuree_as_worker": False,
     "is_insuree_photo_required": False,
+    "comores_features_enabled": False
 }
 
 
@@ -75,6 +76,7 @@ class InsureeConfig(AppConfig):
     insuree_fsp_mandatory = None
     insuree_as_worker = None
     is_insuree_photo_required = None
+    comores_features_enabled = None
 
     def __load_config(self, cfg):
         for field in cfg:
