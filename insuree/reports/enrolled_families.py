@@ -1763,12 +1763,6 @@ template = """
 
 
 def enrolled_families_query(user, dateFrom=None, dateTo=None, locationId=None, **kwargs):
-    data = run_stored_proc_report(
-        "uspSSRSEnroledFamilies",
-        LocationId=locationId,
-        StartDate=dateFrom,
-        EndDate=dateTo,
-    )
 
     report_data = Insuree.objects.filter(
         family__location_id=locationId,
