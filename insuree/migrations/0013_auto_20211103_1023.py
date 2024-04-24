@@ -17,7 +17,9 @@ class Migration(migrations.Migration):
                 [ValidityFrom] ASC,
                 [LegacyID] ASC,
                 InsureeID
-            )""" if settings.MSSQL else """
+            )"""
+            if settings.MSSQL
+            else """
             CREATE INDEX "ix_tblInsuree_validity" ON "tblInsuree"
             (
                 "ValidityFrom" ASC,

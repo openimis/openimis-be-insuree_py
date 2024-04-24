@@ -3,6 +3,7 @@ from django.db import connection
 
 from tools.utils import dictfetchall
 import logging
+
 logger = logging.getLogger(__name__)
 
 # If manually pasting from ReportBro and you have test data, search and replace \" with \\"
@@ -1290,7 +1291,9 @@ FROM PendingInsurees
 """
 
 
-def insurees_pending_enrollment_query(user, officerId=0, locationId=0, dateFrom=None, dateTo=None, **kwargs):
+def insurees_pending_enrollment_query(
+    user, officerId=0, locationId=0, dateFrom=None, dateTo=None, **kwargs
+):
     with connection.cursor() as cur:
         try:
             cur.execute(
@@ -1302,11 +1305,7 @@ def insurees_pending_enrollment_query(user, officerId=0, locationId=0, dateFrom=
                     "EndDate": dateTo,
                 },
             )
-            return {
-                "StartDate": dateFrom,
-                "EndDate": dateTo,
-                "data": dictfetchall(cur)
-            }
+            return {"StartDate": dateFrom, "EndDate": dateTo, "data": dictfetchall(cur)}
         except Exception as e:
             logger.exception("Error fetching missing photo query")
             raise e

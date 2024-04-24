@@ -1712,7 +1712,10 @@ def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
     queryset = Insuree.objects
     if settings.ROW_SECURITY:
         from location.models import LocationManager
-        queryset = LocationManager().build_user_location_filter_query(user._u, queryset = queryset, loc_types = ['V'] )   
+
+        queryset = LocationManager().build_user_location_filter_query(
+            user._u, queryset=queryset, loc_types=["V"]
+        )
     queryset = (
         queryset.filter(filters)
         .values(

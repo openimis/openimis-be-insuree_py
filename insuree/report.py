@@ -1,9 +1,15 @@
-from insuree.reports import insuree_family_overview, enrolled_families, insuree_missing_photo, \
-    insurees_pending_enrollment
+from insuree.reports import (
+    insuree_family_overview,
+    enrolled_families,
+    insuree_missing_photo,
+    insurees_pending_enrollment,
+)
 from insuree.reports.enrolled_families import enrolled_families_query
 from insuree.reports.insuree_family_overview import insuree_family_overview_query
 from insuree.reports.insuree_missing_photo import insuree_missing_photo_query
-from insuree.reports.insurees_pending_enrollment import insurees_pending_enrollment_query
+from insuree.reports.insurees_pending_enrollment import (
+    insurees_pending_enrollment_query,
+)
 
 
 # Insuree_family_overview are the same report, with native code and with the stored_procedure

@@ -3,6 +3,7 @@ from django.db import connection
 
 from tools.utils import dictfetchall
 import logging
+
 logger = logging.getLogger(__name__)
 
 # If manually pasting from reportbro and you have test data, search and replace \" with \\"

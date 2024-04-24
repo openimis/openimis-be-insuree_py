@@ -6,14 +6,18 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0009_familymutation_insureemutation'),
+        ("insuree", "0009_familymutation_insureemutation"),
     ]
 
     operations = [
-        migrations.RunSQL('ALTER TABLE [tblInsuree] ADD [JsonExt] TEXT'
-                          if settings.MSSQL else
-                          'ALTER TABLE "tblInsuree" ADD "JsonExt" jsonb'),
-        migrations.RunSQL('ALTER TABLE [tblFamilies] ADD [JsonExt] TEXT'
-                          if settings.MSSQL else
-                          'ALTER TABLE "tblFamilies" ADD "JsonExt" jsonb'),
+        migrations.RunSQL(
+            "ALTER TABLE [tblInsuree] ADD [JsonExt] TEXT"
+            if settings.MSSQL
+            else 'ALTER TABLE "tblInsuree" ADD "JsonExt" jsonb'
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE [tblFamilies] ADD [JsonExt] TEXT"
+            if settings.MSSQL
+            else 'ALTER TABLE "tblFamilies" ADD "JsonExt" jsonb'
+        ),
     ]

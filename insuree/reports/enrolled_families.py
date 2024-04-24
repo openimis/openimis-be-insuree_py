@@ -1762,51 +1762,56 @@ template = """
 """
 
 
-def enrolled_families_query(user, dateFrom=None, dateTo=None, locationId=None, **kwargs):
+def enrolled_families_query(
+    user, dateFrom=None, dateTo=None, locationId=None, **kwargs
+):
 
-    report_data = Insuree.objects.filter(
-        family__location_id=locationId,
-        validity_to__isnull=True,
-        validity_from__date__range=(dateFrom, dateTo),
-        family__location__parent__parent__parent__validity_to__isnull=True,
-        family__location__parent__parent__validity_to__isnull=True,
-        family__location__parent__validity_to__isnull=True,
-        family__location__validity_to__isnull=True,
-        family__policies__validity_to__isnull=True
-    ).annotate(
-        RegionName=F('family__location__parent__parent__parent__name'),
-        DistrictName=F('family__location__parent__parent__name'),
-        WardName=F('family__location__parent__name'),
-        VillageName=F('family__location__name'),
-        IsHead=F('family__head_insuree__head'),
-        CHFID=F('chf_id'),
-        LastName=F('last_name'),
-        OtherNames=F('other_names'),
-        EnrolDate=F('validity_from__date'),
-        PolicyStatusDesc=Case(
-            When(family__policies__status=1, then=Value('Idle')),
-            When(family__policies__status=2, then=Value('Active')),
-            When(family__policies__status=4, then=Value('Suspended')),
-            When(family__policies__status=8, then=Value('Expired'))
-        ),
-        rank=Window(
-            expression=Rank(),
-            partition_by=F('family__id'),
-            order_by=F('family__policies__validity_from').desc()
+    report_data = (
+        Insuree.objects.filter(
+            family__location_id=locationId,
+            validity_to__isnull=True,
+            validity_from__date__range=(dateFrom, dateTo),
+            family__location__parent__parent__parent__validity_to__isnull=True,
+            family__location__parent__parent__validity_to__isnull=True,
+            family__location__parent__validity_to__isnull=True,
+            family__location__validity_to__isnull=True,
+            family__policies__validity_to__isnull=True,
         )
-    ).filter(rank=1).values(
-        'RegionName',
-        'DistrictName',
-        'WardName',
-        'VillageName',
-        'IsHead',
-        'CHFID',
-        'LastName',
-        'OtherNames',
-        'EnrolDate',
-        'PolicyStatusDesc'
+        .annotate(
+            RegionName=F("family__location__parent__parent__parent__name"),
+            DistrictName=F("family__location__parent__parent__name"),
+            WardName=F("family__location__parent__name"),
+            VillageName=F("family__location__name"),
+            IsHead=F("family__head_insuree__head"),
+            CHFID=F("chf_id"),
+            LastName=F("last_name"),
+            OtherNames=F("other_names"),
+            EnrolDate=F("validity_from__date"),
+            PolicyStatusDesc=Case(
+                When(family__policies__status=1, then=Value("Idle")),
+                When(family__policies__status=2, then=Value("Active")),
+                When(family__policies__status=4, then=Value("Suspended")),
+                When(family__policies__status=8, then=Value("Expired")),
+            ),
+            rank=Window(
+                expression=Rank(),
+                partition_by=F("family__id"),
+                order_by=F("family__policies__validity_from").desc(),
+            ),
+        )
+        .filter(rank=1)
+        .values(
+            "RegionName",
+            "DistrictName",
+            "WardName",
+            "VillageName",
+            "IsHead",
+            "CHFID",
+            "LastName",
+            "OtherNames",
+            "EnrolDate",
+            "PolicyStatusDesc",
+        )
     )
 
-    return {
-        "data": list(report_data)
-    }
+    return {"data": list(report_data)}

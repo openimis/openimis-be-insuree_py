@@ -3,13 +3,15 @@
 from django.db import migrations
 from insuree.models import Insuree
 
+
 def cleanup_current_village(apps, schema_editor):
     Insuree.objects.filter(current_village=0).update(current_village=None)
+
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0005_identificationtype'),
+        ("insuree", "0005_identificationtype"),
     ]
 
     operations = [
