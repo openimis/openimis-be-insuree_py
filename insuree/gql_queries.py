@@ -91,6 +91,8 @@ class RelationGQLType(DjangoObjectType):
 
 
 class InsureeStatusReasonGQLType(DjangoObjectType):
+    status_type = graphene.String(required=False)
+
     class Meta:
         model = InsureeStatusReason
         interfaces = (graphene.relay.Node,)

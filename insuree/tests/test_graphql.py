@@ -1,8 +1,11 @@
 import base64
 import json
+import time
+import uuid
 from dataclasses import dataclass
 from django.utils.translation import gettext as _
 from core.models import User, filter_validity
+from core.models.openimis_graphql_test_case import openIMISGraphQLTestCase
 from core.test_helpers import create_test_interactive_user
 from django.conf import settings
 from graphene_django.utils.testing import GraphQLTestCase
@@ -24,11 +27,9 @@ class DummyContext:
     user: User
 
 
-class InsureeGQLTestCase(GraphQLTestCase):
-    GRAPHQL_URL = f'/{settings.SITE_ROOT()}graphql'
-    # This is required by some version of graphene but is never used. It should be set to the schema but the import
-    # is shown as an error in the IDE, so leaving it as True.
-    GRAPHQL_SCHEMA = True
+
+class InsureeGQLTestCase(openIMISGraphQLTestCase):
+
     admin_user = None
     ca_user = None
     ca_token = None
@@ -212,11 +213,12 @@ class InsureeGQLTestCase(GraphQLTestCase):
       self.assertResponseNoErrors(response)
 
     def test_create_insuree(self):
+      muuid = 'ffa465c5-6807-4de0-847e-202b7f42122b'
       response = self.query(f'''
     mutation {{
       createInsuree(
         input: {{
-          clientMutationId: "ffa465c5-6807-4de0-847e-202b7f42122b"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Create insuree - 12343456234"
           
           chfId: "12343456234"
@@ -248,15 +250,17 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      
+      self.get_mutation_result(muuid, self.admin_dist_token )
       
       
     def test_create_family(self):
+      muuid='50f8f2c9-7685-4cd5-a7d8-b1fa78d46470'
+      fuuid='50f8f2c9-7685-4cd5-a770-b1fa34d46470'
       response = self.query(f'''
     mutation {{
       createFamily(
         input: {{
-          clientMutationId: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46470"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Create Family - test create family (445566778899)"
           headInsuree: {{
     chfId: "4455667788"
@@ -277,7 +281,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
   }}
     locationId: {self.test_village.id}
     poverty: false
-    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    uuid: "{fuuid}"
     jsonExt: "{{}}"
         }}
       ) {{
@@ -293,13 +297,14 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-      
+      self.get_mutation_result(muuid, self.admin_dist_token )
+      mmuid = '50f8f2c9-7685-4cd5-a778-b1fa78d46471'
       # update
       response = self.query(f'''
     mutation {{
       updateFamily(
         input: {{
-          clientMutationId: "50f8f2c9-7685-4cd5-a778-b1fa78d46470"
+          clientMutationId: "{muuid}"
           clientMutationLabel: "Update Family - test create family (445566778899)"
           headInsuree: {{
     chfId: "4455667788"
@@ -320,7 +325,7 @@ class InsureeGQLTestCase(GraphQLTestCase):
   }}
     locationId: {self.test_village.id}
     poverty: true
-    uuid: "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475"
+    uuid: "{fuuid}"
     jsonExt: "{{}}"
         }}
       ) {{
@@ -336,8 +341,8 @@ class InsureeGQLTestCase(GraphQLTestCase):
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
-            
-      family = Family.objects.filter(*filter_validity(),uuid= "50f8f2c9-7685-4cd5-a7d8-b1fa78d46475").first()
+      content=  self.get_mutation_result(muuid, self.admin_dist_token )
+      family = Family.objects.filter(*filter_validity(),uuid= uuid.UUID(fuuid)).first()
       self.assertEqual(family.poverty, True)
 
       
@@ -424,3 +429,23 @@ query GetInsureeInquire($chfId: String) {
 
     # This validates the status code and if you get errors
       self.assertResponseNoErrors(response)
+      
+      
+    def test_validate_number_validditiy_with_variables(self):
+        response = self.query(
+            '''
+    query ($insuranceNumber: String!) {
+      insureeNumberValidity(insureeNumber: $insuranceNumber) {
+        isValid
+        errorCode
+        errorMessage
+      }
+    }
+            ''',
+            headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
+            variables={"insuranceNumber": "070707070"}        )
+
+        content = json.loads(response.content)
+
+        # This validates the status code and if you get errors
+        self.assertResponseNoErrors(response)
