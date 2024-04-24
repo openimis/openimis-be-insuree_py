@@ -35,6 +35,20 @@ class InsureeGQLTestCase(GraphQLTestCase):
     test_village = None
     test_insuree = None
     test_photo = None
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            super().tearDownClass()
+        except AttributeError as e:
+            if "'function' object has no attribute 'wrapped'" in str(e):
+                # Workaround for a specific issue with the python-graphene tearDown.
+                # Middleware change didn't solve the issue, using Django TestCase was not ppossible.
+                # Thread: https://github.com/graphql-python/graphene-django/issues/828
+                pass
+            else:
+                raise
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
