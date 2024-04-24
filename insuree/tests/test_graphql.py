@@ -83,12 +83,6 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         content = json.loads(response.content)
 
         self.assertResponseNoErrors(response)
-        # TEMP Intentionaly fail test to confirm CI
-        self.assertTrue(False)
-        
-
-
-
 
     def test_insuree_query(self):
         
