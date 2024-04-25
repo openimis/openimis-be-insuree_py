@@ -6,56 +6,56 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0014_add_missing_fields_to_django_scheme'),
+        ("insuree", "0014_add_missing_fields_to_django_scheme"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='confirmationtype',
-            options={'managed': True},
+            name="confirmationtype",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='education',
-            options={'managed': True},
+            name="education",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='family',
-            options={'managed': True},
+            name="family",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='familytype',
-            options={'managed': True},
+            name="familytype",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='gender',
-            options={'managed': True},
+            name="gender",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='identificationtype',
-            options={'managed': True},
+            name="identificationtype",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='insuree',
-            options={'managed': True},
+            name="insuree",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='insureephoto',
-            options={'managed': True},
+            name="insureephoto",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='insureepolicy',
-            options={'managed': True},
+            name="insureepolicy",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='policyrenewaldetail',
-            options={'managed': True},
+            name="policyrenewaldetail",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='profession',
-            options={'managed': True},
+            name="profession",
+            options={"managed": True},
         ),
         migrations.AlterModelOptions(
-            name='relation',
-            options={'managed': True},
+            name="relation",
+            options={"managed": True},
         ),
     ]

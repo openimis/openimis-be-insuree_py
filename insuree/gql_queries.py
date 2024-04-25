@@ -2,8 +2,22 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .apps import InsureeConfig
-from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation, InsureeStatusReason
+from .models import (
+    Insuree,
+    InsureePhoto,
+    Education,
+    Profession,
+    Gender,
+    IdentificationType,
+    Family,
+    FamilyType,
+    ConfirmationType,
+    Relation,
+    InsureePolicy,
+    FamilyMutation,
+    InsureeMutation,
+    InsureeStatusReason,
+)
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -16,9 +30,7 @@ from .services import load_photo_file
 class GenderGQLType(DjangoObjectType):
     class Meta:
         model = Gender
-        filter_fields = {
-            "code": ["exact"]
-        }
+        filter_fields = {"code": ["exact"]}
 
 
 class PhotoGQLType(DjangoObjectType):
@@ -35,59 +47,45 @@ class PhotoGQLType(DjangoObjectType):
 
     class Meta:
         model = InsureePhoto
-        filter_fields = {
-            "id": ["exact"]
-        }
+        filter_fields = {"id": ["exact"]}
 
 
 class IdentificationTypeGQLType(DjangoObjectType):
     class Meta:
         model = IdentificationType
-        filter_fields = {
-            "code": ["exact"]
-        }
+        filter_fields = {"code": ["exact"]}
 
 
 class EducationGQLType(DjangoObjectType):
     class Meta:
         model = Education
-        filter_fields = {
-            "id": ["exact"]
-        }
+        filter_fields = {"id": ["exact"]}
 
-        exclude_fields = ('insurees',)
+        exclude_fields = ("insurees",)
 
 
 class ProfessionGQLType(DjangoObjectType):
     class Meta:
         model = Profession
-        filter_fields = {
-            "id": ["exact"]
-        }
+        filter_fields = {"id": ["exact"]}
 
 
 class FamilyTypeGQLType(DjangoObjectType):
     class Meta:
         model = FamilyType
-        filter_fields = {
-            "code": ["exact"]
-        }
+        filter_fields = {"code": ["exact"]}
 
 
 class ConfirmationTypeGQLType(DjangoObjectType):
     class Meta:
         model = ConfirmationType
-        filter_fields = {
-            "code": ["exact"]
-        }
+        filter_fields = {"code": ["exact"]}
 
 
 class RelationGQLType(DjangoObjectType):
     class Meta:
         model = Relation
-        filter_fields = {
-            "code": ["exact"]
-        }
+        filter_fields = {"code": ["exact"]}
 
 
 class InsureeStatusReasonGQLType(DjangoObjectType):
@@ -98,14 +96,14 @@ class InsureeStatusReasonGQLType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         filter_fields = {
             "code": ["exact"],
-            "insuree_status_reason": ["exact", 'icontains', 'istartswith'],
-            "status_type": ["exact"]
+            "insuree_status_reason": ["exact", "icontains", "istartswith"],
+            "status_type": ["exact"],
         }
         connection_class = ExtendedConnection
 
 
 class InsureeGQLType(DjangoObjectType):
-    age = graphene.Int(source='age')
+    age = graphene.Int(source="age")
     client_mutation_id = graphene.String()
     photo = PhotoGQLType()
 
@@ -142,7 +140,7 @@ class InsureeGQLType(DjangoObjectType):
     class Meta:
         model = Insuree
         filter_fields = {
-            "uuid": ["exact","iexact"],
+            "uuid": ["exact", "iexact"],
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
@@ -159,7 +157,7 @@ class InsureeGQLType(DjangoObjectType):
             **prefix_filterset("photo__", PhotoGQLType._meta.filter_fields),
             "photo": ["isnull"],
             "family": ["isnull"],
-            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields)
+            **prefix_filterset("gender__", GenderGQLType._meta.filter_fields),
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
@@ -167,9 +165,12 @@ class InsureeGQLType(DjangoObjectType):
     def resolve_client_mutation_id(self, info):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
-        insuree_mutation = self.mutations.select_related(
-            'mutation').filter(mutation__status=0).first()
-        return insuree_mutation.mutation.client_mutation_id if insuree_mutation else None
+        insuree_mutation = (
+            self.mutations.select_related("mutation").filter(mutation__status=0).first()
+        )
+        return (
+            insuree_mutation.mutation.client_mutation_id if insuree_mutation else None
+        )
 
     @classmethod
     def get_queryset(cls, queryset, info):
@@ -194,7 +195,7 @@ class FamilyGQLType(DjangoObjectType):
     class Meta:
         model = Family
         filter_fields = {
-            "uuid": ["exact","iexact"],
+            "uuid": ["exact", "iexact"],
             "poverty": ["exact", "isnull"],
             "confirmation_no": ["exact", "istartswith", "icontains", "iexact"],
             "confirmation_type": ["exact"],
@@ -204,7 +205,7 @@ class FamilyGQLType(DjangoObjectType):
             "is_offline": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
             **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
-            **prefix_filterset("members__", InsureeGQLType._meta.filter_fields)
+            **prefix_filterset("members__", InsureeGQLType._meta.filter_fields),
         }
         interfaces = (graphene.relay.Node,)
         connection_class = ExtendedConnection
@@ -212,8 +213,9 @@ class FamilyGQLType(DjangoObjectType):
     def resolve_client_mutation_id(self, info):
         if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
-        family_mutation = self.mutations.select_related(
-            'mutation').filter(mutation__status=0).first()
+        family_mutation = (
+            self.mutations.select_related("mutation").filter(mutation__status=0).first()
+        )
         return family_mutation.mutation.client_mutation_id if family_mutation else None
 
     @classmethod
