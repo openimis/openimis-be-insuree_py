@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0017_auto_20230923_2238'),
+        ("insuree", "0017_auto_20230923_2238"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='confirmationtype',
-            name='is_confirmation_number_required',
+            model_name="confirmationtype",
+            name="is_confirmation_number_required",
             field=models.BooleanField(default=False),
         ),
     ]

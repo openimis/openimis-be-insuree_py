@@ -5,20 +5,27 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    psql_code = 'select 1'
+    psql_code = "select 1"
 
     dependencies = [
-        ('insuree', '0015_set_managed_to_true_in_all_models'),
+        ("insuree", "0015_set_managed_to_true_in_all_models"),
     ]
 
     operations = [
-        migrations.RunSQL('ALTER TABLE [tblInsuree] ALTER COLUMN [JsonExt] NVARCHAR(MAX)'
-                          if settings.MSSQL else psql_code,
-                          reverse_sql='ALTER TABLE [tblInsuree] ALTER COLUMN [JsonExt] TEXT'
-                          if settings.MSSQL else psql_code),
-        migrations.RunSQL('ALTER TABLE [tblFamilies] ALTER COLUMN [JsonExt] NVARCHAR(MAX)'
-                          if settings.MSSQL else psql_code,
-                          reverse_sql='ALTER TABLE [tblFamilies] ALTER COLUMN [JsonExt] TEXT'
-                          if settings.MSSQL else psql_code),
+        migrations.RunSQL(
+            "ALTER TABLE [tblInsuree] ALTER COLUMN [JsonExt] NVARCHAR(MAX)"
+            if settings.MSSQL
+            else psql_code,
+            reverse_sql="ALTER TABLE [tblInsuree] ALTER COLUMN [JsonExt] TEXT"
+            if settings.MSSQL
+            else psql_code,
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE [tblFamilies] ALTER COLUMN [JsonExt] NVARCHAR(MAX)"
+            if settings.MSSQL
+            else psql_code,
+            reverse_sql="ALTER TABLE [tblFamilies] ALTER COLUMN [JsonExt] TEXT"
+            if settings.MSSQL
+            else psql_code,
+        ),
     ]
-

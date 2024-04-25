@@ -1,1 +1,1 @@
-default_app_config = 'insuree.apps.InsureeConfig'
+default_app_config = "insuree.apps.InsureeConfig"

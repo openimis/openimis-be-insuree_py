@@ -11,8 +11,11 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('location', '0005_healthfacilitycatchment_healthfacilitylegalform_healthfacilitymutation_healthfacilitysublevel'),
-        ('insuree', '0006_auto_20200722_0839'),
+        (
+            "location",
+            "0005_healthfacilitycatchment_healthfacilitylegalform_healthfacilitymutation_healthfacilitysublevel",
+        ),
+        ("insuree", "0006_auto_20200722_0839"),
     ]
 
     operations = [
@@ -27,9 +30,8 @@ class Migration(migrations.Migration):
             "ALTER TABLE [tblInsuree] ADD CONSTRAINT "
             "[tblInsuree_CurrentVillage_8ea25085_fk_tblLocations_LocationId] "
             "FOREIGN KEY([CurrentVillage]) REFERENCES[tblLocations]([LocationId]);"
-            if settings.MSSQL else
-            'ALTER TABLE "tblInsuree" ADD CONSTRAINT "tblInsuree_CurrentVillage_8ea25085_fk_tblLocations_LocationId" '
+            if settings.MSSQL
+            else 'ALTER TABLE "tblInsuree" ADD CONSTRAINT "tblInsuree_CurrentVillage_8ea25085_fk_tblLocations_LocationId" '
             ' FOREIGN KEY("CurrentVillage") REFERENCES "tblLocations"("LocationId");'
         )
-
     ]

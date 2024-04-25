@@ -21,11 +21,13 @@ DEFAULT_CFG = {
     "gql_mutation_update_insurees_perms": ["101103"],
     "gql_mutation_delete_insurees_perms": ["101104"],
     "insuree_photos_root_path": os.path.abspath("./images/insurees"),
-    "excluded_insuree_chfids": ['999999999'],  # fake insurees (and bound families) used, for example, in 'funding'
+    "excluded_insuree_chfids": [
+        "999999999"
+    ],  # fake insurees (and bound families) used, for example, in 'funding'
     "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
     "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number for example
-                                       # 'msystems.utils.is_valid_resident_identifier'
+    # 'msystems.utils.is_valid_resident_identifier'
     "insuree_number_length": None,  # Insuree number length to validate
     "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
     "validation_code_taken_insuree_number": 1,
@@ -83,6 +85,7 @@ class InsureeConfig(AppConfig):
 
     def ready(self):
         from core.models import ModuleConfiguration
+
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
         self.__load_config(cfg)
         self._configure_photo_root(cfg)
@@ -90,16 +93,22 @@ class InsureeConfig(AppConfig):
     # Getting these at runtime for easier testing
     @classmethod
     def get_insuree_number_validator(cls):
-        return cls.insuree_number_validator or cls.__get_from_settings_or_default("INSUREE_NUMBER_VALIDATOR")
+        return cls.insuree_number_validator or cls.__get_from_settings_or_default(
+            "INSUREE_NUMBER_VALIDATOR"
+        )
 
     @classmethod
     def get_insuree_number_length(cls):
-        value = cls.insuree_number_length or cls.__get_from_settings_or_default("INSUREE_NUMBER_LENGTH")
+        value = cls.insuree_number_length or cls.__get_from_settings_or_default(
+            "INSUREE_NUMBER_LENGTH"
+        )
         return int(value) if value else None
 
     @classmethod
     def get_insuree_number_modulo_root(cls):
-        value = cls.insuree_number_modulo_root or cls.__get_from_settings_or_default("INSUREE_NUMBER_MODULE_ROOT")
+        value = cls.insuree_number_modulo_root or cls.__get_from_settings_or_default(
+            "INSUREE_NUMBER_MODULE_ROOT"
+        )
         return int(value) if value else None
 
     def set_dataloaders(self, dataloaders):
@@ -110,7 +119,11 @@ class InsureeConfig(AppConfig):
 
     @classmethod
     def __get_from_settings_or_default(cls, attribute_name, default=None):
-        return getattr(settings, attribute_name) if hasattr(settings, attribute_name) else default
+        return (
+            getattr(settings, attribute_name)
+            if hasattr(settings, attribute_name)
+            else default
+        )
 
     def _configure_photo_root(self, cfg):
         # TODO: To be confirmed. I left loading from config for integrity reasons

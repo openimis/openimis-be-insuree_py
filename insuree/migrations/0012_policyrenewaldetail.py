@@ -8,22 +8,45 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0011_auto_20200807_1309'),
+        ("insuree", "0011_auto_20200807_1309"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PolicyRenewalDetail',
+            name="PolicyRenewalDetail",
             fields=[
-                ('validity_from', core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now)),
-                ('validity_to', core.fields.DateTimeField(blank=True, db_column='ValidityTo', null=True)),
-                ('legacy_id', models.IntegerField(blank=True, db_column='LegacyID', null=True)),
-                ('id', models.AutoField(db_column='RenewalDetailID', primary_key=True, serialize=False)),
-                ('audit_user_id', models.IntegerField(blank=True, db_column='AuditCreateUser', null=True)),
+                (
+                    "validity_from",
+                    core.fields.DateTimeField(
+                        db_column="ValidityFrom", default=datetime.datetime.now
+                    ),
+                ),
+                (
+                    "validity_to",
+                    core.fields.DateTimeField(
+                        blank=True, db_column="ValidityTo", null=True
+                    ),
+                ),
+                (
+                    "legacy_id",
+                    models.IntegerField(blank=True, db_column="LegacyID", null=True),
+                ),
+                (
+                    "id",
+                    models.AutoField(
+                        db_column="RenewalDetailID", primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "audit_user_id",
+                    models.IntegerField(
+                        blank=True, db_column="AuditCreateUser", null=True
+                    ),
+                ),
             ],
             options={
-                'db_table': 'tblPolicyRenewalDetails',
-                'managed': False,
+                "db_table": "tblPolicyRenewalDetails",
+                "managed": False,
             },
         ),
     ]

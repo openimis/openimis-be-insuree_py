@@ -6,13 +6,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insuree', '0007_auto_20200722_0940'),
+        ("insuree", "0007_auto_20200722_0940"),
     ]
 
     operations = [
         migrations.RunSQL(
             "ALTER TABLE[tblInsuree] ALTER COLUMN FamilyID [int] NULL;"
-            if settings.MSSQL else
-            'ALTER TABLE "tblInsuree" ALTER COLUMN "FamilyID" DROP NOT NULL;'
+            if settings.MSSQL
+            else 'ALTER TABLE "tblInsuree" ALTER COLUMN "FamilyID" DROP NOT NULL;'
         )
     ]
