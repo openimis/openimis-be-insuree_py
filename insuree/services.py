@@ -315,12 +315,10 @@ class InsureeService:
                     min_num = 1
                     max_num = 99999
                     formatted_num = 0
-                    print("NIN(passport) ", data["passport"])
                     while formatted_num == 0 or Insuree.objects.filter(chf_id=formatted_num).exists():
                         random_num = random.randint(min_num, max_num)
                         formatted_num = str(random_num).zfill(5)
                         data["chf_id"] = data["passport"] + str(formatted_num)
-                    print("Chfid genere ", data["chf_id"])
                 insuree = Insuree.objects.create(**data)
             self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
@@ -371,12 +369,10 @@ class InsureeService:
                     min_num = 1
                     max_num = 99999
                     formatted_num = 0
-                    print("nin/passport ", insuree.passport)
                     while formatted_num == 0 or Insuree.objects.filter(chf_id=formatted_num).exists():
                         random_num = random.randint(min_num, max_num)
                         formatted_num = str(random_num).zfill(5)
                         insuree.chf_id = str(insuree.passport) + str(formatted_num)
-                    print("Chfid genere ", insuree.chf_id)
         insuree.save()
         if photo_data:
             photo = handle_insuree_photo(self.user, insuree.validity_from, insuree, photo_data)
@@ -474,12 +470,10 @@ class FamilyService:
                 min_num = 1
                 max_num = 99999
                 formatted_num = 0
-                print("Confirmation NO ", data["confirmation_no"])
                 while formatted_num == 0 or Insuree.objects.filter(chf_id=formatted_num).exists():
                     random_num = random.randint(min_num, max_num)
                     formatted_num = str(random_num).zfill(5)
                     head_insuree_data["chf_id"] = str(data["confirmation_no"]) + str(formatted_num)
-                print("Chfid genere ", head_insuree_data["chf_id"])
             head_insuree = InsureeService(
                 self.user).create_or_update(head_insuree_data)
             data["head_insuree_id"] = head_insuree.id
