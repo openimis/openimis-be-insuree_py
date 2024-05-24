@@ -164,8 +164,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
         chf_id = kwargs.get('chf_id')
-        chf_id_max_length = 12
-
+        default_insuree_number_length = 50
+        chf_id_max_length = getattr(InsureeConfig, 'insuree_number_length', None) or default_insuree_number_length
         if chf_id is not None:
             if len(chf_id) > chf_id_max_length:
                 raise ValidationError(_("Insuree no. cannot be longer than 12 characters"))
