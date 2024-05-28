@@ -138,9 +138,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
             )
         if settings.ROW_SECURITY and not user.is_imis_admin:
-            from location.schema import  LocationManager
+            from location.schema import LocationManager
             return queryset.filter(
-                        LocationManager().build_user_location_filter_query(user._u, prefix='location__parent__parent', loc_types=['D']))
+                LocationManager().build_user_location_filter_query(user._u, prefix='location__parent__parent', loc_types=['D']))
 
         return queryset
 
@@ -176,9 +176,11 @@ class Education(models.Model):
 
 
 class IdentificationType(models.Model):
-    code = models.CharField(db_column='IdentificationCode', primary_key=True, max_length=1)  # Field name made lowercase.
+    # Field name made lowercase.
+    code = models.CharField(db_column='IdentificationCode', primary_key=True, max_length=1)
     identification_type = models.CharField(db_column='IdentificationTypes', max_length=50)  # Field name made lowercase.
-    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    # Field name made lowercase.
+    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)
     sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -256,9 +258,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     current_village = models.ForeignKey(
         location_models.Location, models.DO_NOTHING, db_column='CurrentVillage', blank=True, null=True)
     photo = models.OneToOneField(InsureePhoto, models.DO_NOTHING,
-                              db_column='PhotoID', blank=True, null=True, related_name='+')
+                                 db_column='PhotoID', blank=True, null=True, related_name='+')
     photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
-    card_issued = models.BooleanField(db_column='CardIssued')
+    card_issued = models.BooleanField(db_column='CardIssued', blank=True, null=True)
     relationship = models.ForeignKey(
         Relation, models.DO_NOTHING, db_column='Relationship', blank=True, null=True,
         related_name='insurees')
@@ -314,7 +316,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         if settings.ROW_SECURITY and not user.is_imis_admin:
             return queryset.filter(
                 Q(LocationManager().build_user_location_filter_query(user._u, prefix='current_village__parent__parent', loc_types=['D']) |
-                        LocationManager().build_user_location_filter_query(user._u, prefix='family__location__parent__parent', loc_types=['D']))
+                  LocationManager().build_user_location_filter_query(user._u, prefix='family__location__parent__parent', loc_types=['D']))
             )
 
         return queryset
@@ -354,12 +356,12 @@ class InsureePolicy(core_models.VersionedModel):
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
         if settings.ROW_SECURITY and not user.is_imis_admin:
-                        # Limit the list by the logged in user location mapping
-            return queryset.filter(                
+            # Limit the list by the logged in user location mapping
+            return queryset.filter(
                 Q(LocationManager().build_user_location_filter_query(user._u, prefix='insuree__current_village__parent__parent', loc_types=['D']) |
                     LocationManager().build_user_location_filter_query(user._u, prefix='insuree__family__location__parent__parent', loc_types=['D']))
             )
- 
+
         return queryset
 
     class Meta:
