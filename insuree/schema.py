@@ -1,3 +1,5 @@
+import re
+
 import graphene
 
 from claim.apps import ClaimConfig
@@ -162,7 +164,12 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
         chf_id = kwargs.get('chf_id')
+        chf_id_max_length = getattr(InsureeConfig, 'insuree_number_length', 50)
         if chf_id is not None:
+            if len(chf_id) > chf_id_max_length:
+                raise ValidationError(_("Insuree no. cannot be longer than 12 characters"))
+            if not re.match("^[a-zA-Z0-9]*$", chf_id):
+                raise ValidationError(_("Insuree no. can only contain letters and numbers"))
             filters.append(Q(chf_id=chf_id))
         if additional_filter:
             filters_from_signal = _insuree_insuree_additional_filters(
