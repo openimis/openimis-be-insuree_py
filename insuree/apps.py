@@ -26,7 +26,7 @@ DEFAULT_CFG = {
     "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
     "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number for example
                                        # 'msystems.utils.is_valid_resident_identifier'
-    "insuree_number_length": None,  # Insuree number length to validate
+    "insuree_number_length": 50,  # Insuree number length to validate
     "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
     "validation_code_taken_insuree_number": 1,
     "validation_code_no_insuree_number": 2,
