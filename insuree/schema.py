@@ -69,6 +69,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         description="Checks that the specified family id is allowed to add more insurees (like a Policy limitation)"
     )
     insuree_genders = graphene.List(GenderGQLType)
+    income_levels = graphene.List(IncomeLevelsGQLType)
     insurees = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
         show_history=graphene.Boolean(),
@@ -155,6 +156,9 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
         return Gender.objects.order_by('sort_order').all()
+
+    def resolve_income_levels(self, info, **kwargs):
+        return IncomeLevels.objects.all()
 
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -333,6 +337,8 @@ class Mutation(graphene.ObjectType):
     remove_insurees = RemoveInsureesMutation.Field()
     set_family_head = SetFamilyHeadMutation.Field()
     change_insuree_family = ChangeInsureeFamilyMutation.Field()
+    move_families_to_parent_mutation = MoveFamilyToParentMutation.Field()
+    delete_families_from_parent_mutation = DeleteFamiliesFromParentMutation.Field()
 
 
 def on_family_mutation(kwargs, k='uuid'):
