@@ -348,6 +348,9 @@ class InsureeService:
                 current_policy.save()
 
     def _create_or_update(self, insuree, photo_data=None):
+        if not InsureeConfig.comores_features_enabled:
+            if not insuree.chf_id:
+                raise Exception(f"Aucun CHFID renseigné pourtant le système n'a pas la configuration de Comores active")
         validate_insuree(insuree)
         if insuree.id:
             filters = Q(id=insuree.id)
