@@ -15,7 +15,7 @@ from insuree.apps import InsureeConfig
 from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
                             InsureeStatusReason)
 from django.core.exceptions import ValidationError
-from core.models import filter_validity
+from core.models import filter_validity, resolved_id_reference
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +25,9 @@ def create_insuree_renewal_detail(policy_renewal):
     now = datetime.datetime.now()
     adult_birth_date = now - datetimedelta(years=CoreConfig.age_of_majority)
     photo_renewal_date_adult = now - \
-                               datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
+        datetimedelta(months=InsureeConfig.renewal_photo_age_adult)  # 60
     photo_renewal_date_child = now - \
-                               datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
+        datetimedelta(months=InsureeConfig.renewal_photo_age_child)  # 12
     photos_to_renew = InsureePhoto.objects.filter(insuree__family=policy_renewal.insuree.family) \
         .filter(insuree__validity_to__isnull=True) \
         .filter(Q(insuree__photo_date__isnull=True)
@@ -63,11 +63,11 @@ def custom_insuree_number_validation(insuree_number):
                  "message": _("validator_function_not_found")}]
 
 
-def validate_insuree_number(insuree_number, uuid=None):
+def validate_insuree_number(insuree_number, insuree_uuid=None):
     query = Insuree.objects.filter(
         chf_id=insuree_number, validity_to__isnull=True)
     insuree = query.first()
-    if insuree and str(insuree.uuid) != str(uuid):
+    if insuree_uuid and insuree and uuid.UUID(insuree.uuid) != uuid.UUID(insuree_uuid):
         return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
                  "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
 
@@ -172,11 +172,11 @@ def handle_insuree_photo(user, now, insuree, data):
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
     if 'uuid' not in data or (existing_insuree_photo and data['uuid'] == existing_insuree_photo.uuid):
-        data['uuid'] =  str(uuid.uuid4())
+        data['uuid'] = str(uuid.uuid4())
     photo_bin = data.get('photo', None)
     if photo_bin and InsureeConfig.insuree_photos_root_path \
             and (existing_insuree_photo is None or existing_insuree_photo.photo != photo_bin):
-        (file_dir, file_name) = create_file(now, insuree.id, photo_bin,data['uuid'] )
+        (file_dir, file_name) = create_file(now, insuree.id, photo_bin, data['uuid'])
         data['folder'] = file_dir
         data['filename'] = file_name
         insuree_photo = InsureePhoto(**data)
@@ -215,7 +215,7 @@ def _create_dir(file_dir):
         .mkdir(parents=True, exist_ok=True)
 
 
-def create_file(date, insuree_id, photo_bin, name ):
+def create_file(date, insuree_id, photo_bin, name):
     file_dir = path.join(str(date.year), str(date.month),
                          str(date.day), str(insuree_id))
     file_name = name
@@ -296,31 +296,60 @@ class InsureeService:
         status = data.get('status', InsureeStatus.ACTIVE)
         if status not in [choice[0] for choice in InsureeStatus.choices]:
             raise ValidationError(_("mutation.insuree.wrong_status"))
+        if InsureeConfig.is_insuree_photo_required and photo_data is None:
+            raise ValidationError(_("mutation.insuree.no_required_photo"))
         if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
             status_reason = InsureeStatusReason.objects.get(code=data.get('status_reason', None),
                                                             validity_to__isnull=True)
             if status_reason is None or status_reason.status_type != status:
                 raise ValidationError(_("mutation.insuree.wrong_status"))
             data['status_reason'] = status_reason
+            if "uuid" in data:
+                insuree = Insuree.objects.get(uuid=data["uuid"])
+                self.disable_policies_of_insuree(insuree=insuree, status_date=data['status_date'])
+        elif "uuid" in data:
+            insuree = Insuree.objects.filter(uuid=data["uuid"]).first()
+            if not insuree:
+                insuree = Insuree.objects.create(**data)
+            self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
-    
+
         insuree = Insuree(**data)
         return self._create_or_update(insuree, photo_data)
 
-    
-    def _create_or_update(self, insuree, photo_data = None):    
+    def disable_policies_of_insuree(self, insuree, status_date):
+        policies_to_cancel = InsureePolicy.objects.filter(insuree=insuree.id, validity_to__isnull=True).all()
+        for policy in policies_to_cancel:
+            policy.expiry_date = status_date
+            policy.save()
+
+    def activate_policies_of_insuree(self, insuree, audit_user_id):
+        from core import datetime
+        now = datetime.date.today()
+        from policy.models import Policy
+        policies_to_activate = Policy.objects.filter(family=insuree.family, validity_to__isnull=True)
+        for policy in policies_to_activate:
+            if policy.expiry_date >= now:
+                current_policy_dict = {"effective_date": now, "expiry_date": policy.expiry_date,
+                                       "audit_user_id": audit_user_id, "offline": policy.offline,
+                                       "start_date": policy.start_date, "policy": policy, "insuree": insuree,
+                                       "enrollment_date": policy.enroll_date}
+                current_policy = InsureePolicy(**current_policy_dict)
+                current_policy.save()
+
+    def _create_or_update(self, insuree, photo_data=None):
         validate_insuree(insuree)
         if insuree.id:
-            filters = Q(id = insuree.id )
+            filters = Q(id=insuree.id)
             # remove it from now3 to avoid id at creation
             insuree.id = None
         elif insuree.uuid:
-            filters = Q(uuid = (insuree.uuid) )
+            filters = Q(uuid=(insuree.uuid))
         else:
-            filters = None   
+            filters = None
         existing_insuree = Insuree.objects.filter(filters).prefetch_related(
-                    "photo").first() if filters else None
+            "photo").first() if filters else None
         if existing_insuree:
             existing_insuree.save_history()
             insuree.id = existing_insuree.id
@@ -332,8 +361,6 @@ class InsureeService:
                 insuree.photo_date = photo.date
                 insuree.save()
         return insuree
-            
-
 
     def remove(self, insuree):
         try:
@@ -415,12 +442,16 @@ class FamilyService:
         self.user = user
 
     def create_or_update(self, data):
-        # this should be in the mutation file
-        head_insuree_data = data.pop('head_insuree')
-        head_insuree_data["head"] = True
-        head_insuree = InsureeService(
-            self.user).create_or_update(head_insuree_data)
-        data["head_insuree"] = head_insuree
+        head_insuree_data = data.pop('head_insuree', None)
+        
+        if head_insuree_data:
+            head_insuree_data["head"] = True
+            head_insuree = InsureeService(
+                self.user).create_or_update(head_insuree_data)
+            data["head_insuree_id"] = head_insuree.id
+        
+        elif 'head_insuree_id' not in data:
+            raise Exception(f'no head insuree found')
         from core import datetime
 
         now = datetime.datetime.now()
@@ -429,34 +460,35 @@ class FamilyService:
         data['validity_from'] = now
         family = Family(**data)
         return self._create_or_update(family)
-        
+
     def _create_or_update(self, family):
         if family.id:
-            filters = Q(id = family.id )
+            filters = Q(id=family.id)
             # remove it from now3 to avoid id at creation
             family.id = None
         elif family.uuid:
-            filters = Q(uuid = (family.uuid) )
+            filters = Q(uuid=(family.uuid))
         else:
-            filters = None   
-        existing_family = Family.objects.filter(*filter_validity(),filters).first() if filters else None            
+            filters = None
+        existing_family = Family.objects.filter(*filter_validity(), filters).first() if filters else None
         if existing_family:
             return self._update(existing_family, family)
         else:
             return self._create(family)
-        
+
     def _create(self, family):
         family.save()
         family.head_insuree.family = family
         family.head_insuree.save()
         return family
-        
-    def _update(self, existing_family, family):     
+
+    def _update(self, existing_family, family):
         existing_family.save_history()
         family.id = existing_family.id
         family.save()
-        head_insuree.family = family
-        head_insuree.save()
+        if family.head_insuree.family != family:
+            family.head_insuree.family = family
+            family.head_insuree.save()
         return family
 
     def set_deleted(self, family, delete_members):

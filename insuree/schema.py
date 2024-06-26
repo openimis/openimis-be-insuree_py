@@ -1,6 +1,7 @@
 import graphene
 
 from claim.apps import ClaimConfig
+from core.gql.export_mixin import ExportableQueryMixin
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
 from django.db.models import Q
@@ -58,7 +59,10 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
 
-class Query(graphene.ObjectType):
+class Query(ExportableQueryMixin, graphene.ObjectType):
+    exportable_fields = ['insurees']
+
+
     can_add_insuree = graphene.Field(
         graphene.List(graphene.String),
         family_id=graphene.Int(required=True),
@@ -275,7 +279,8 @@ class Query(graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u, prefix= 'location__parent__parent', loc_types = ['D'])]
+            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
+                                                                           prefix='location__parent__parent', loc_types=['D'])]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
@@ -311,10 +316,10 @@ class Query(graphene.ObjectType):
             f = "uuid"
             for i in range(len(LocationConfig.location_types) - parent_location_level - 1):
                 f = "parent__" + f
-            current_village = "current_village__" + f
-            family_location = "family__location__" + f
-            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
-                        (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+            current_village = "insuree__current_village__" + f
+            family_location = "insuree__family__location__" + f
+            filters += [(Q(insuree__current_village__isnull=False) & Q(**{current_village: parent_location})) |
+                        (Q(insuree__current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(InsureePolicy.objects.filter(*filters).all(), info)
 
 
@@ -413,19 +418,24 @@ def bind_signals():
 
 
 def _insuree_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_policy_query)
+    return _get_additional_filter(sender or Insuree, additional_filter, user, signal_before_insuree_policy_query)
+
 
 def _insuree_insuree_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_insuree_search_query)
+    return _get_additional_filter(sender or InsureePolicy, additional_filter, user, signal_before_insuree_search_query)
 
 
 def _family_additional_filters(sender, additional_filter, user):
-    return _get_additional_filter(sender, additional_filter, user, signal_before_family_query)
+    return _get_additional_filter(sender or Family, additional_filter, user, signal_before_family_query)
 
 
 def _get_additional_filter(sender, additional_filter, user, signal: Signal):
     # function to retrieve additional filters from signal
     filters_from_signal = []
+
+    if sender is None:
+        raise Exception("Missing sender")
+
     if additional_filter:
         # send signal to append additional filter
         results_signal = signal.send(

@@ -3,7 +3,9 @@ from insuree.models import Insuree, Family, Gender, InsureePhoto
 from insuree.services import validate_insuree_number
 from location.models import Location
 import random
-
+import re
+from datetime import datetime
+    
 def create_test_insuree(with_family=True, is_head=False, custom_props=None, family_custom_props=None):
     # insuree has a mandatory reference to family and family has a mandatory reference to insuree
     # So we first insert the family with a dummy id and then update it
@@ -41,7 +43,7 @@ def create_test_insuree(with_family=True, is_head=False, custom_props=None, fami
 
         
         insuree = Insuree.objects.create(
-                last_name = get_from_custom_props(custom_props, 'last_name',"last" ),
+                last_name = get_from_custom_props(custom_props, 'last_name',"Test Last" ),
                 other_names= get_from_custom_props(custom_props, 'other_names', "First Second"),
                 family= family,
                 gender= get_from_custom_props(custom_props, 'gender', Gender.objects.get(code='M')),
@@ -106,7 +108,17 @@ l6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5e
 iiigD//2Q==
 """
 def get_from_custom_props( custom_props, elm, default):
-    return custom_props.pop(elm) if custom_props and elm in custom_props else default
+
+    value= custom_props.pop(elm) if custom_props and elm in custom_props else default
+
+    regex = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+    regex_dt = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$")
+    if isinstance(value, str) and regex.match(value):
+        value = datetime.strptime(value, "%Y-%m-%d")
+    elif isinstance(value, str) and regex_dt.match(value):
+        value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+    return value
+    
 
 def create_test_photo(insuree_id, officer_id, custom_props=None):
     photo = InsureePhoto.objects.create(
