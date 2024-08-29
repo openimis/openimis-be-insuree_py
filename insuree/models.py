@@ -41,8 +41,8 @@ class InsureePhoto(core_models.VersionedModel):
     # Support of BinaryField is database-related: prefer to stick to b64-encoded
     photo = models.TextField(blank=True, null=True)
     # No FK in database (so value may not be an existing officer.id !)
-    officer_id = models.IntegerField(db_column='OfficerID')
-    date = core.fields.DateField(db_column='PhotoDate')
+    officer_id = models.IntegerField(db_column='OfficerID', blank=True, null=True)
+    date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     audit_user_id = models.IntegerField(
         db_column='AuditUserID', blank=True, null=True)
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
