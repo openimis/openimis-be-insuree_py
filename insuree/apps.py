@@ -38,7 +38,8 @@ DEFAULT_CFG = {
     "insuree_fsp_mandatory": False,
     "insuree_as_worker": False,
     "is_insuree_photo_required": False,
-    "custom_chif_id": False
+    "custom_chif_id": False,
+    "use_contextual_enrolment_officer_selection": False
 }
 
 
@@ -77,6 +78,7 @@ class InsureeConfig(AppConfig):
     insuree_as_worker = None
     is_insuree_photo_required = None
     custom_chif_id= None
+    use_contextual_enrolment_officer_selection = None
 
     def __load_config(self, cfg):
         for field in cfg:
