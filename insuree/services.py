@@ -363,7 +363,9 @@ class InsureeService:
                         data["chf_id"] = str(nin) + str(formatted_num)
                 insuree = Insuree(**data)
                 # insuree = Insuree.objects.create(**data)
-            self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
+            add_on_existing_policy = data.get('add_on_existing_policy', False)
+            if add_on_existing_policy:
+                self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
         if "uuid" not in data:
             if InsureeConfig.custom_chif_id:
                 chfid_total_length = 12
