@@ -150,6 +150,11 @@ def reset_insuree_before_update(insuree):
     insuree.type_of_id = None
     insuree.health_facility = None
     insuree.offline = None
+    insuree.housing_type = None
+    insuree.non_disabling_disease = None
+    insuree.no_disability = None
+    insuree.mutual_insurance_coverage = None
+    insuree.residence_environment = None
     insuree.json_ext = None
 
 
@@ -383,10 +388,12 @@ class InsureeService:
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
 
+        
         if not insuree:
             insuree = Insuree(**data)
         else:
             self._update(insuree, data)
+            
         return self._create_or_update(insuree, photo_data)
 
     def disable_policies_of_insuree(self, insuree, status_date):
@@ -503,7 +510,8 @@ class InsureeService:
         # (each update is 'complete', necessary to be able to set 'null')
         reset_insuree_before_update(insuree)
         [setattr(insuree, key, data[key]) for key in data]
-    
+
+
     def cancel_policies(self, insuree):
         try:
             from core import datetime

@@ -110,10 +110,12 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         family_uuid=graphene.String(required=True),
         orderBy=graphene.List(of_type=graphene.String),
     )
+    
     insuree_officers = DjangoFilterConnectionField(
         OfficerGQLType,
         location_id=graphene.String()
     ) 
+
     insuree_policy = OrderedDjangoFilterConnectionField(
         InsureePolicyGQLType,
         parent_location=graphene.String(),
@@ -126,6 +128,28 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         insuree_number=graphene.String(required=True),
         description="Checks that the specified insuree number is valid"
     )
+
+    noDisabilityOptions = graphene.List(NoDisabilityGQLType)
+    nonDisablingDiseaseOptions = graphene.List(NondisablingDiseaseGQLType)
+    mutualInsuranceCoverageOptions = graphene.List(MutualInsuranceCoverageGQLType)
+    housingTypeOptions = graphene.List(HousingTypeGQLType)
+    residenceEnvironmentOptions = graphene.List(ResidenceEnvironmentGQLType)
+
+    def resolve_noDisabilityOptions(self, info, **kwargs):
+        return NoDisability.objects.all()
+
+    def resolve_nonDisablingDiseaseOptions(self, info, **kwargs):
+        return NonDisablingDisease.objects.all()
+
+    def resolve_mutualInsuranceCoverageOptions(self, info, **kwargs):
+        return MutualInsuranceCoverage.objects.all()
+
+    def resolve_housingTypeOptions(self, info, **kwargs):
+        return HousingType.objects.all()
+
+    def resolve_residenceEnvironmentOptions(self, info, **kwargs):
+        return ResidenceEnvironment.objects.all()
+
 
     def resolve_insuree_number_validity(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -310,10 +334,10 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
     def resolve_insuree_officers(self, info, location_id=None, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
-        
         if InsureeConfig.use_contextual_enrolment_officer_selection:
+          
             return _get_contextual_insuree_officers(info, location_id=location_id, **kwargs)
-       
+        
     def resolve_insuree_policy(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
             raise PermissionDenied(_("unauthorized"))
