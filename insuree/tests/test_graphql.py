@@ -4,7 +4,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from django.utils.translation import gettext as _
-from core.models import User, filter_validity
+from core.models import User, filter_validity, Role, Officer
 from core.models.openimis_graphql_test_case import openIMISGraphQLTestCase
 from core.test_helpers import create_test_interactive_user
 from django.conf import settings
@@ -16,6 +16,9 @@ from rest_framework import status
 from insuree.test_helpers import create_test_insuree, update_test_insuree
 from location.test_helpers import create_test_location, create_test_health_facility, create_test_village
 from insuree.models import Family
+from insuree.apps import InsureeConfig
+from unittest.mock import patch
+from core.test_helpers import create_test_officer
 
 
 # from openIMIS import schema
@@ -41,7 +44,7 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         super().setUpClass()
         
         # Créer les districts nécessaires
-        district_codes = ["R1D1", "R2D1", "R2D2"]
+        district_codes = ["710101", "710102", "720101"]
         for code in district_codes:
             create_test_location(
                 loc_type="D",
@@ -55,9 +58,16 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         cls.ca_user = create_test_interactive_user(username="testLocationNoRight", roles=[9])
         cls.ca_token = get_token(cls.ca_user, DummyContext(user=cls.ca_user))
         cls.admin_dist_user = create_test_interactive_user(username="testLocationDist")
-        assign_user_districts(cls.admin_dist_user, ["R1D1", "R2D1", "R2D2", "R2D1", cls.test_village.parent.parent.code])
+        assign_user_districts(cls.admin_dist_user, ["710101", "710102", "720101", cls.test_village.parent.parent.code])
         cls.admin_dist_token = get_token(cls.admin_dist_user, DummyContext(user=cls.admin_dist_user))
         cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
+        cls.eo_user = create_test_interactive_user(username="Positif")
+        cls.non_eo_user = create_test_interactive_user(username="NonEo", roles = [7, 2, 3, 4, 5, 6])
+        cls.eo_token = get_token(cls.eo_user, DummyContext(user=cls.eo_user))
+        cls.non_eo_token = get_token(cls.non_eo_user, DummyContext(user=cls.non_eo_user))
+        cls.test_officer = create_test_officer(villages = [cls.test_village], custom_props={'code':"Positif",'last_name':"Positif",'other_names':"Le"})
+        cls.eo_user.officer = cls.test_officer
+        cls.eo_user.save()
 
     def test_query_insuree_number_validity(self):
         response = self.query(
@@ -488,3 +498,84 @@ query GetInsureeInquire($chfId: String) {
         # Check that the CHFID remains unchanged and the last name has been updated
         self.assertEqual(updated.chf_id, chfid)
         self.assertEqual(updated.last_name, "Updated")
+
+    def test_insuree_officers_query(self):
+      # Enable contextual filtering in the configuration
+      with patch.object(InsureeConfig, 'use_contextual_enrolment_officer_selection', True):
+          # Case 1: EO user, should return only themselves
+          response = self.query(
+              '''
+              query {
+                  insureeOfficers {
+                      edges {
+                          node {
+                              id
+                              uuid
+                              code
+                              lastName
+                              otherNames
+                          }
+                      }
+                  }
+              }
+              ''',
+              headers={"HTTP_AUTHORIZATION": f"Bearer {self.eo_token}"},
+          )
+          content = json.loads(response.content)
+          self.assertResponseNoErrors(response)
+          officers = content['data']['insureeOfficers']['edges']
+          self.assertEqual(len(officers), 1, "Expected exactly one officer for EO user")
+          self.assertEqual(officers[0]['node']['code'], "Positif", "Expected officer to be the EO user")
+
+          # Case 2: Non-EO user with location_id (village with officer)
+          response = self.query(
+              '''
+              query ($locationId: String!) {
+                  insureeOfficers(locationId: $locationId) {
+                      edges {
+                          node {
+                              id
+                              uuid
+                              code
+                              lastName
+                              otherNames
+                          }
+                      }
+                  }
+              }
+              ''',
+              headers={"HTTP_AUTHORIZATION": f"Bearer {self.non_eo_token}"},
+              variables={"locationId": str(self.test_village.id)},
+          )
+          content = json.loads(response.content)
+          self.assertResponseNoErrors(response)
+          officers = content['data']['insureeOfficers']['edges']
+          self.assertEqual(len(officers), 1, "Expected one officer associated with the village")
+          self.assertEqual(officers[0]['node']['code'], "Positif", "Expected officer associated with the village")
+
+          # Case 3: Non-EO user without location_id or village without officer
+          another_village = create_test_village(custom_props={"code": "ANOTHER"})
+          response = self.query(
+              '''
+              query ($locationId: String!) {
+                  insureeOfficers(locationId: $locationId) {
+                      edges {
+                          node {
+                              id
+                              uuid
+                              code
+                              lastName
+                              otherNames
+                          }
+                      }
+                  }
+              }
+              ''',
+              headers={"HTTP_AUTHORIZATION": f"Bearer {self.non_eo_token}"},
+              variables={"locationId": str(another_village.id)},
+          )
+          content = json.loads(response.content)
+          self.assertResponseNoErrors(response)
+          officers = content['data']['insureeOfficers']['edges']
+          self.assertGreaterEqual(len(officers), 1, "Expected at least one officer (all valid EOs)")
+          self.assertTrue(any(o['node']['code'] == "Positif" for o in officers), "Expected test officer in the list")
