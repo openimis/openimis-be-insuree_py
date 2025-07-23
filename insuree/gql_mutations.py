@@ -16,6 +16,7 @@ from .models import Family, Insuree, FamilyMutation, InsureeMutation
 logger = logging.getLogger(__name__)
 
 
+
 class PhotoInputType(InputObjectType):
     id = graphene.Int(required=False, read_only=True)
     uuid = graphene.String(required=False)
@@ -70,6 +71,11 @@ class InsureeBase:
     income_level_id = graphene.Int(required=False)
     professional_situation = graphene.String(max_length=255, required=False)
     bank_coordinates = graphene.String(max_length=255, required=False)
+    residence_environment_id = graphene.Int(required=True)   
+    housing_type_id = graphene.Int(required=True)            
+    mutual_insurance_coverage_id = graphene.Int(required=True)  
+    no_disability_id = graphene.Int(required=True)            
+    non_disabling_disease_id = graphene.Int(required=True)    
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
