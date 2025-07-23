@@ -44,7 +44,7 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         super().setUpClass()
         
         # Créer les districts nécessaires
-        district_codes = ["R1D1", "R2D1", "R2D2"]
+        district_codes = ["710101", "710102", "720101"]
         for code in district_codes:
             create_test_location(
                 loc_type="D",
@@ -58,7 +58,7 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         cls.ca_user = create_test_interactive_user(username="testLocationNoRight", roles=[9])
         cls.ca_token = get_token(cls.ca_user, DummyContext(user=cls.ca_user))
         cls.admin_dist_user = create_test_interactive_user(username="testLocationDist")
-        assign_user_districts(cls.admin_dist_user, ["R1D1", "R2D1", "R2D2", "R2D1", cls.test_village.parent.parent.code])
+        assign_user_districts(cls.admin_dist_user, ["710101", "710102", "720101", cls.test_village.parent.parent.code])
         cls.admin_dist_token = get_token(cls.admin_dist_user, DummyContext(user=cls.admin_dist_user))
         cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
         cls.eo_user = create_test_interactive_user(username="Positif")
