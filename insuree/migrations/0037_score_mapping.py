@@ -5,8 +5,8 @@ from contribution_plan.models import ContributionPlan
 
 def populate_scores(apps, schema_editor):
 
-    min_score=[0,2.5,3.75,5,6.25,7.5,9.75,10]
-    max_score=[2.5,3.75,5,6.25,7.5,9.75,10,999999]
+    min_score=[1,2.5,3.75,5,6.25,7.5,8.75,10]
+    max_score=[2.25,3.5,4.75,6,7.25,8.5,9.75,11.25]
     contrib_code=['AMOG','AMOE','AMOS','AMOS1','AMOS2','AMOS3','AMOS4','AMS']
 
     for i in range(len(contrib_code)):
