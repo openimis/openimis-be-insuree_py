@@ -316,8 +316,8 @@ class FamilySizeScores(models.Model):
 
 class ScoreContributionMapping(models.Model):
     id = models.AutoField(db_column='ScoreContributionMappingId', primary_key=True)
-    lower_born = models.IntegerField(db_column='LowerBorn')
-    higher_born= models.IntegerField(db_column='HigherBorn')
+    lower_born = models.DecimalField(db_column='LowerBorn', max_digits=10, decimal_places=2)
+    higher_born = models.DecimalField(db_column='HigherBorn', max_digits=10, decimal_places=2)
     contribution_plan = models.ForeignKey(ContributionPlan, models.DO_NOTHING,
                                 db_column='ContributionPlanID', 
                                 blank=True, null=True,)
