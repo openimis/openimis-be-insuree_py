@@ -313,6 +313,15 @@ class FamilySizeScores(models.Model):
         managed = True
         db_table = 'tblFamilySizeScores'
 
+class FamilyIncomeScores(models.Model):
+    id = models.AutoField(db_column='FamilyIncomeScoresId', primary_key=True)
+    lower_born = models.IntegerField(db_column='LowerBorn')
+    higher_born= models.IntegerField(db_column='HigherBorn')
+    score=models.IntegerField(db_column='Score')
+    class Meta:
+        managed = True
+        db_table = 'tblFamilyIncomeScores'
+
 
 class ScoreContributionMapping(models.Model):
     id = models.AutoField(db_column='ScoreContributionMappingId', primary_key=True)
@@ -397,7 +406,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel, BaseInsur
     no_disability = models.ForeignKey(NoDisability, models.DO_NOTHING, db_column='NoDisability', blank=True, null=True)
     mutual_insurance_coverage = models.ForeignKey(MutualInsuranceCoverage, models.DO_NOTHING, db_column='MutualInsuranceCoverage', blank=True, null=True)
     residence_environment = models.ForeignKey(ResidenceEnvironment, models.DO_NOTHING, db_column='ResidenceEnvironment', blank=True, null=True)
-
+    fix_income=models.DecimalField(db_column='FixIncome', max_digits=10, decimal_places=2, blank=True, null=True)
 
     def is_head_of_family(self):
         return self.family and self.family.head_insuree == self
