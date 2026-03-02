@@ -10,6 +10,8 @@ from graphql import ResolveInfo
 from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import LocationManager
+# from policy.models import Policy
+from contribution_plan.models import ContributionPlan
 from django.utils import timezone as django_tz
 
 
@@ -75,6 +77,8 @@ class IncomeLevels(models.Model):
     id  = models.AutoField(db_column='IncomeLevelID', primary_key=True)
     first_language = models.CharField(db_column='FirstLanguage', max_length=200, blank=True, null=True)
     second_language = models.CharField(db_column='SecondLanguage', max_length=200, blank=True, null=True)
+    score=models.IntegerField(db_column='Score', blank=True, null=True)
+
     class Meta:
         managed = True
         db_table = 'tblIncomeLevels'
@@ -283,6 +287,7 @@ class HousingType(models.Model):
     housing_type = models.CharField(db_column='HousingType', max_length=150, blank=True, null=True)
     alt_language = models.CharField(db_column='AltLanguage', max_length=150, blank=True, null=True)
     sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
+    score=models.IntegerField(db_column='Score', blank=True, null=True)
 
     class Meta:
         managed = True
@@ -299,6 +304,35 @@ class ResidenceEnvironment(models.Model):
         managed = True
         db_table = 'tblResidenceEnvironment'
 
+class FamilySizeScores(models.Model):
+    id = models.AutoField(db_column='FamilySizeScoresId', primary_key=True)
+    lower_born = models.IntegerField(db_column='LowerBorn')
+    higher_born= models.IntegerField(db_column='HigherBorn')
+    score=models.IntegerField(db_column='Score')
+    class Meta:
+        managed = True
+        db_table = 'tblFamilySizeScores'
+
+class FamilyIncomeScores(models.Model):
+    id = models.AutoField(db_column='FamilyIncomeScoresId', primary_key=True)
+    lower_born = models.IntegerField(db_column='LowerBorn')
+    higher_born= models.IntegerField(db_column='HigherBorn')
+    score=models.IntegerField(db_column='Score')
+    class Meta:
+        managed = True
+        db_table = 'tblFamilyIncomeScores'
+
+
+class ScoreContributionMapping(models.Model):
+    id = models.AutoField(db_column='ScoreContributionMappingId', primary_key=True)
+    lower_born = models.DecimalField(db_column='LowerBorn', max_digits=10, decimal_places=2)
+    higher_born = models.DecimalField(db_column='HigherBorn', max_digits=10, decimal_places=2)
+    contribution_plan = models.ForeignKey(ContributionPlan, models.DO_NOTHING,
+                                db_column='ContributionPlanID', 
+                                blank=True, null=True,)
+    class Meta:
+        managed = True
+        db_table = 'ScoreContributionMapping'
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel, BaseInsureeFamily):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
@@ -372,7 +406,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel, BaseInsur
     no_disability = models.ForeignKey(NoDisability, models.DO_NOTHING, db_column='NoDisability', blank=True, null=True)
     mutual_insurance_coverage = models.ForeignKey(MutualInsuranceCoverage, models.DO_NOTHING, db_column='MutualInsuranceCoverage', blank=True, null=True)
     residence_environment = models.ForeignKey(ResidenceEnvironment, models.DO_NOTHING, db_column='ResidenceEnvironment', blank=True, null=True)
-
+    fix_income=models.DecimalField(db_column='FixIncome', max_digits=10, decimal_places=2, blank=True, null=True)
 
     def is_head_of_family(self):
         return self.family and self.family.head_insuree == self
