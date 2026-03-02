@@ -76,6 +76,7 @@ class InsureeBase:
     mutual_insurance_coverage_id = graphene.Int(required=True)  
     no_disability_id = graphene.Int(required=True)            
     non_disabling_disease_id = graphene.Int(required=True)    
+    fix_income = graphene.Decimal(required=True)
 
 
 class CreateInsureeInputType(InsureeBase, OpenIMISMutation.Input):
