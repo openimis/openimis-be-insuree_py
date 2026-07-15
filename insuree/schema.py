@@ -62,6 +62,22 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
                            **members_filters)
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
+def make_own_and_child_exists(status=None, **extra_filters):
+    """
+    Retourne un tuple (Exists sur famille elle-même, Exists sur familles enfants),
+    à combiner ensuite avec un OR au niveau du queryset principal.
+    """
+    base_filters = {'validity_to__isnull': True, **extra_filters}
+    if status is not None:
+        base_filters['status'] = status
+
+    own_policy = Policy.objects.filter(
+        family=OuterRef('pk'), **base_filters
+    )
+    child_policy = Policy.objects.filter(
+        family__parent=OuterRef('pk'), **base_filters
+    )
+    return Exists(own_policy), Exists(child_policy)
 
 class Query(ExportableQueryMixin, graphene.ObjectType):
     exportable_fields = ['insurees']
@@ -386,51 +402,30 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             return gql_optimizer.query(dinstinct_queryset.all(), info)
         fixed_number_of_months = InsureeConfig.number_of_months_for_suspended_policy
         today = datetime.now().date()
-        # Approximation mois = 30 jours (cohérent avec la logique précédente)
         threshold_date = today - timedelta(days=fixed_number_of_months * 30)
 
         if affiliation_type == 'affiliated':
-            idle_policies = Policy.objects.filter(
-                family=OuterRef('pk'),
-                validity_to__isnull=True,
-                status=Policy.STATUS_IDLE
-            )
-            dinstinct_queryset = dinstinct_queryset.filter(Exists(idle_policies))
+            own_exists, child_exists = make_own_and_child_exists(status=Policy.STATUS_IDLE)
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
 
         elif affiliation_type == 'insured':
-            active_policies = Policy.objects.filter(
-                family=OuterRef('pk'),
-                validity_to__isnull=True,
-                status=Policy.STATUS_ACTIVE
-            )
-            dinstinct_queryset = dinstinct_queryset.filter(Exists(active_policies))
+            own_exists, child_exists = make_own_and_child_exists(status=Policy.STATUS_ACTIVE)
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
 
         elif affiliation_type == 'preaffiliated':
-            #Cas 1: police expirée pas encore définitivement expirée + aucune police
-            recent_suspended_policies = Policy.objects.filter(
-                family=OuterRef('pk'),
-                validity_to__isnull=True,
-                status=Policy.STATUS_EXPIRED,
-                expiry_date__gt=threshold_date
+            own_exists, child_exists = make_own_and_child_exists(
+                status=Policy.STATUS_EXPIRED, expiry_date__gt=threshold_date
             )
-            # Cas 2 : la famille n'a aucune police (validity_to__isnull=True)
-            any_policy = Policy.objects.filter(
-                family=OuterRef('pk')
-            )
-
+            own_any, child_any = make_own_and_child_exists()  # sans status, pour "aucune police"
             dinstinct_queryset = dinstinct_queryset.filter(
-                Q(Exists(recent_suspended_policies)) | Q(~Exists(any_policy))
+                Q(own_exists) | Q(child_exists) | (~Q(own_any) & ~Q(child_any))
             )
 
         elif affiliation_type == 'suspended':
-            # Définitivement expiré : elapsed >= X mois <=> expiry_date <= threshold_date
-            old_suspended_policies = Policy.objects.filter(
-                family=OuterRef('pk'),
-                validity_to__isnull=True,
-                status=Policy.STATUS_EXPIRED,
-                expiry_date__lte=threshold_date
+            own_exists, child_exists = make_own_and_child_exists(
+                status=Policy.STATUS_EXPIRED, expiry_date__lte=threshold_date
             )
-            dinstinct_queryset = dinstinct_queryset.filter(Exists(old_suspended_policies))
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
 
         return gql_optimizer.query(dinstinct_queryset.all(), info)
 
