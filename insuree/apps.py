@@ -40,7 +40,7 @@ DEFAULT_CFG = {
     "is_insuree_photo_required": False,
     "custom_chif_id": False,
     "use_contextual_enrolment_officer_selection": False,
-    "number_of_months_for_suspended_policy": 8
+    "number_of_months_for_suspended_policy": 4
 }
 
 
