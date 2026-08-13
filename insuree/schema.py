@@ -27,8 +27,8 @@ from .gql_mutations import *  # lgtm [py/polluting-import]
 from .signals import signal_before_insuree_policy_query, _read_signal_results, \
     signal_before_family_query, signal_before_insuree_search_query
 from django.db.models import Exists, OuterRef
-from datetime import timedelta
-from datetime import datetime
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 def family_fk(arg):
     return arg.startswith("members_") or arg.startswith("head_insuree_")
@@ -253,9 +253,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         if not affiliation_type:
             return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
         fixed_number_of_months = InsureeConfig.number_of_months_for_suspended_policy
-        today = datetime.now().date()
-        # Approximation mois = 30 jours (cohérent avec la logique précédente)
-        threshold_date = today - timedelta(days=fixed_number_of_months * 30)
+        today = date.today()
+        threshold_date = today - relativedelta(months=fixed_number_of_months)
         if affiliation_type == 'affiliated':
             idle_policies = Policy.objects.filter(
                 family=OuterRef('family'),
@@ -278,7 +277,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
                 family=OuterRef('family'),
                 validity_to__isnull=True,
                 status=Policy.STATUS_EXPIRED,
-                expiry_date__gt=threshold_date
+                expiry_date__lte=threshold_date
             )
             # Cas 2 : aucune police du tout, jamais
             any_policy = Policy.objects.filter(
@@ -289,12 +288,12 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             )
 
         elif affiliation_type == 'suspended':
-            # Définitivement expirée : expiry_date <= threshold_date
+            # On cherche les polices expirées entre il y a 8 mois et aujourd'hui
             old_expired_policies = Policy.objects.filter(
                 family=OuterRef('family'),
                 validity_to__isnull=True,
                 status=Policy.STATUS_EXPIRED,
-                expiry_date__lte=threshold_date
+                expiry_date__gte=threshold_date          # Déjà expirée (au plus tard aujourd'hui)
             )
             filters.append(Exists(old_expired_policies))
 
@@ -401,8 +400,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         if not affiliation_type:
             return gql_optimizer.query(dinstinct_queryset.all(), info)
         fixed_number_of_months = InsureeConfig.number_of_months_for_suspended_policy
-        today = datetime.now().date()
-        threshold_date = today - timedelta(days=fixed_number_of_months * 30)
+        today = date.today()
+        threshold_date = today - relativedelta(months=fixed_number_of_months)
 
         if affiliation_type == 'affiliated':
             own_exists, child_exists = make_own_and_child_exists(status=Policy.STATUS_IDLE)
@@ -414,7 +413,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         elif affiliation_type == 'preaffiliated':
             own_exists, child_exists = make_own_and_child_exists(
-                status=Policy.STATUS_EXPIRED, expiry_date__gt=threshold_date
+                status=Policy.STATUS_EXPIRED, expiry_date__lte=threshold_date
             )
             own_any, child_any = make_own_and_child_exists()  # sans status, pour "aucune police"
             dinstinct_queryset = dinstinct_queryset.filter(
@@ -423,7 +422,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         elif affiliation_type == 'suspended':
             own_exists, child_exists = make_own_and_child_exists(
-                status=Policy.STATUS_EXPIRED, expiry_date__lte=threshold_date
+                status=Policy.STATUS_EXPIRED, expiry_date__gte=threshold_date
             )
             dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
 
