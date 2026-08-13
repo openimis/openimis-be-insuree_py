@@ -10,6 +10,9 @@ from graphql import ResolveInfo
 from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import LocationManager
+# from policy.models import Policy
+from contribution_plan.models import ContributionPlan
+from django.utils import timezone as django_tz
 
 
 class Gender(models.Model):
@@ -70,6 +73,15 @@ class FamilyType(models.Model):
         managed = True
         db_table = 'tblFamilyTypes'
 
+class IncomeLevels(models.Model):
+    id  = models.AutoField(db_column='IncomeLevelID', primary_key=True)
+    first_language = models.CharField(db_column='FirstLanguage', max_length=200, blank=True, null=True)
+    second_language = models.CharField(db_column='SecondLanguage', max_length=200, blank=True, null=True)
+    score=models.IntegerField(db_column='Score', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblIncomeLevels'
 
 class ConfirmationType(models.Model):
     code = models.CharField(
@@ -86,8 +98,27 @@ class ConfirmationType(models.Model):
         managed = True
         db_table = 'tblConfirmationTypes'
 
+class FamilyLevels(models.TextChoices):
+    ONE = "1", "1"
+    TWO = "2", "2"
 
-class Family(core_models.VersionedModel, core_models.ExtendableModel):
+class BaseInsureeFamily(models.Model):
+    coordinates = models.CharField(
+        db_column='Coordinates', max_length=255, blank=True, null=True)
+    preferred_payment_method = models.CharField(
+        db_column='PreferredPaymentMethod', max_length=50, blank=True, null=True)
+    income_level = models.ForeignKey(
+        IncomeLevels, models.DO_NOTHING, db_column='IncomeLevel', blank=True, null=True)
+    professional_situation = models.CharField(
+        db_column='ProfessionalSituation', max_length=255, blank=True, null=True)
+    bank_coordinates = models.CharField(
+        db_column='BankCoordinates', max_length=255, blank=True, null=True)
+    audit_user_id = models.IntegerField(db_column='AuditUserID')
+
+    class Meta:
+        abstract = True
+
+class Family(core_models.VersionedModel, core_models.ExtendableModel, BaseInsureeFamily):
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -113,9 +144,13 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         ConfirmationType,
         models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True,
         related_name='families')
-    audit_user_id = models.IntegerField(db_column='AuditUserID')
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
-
+    parent = models.ForeignKey(
+        'Family', models.DO_NOTHING, db_column='ParentFamily', blank=True, null=True)
+    family_level = models.CharField(db_column='FamilyLevel', choices=FamilyLevels.choices, max_length=1, default=FamilyLevels.ONE)
+    polygamous = models.BooleanField(
+        db_column='PolygamousFamily', blank=True, null=True)
+    
     def __str__(self):
         return str(self.head_insuree)
 
@@ -147,7 +182,6 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     class Meta:
         managed = True
         db_table = 'tblFamilies'
-
 
 class Profession(models.Model):
     id = models.SmallIntegerField(db_column='ProfessionId', primary_key=True)
@@ -215,8 +249,92 @@ class InsureeStatusReason(core_models.VersionedModel):
         managed = True
         db_table = 'tblInsureeStatusReason'
 
+class NonDisablingDisease(models.Model):
+    code = models.IntegerField(db_column='Code', primary_key=True)
+    non_disabling_disease = models.CharField(db_column='NonDisablingDisease', max_length=100, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=100, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
 
-class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
+    class Meta:
+        managed = True
+        db_table = 'tblNonDisablingDisease'
+
+
+class NoDisability(models.Model):
+    code = models.IntegerField(db_column='Code', primary_key=True)
+    no_disability_label = models.CharField(db_column='NoDisabilityLabel', max_length=100, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=100, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblNoDisability'
+
+
+class MutualInsuranceCoverage(models.Model):
+    code = models.IntegerField(db_column='Code', primary_key=True)
+    mutual_insurance_coverage = models.CharField(db_column='MutualInsuranceCoverage', max_length=150, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=150, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblMutualInsuranceCoverage'
+
+
+class HousingType(models.Model):
+    code = models.IntegerField(db_column='Code', primary_key=True)
+    housing_type = models.CharField(db_column='HousingType', max_length=150, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=150, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
+    score=models.IntegerField(db_column='Score', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblHousingType'
+
+
+class ResidenceEnvironment(models.Model):
+    code = models.IntegerField(db_column='Code', primary_key=True)
+    residence_environment = models.CharField(db_column='ResidenceEnvironment', max_length=100, blank=True, null=True)
+    alt_language = models.CharField(db_column='AltLanguage', max_length=100, blank=True, null=True)
+    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblResidenceEnvironment'
+
+class FamilySizeScores(models.Model):
+    id = models.AutoField(db_column='FamilySizeScoresId', primary_key=True)
+    lower_born = models.IntegerField(db_column='LowerBorn')
+    higher_born= models.IntegerField(db_column='HigherBorn')
+    score=models.IntegerField(db_column='Score')
+    class Meta:
+        managed = True
+        db_table = 'tblFamilySizeScores'
+
+class FamilyIncomeScores(models.Model):
+    id = models.AutoField(db_column='FamilyIncomeScoresId', primary_key=True)
+    lower_born = models.IntegerField(db_column='LowerBorn')
+    higher_born= models.IntegerField(db_column='HigherBorn')
+    score=models.IntegerField(db_column='Score')
+    class Meta:
+        managed = True
+        db_table = 'tblFamilyIncomeScores'
+
+
+class ScoreContributionMapping(models.Model):
+    id = models.AutoField(db_column='ScoreContributionMappingId', primary_key=True)
+    lower_born = models.DecimalField(db_column='LowerBorn', max_digits=10, decimal_places=2)
+    higher_born = models.DecimalField(db_column='HigherBorn', max_digits=10, decimal_places=2)
+    contribution_plan = models.ForeignKey(ContributionPlan, models.DO_NOTHING,
+                                db_column='ContributionPlanID', 
+                                blank=True, null=True,)
+    class Meta:
+        managed = True
+        db_table = 'ScoreContributionMapping'
+
+class Insuree(core_models.VersionedModel, core_models.ExtendableModel, BaseInsureeFamily):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
 
@@ -281,8 +399,14 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
     status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
                                       blank=True, null=True, related_name='insurees')
-    audit_user_id = models.IntegerField(db_column='AuditUserID')
-    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
+    # row_id = models.BinaryField(db_column='RowID', blank=True, null=True) 
+
+    housing_type = models.ForeignKey(HousingType, models.DO_NOTHING, db_column='HousingType', blank=True, null=True)
+    non_disabling_disease = models.ForeignKey(NonDisablingDisease, models.DO_NOTHING, db_column='NonDisablingDisease', blank=True, null=True)
+    no_disability = models.ForeignKey(NoDisability, models.DO_NOTHING, db_column='NoDisability', blank=True, null=True)
+    mutual_insurance_coverage = models.ForeignKey(MutualInsuranceCoverage, models.DO_NOTHING, db_column='MutualInsuranceCoverage', blank=True, null=True)
+    residence_environment = models.ForeignKey(ResidenceEnvironment, models.DO_NOTHING, db_column='ResidenceEnvironment', blank=True, null=True)
+    fix_income=models.DecimalField(db_column='FixIncome', max_digits=10, decimal_places=2, blank=True, null=True)
 
     def is_head_of_family(self):
         return self.family and self.family.head_insuree == self
@@ -402,3 +526,32 @@ class PolicyRenewalDetail(core_models.VersionedModel):
     class Meta:
         managed = True
         db_table = 'tblPolicyRenewalDetails'
+        
+class FamilyAttachment(models.Model):
+    """ Class Attachment :
+    Class for families attachments
+    """
+    idAttachment = models.AutoField(
+        primary_key=True, db_column='idAttachment'
+    )
+    folder = models.CharField(db_column='Folder', max_length=250, null=True)
+    filename = models.CharField(db_column='FileName', max_length=250, null=True)
+    title = models.CharField(db_column='Title', max_length=250, null=True)
+    family = models.ForeignKey(
+        'Family',
+        models.DO_NOTHING,
+        db_column='FamilyID',
+        related_name="attachments"
+    )
+    date = core.fields.DateField(db_column='AttachmentDate',
+        null=True, blank=True
+    )
+    document = models.TextField(blank=False, null=False)
+    mime = models.CharField(db_column='Mime', max_length=250, null=False)
+
+    """ Class Meta :
+    Class Meta to define specific table
+    """
+
+    class Meta:
+        db_table = "tblAttachment"

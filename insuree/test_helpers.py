@@ -136,3 +136,19 @@ def create_test_photo(insuree_id, officer_id, custom_props=None):
     )
 
     return photo
+
+def update_test_insuree(insuree, update_props=None):
+    """
+    Updates the properties of an existing insuree.
+    """
+    if update_props is None:
+        update_props = {}
+
+    for attr, value in update_props.items():
+        if hasattr(insuree, attr):
+            setattr(insuree, attr, value)
+
+    insuree.full_clean()  
+    insuree.save()
+
+    return insuree

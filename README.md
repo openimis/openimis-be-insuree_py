@@ -79,6 +79,9 @@ Rights required:
   for adults (default: `60`)
 * renewal_photo_age_child": age (in months) of a picture due for renewal
   for children (default: `12`)
+* use_contextual_enrolment_officer_selection": Enables automatic assignment of 
+  the current user as the enrolment officer when uploading an insuree photo. If 'True', 
+  the officer is inferred from session; if 'False', manual selection remains available. (default: 'False)
 
 ## openIMIS Modules Dependencies
 * location.models.HealthFacility

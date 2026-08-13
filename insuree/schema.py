@@ -18,13 +18,17 @@ from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField, OfficerGQLType
 from core.gql_queries import ValidationMessageGQLType
 from policy.models import Policy
+from core.models import Officer, Role, UserRole
+from location.models import UserDistrict
 
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]
 from .gql_mutations import *  # lgtm [py/polluting-import]
 from .signals import signal_before_insuree_policy_query, _read_signal_results, \
     signal_before_family_query, signal_before_insuree_search_query
-
+from django.db.models import Exists, OuterRef
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 def family_fk(arg):
     return arg.startswith("members_") or arg.startswith("head_insuree_")
@@ -58,6 +62,22 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
                            **members_filters)
         return OrderedDjangoFilterConnectionField.orderBy(qs, args)
 
+def make_own_and_child_exists(status=None, **extra_filters):
+    """
+    Retourne un tuple (Exists sur famille elle-même, Exists sur familles enfants),
+    à combiner ensuite avec un OR au niveau du queryset principal.
+    """
+    base_filters = {'validity_to__isnull': True, **extra_filters}
+    if status is not None:
+        base_filters['status'] = status
+
+    own_policy = Policy.objects.filter(
+        family=OuterRef('pk'), **base_filters
+    )
+    child_policy = Policy.objects.filter(
+        family__parent=OuterRef('pk'), **base_filters
+    )
+    return Exists(own_policy), Exists(child_policy)
 
 class Query(ExportableQueryMixin, graphene.ObjectType):
     exportable_fields = ['insurees']
@@ -69,6 +89,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         description="Checks that the specified family id is allowed to add more insurees (like a Policy limitation)"
     )
     insuree_genders = graphene.List(GenderGQLType)
+    income_levels = graphene.List(IncomeLevelsGQLType)
     insurees = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
         show_history=graphene.Boolean(),
@@ -77,7 +98,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         client_mutation_id=graphene.String(),
         ignore_location=graphene.Boolean(),
         orderBy=graphene.List(of_type=graphene.String),
-        additional_filters=graphene.JSONString()
+        additional_filters=graphene.JSONString(),
+        affiliation_type=graphene.String()
     )
     identification_types = graphene.List(IdentificationTypeGQLType)
     educations = graphene.List(EducationGQLType)
@@ -98,14 +120,21 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         client_mutation_id=graphene.String(),
         orderBy=graphene.List(of_type=graphene.String),
         additional_filter=graphene.JSONString(),
-        officer=graphene.String()
+        officer=graphene.String(),
+        is_subfamily=graphene.Boolean(),
+        affiliation_type=graphene.String()
     )
     family_members = OrderedDjangoFilterConnectionField(
         InsureeGQLType,
         family_uuid=graphene.String(required=True),
         orderBy=graphene.List(of_type=graphene.String),
     )
-    insuree_officers = DjangoFilterConnectionField(OfficerGQLType)
+    
+    insuree_officers = DjangoFilterConnectionField(
+        OfficerGQLType,
+        location_id=graphene.String()
+    ) 
+
     insuree_policy = OrderedDjangoFilterConnectionField(
         InsureePolicyGQLType,
         parent_location=graphene.String(),
@@ -118,6 +147,28 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         insuree_number=graphene.String(required=True),
         description="Checks that the specified insuree number is valid"
     )
+
+    noDisabilityOptions = graphene.List(NoDisabilityGQLType)
+    nonDisablingDiseaseOptions = graphene.List(NondisablingDiseaseGQLType)
+    mutualInsuranceCoverageOptions = graphene.List(MutualInsuranceCoverageGQLType)
+    housingTypeOptions = graphene.List(HousingTypeGQLType)
+    residenceEnvironmentOptions = graphene.List(ResidenceEnvironmentGQLType)
+
+    def resolve_noDisabilityOptions(self, info, **kwargs):
+        return NoDisability.objects.all()
+
+    def resolve_nonDisablingDiseaseOptions(self, info, **kwargs):
+        return NonDisablingDisease.objects.all()
+
+    def resolve_mutualInsuranceCoverageOptions(self, info, **kwargs):
+        return MutualInsuranceCoverage.objects.all()
+
+    def resolve_housingTypeOptions(self, info, **kwargs):
+        return HousingType.objects.all()
+
+    def resolve_residenceEnvironmentOptions(self, info, **kwargs):
+        return ResidenceEnvironment.objects.all()
+
 
     def resolve_insuree_number_validity(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -155,6 +206,9 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
         return Gender.objects.order_by('sort_order').all()
+
+    def resolve_income_levels(self, info, **kwargs):
+        return IncomeLevels.objects.all()
 
     def resolve_insurees(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
@@ -194,6 +248,54 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             # Limit the list by the logged in user location mapping
             filters += [Q(LocationManager().build_user_location_filter_query(info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']) |
                         LocationManager().build_user_location_filter_query(info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']))]
+
+        affiliation_type = kwargs.get("affiliation_type", None)
+        if not affiliation_type:
+            return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
+        fixed_number_of_months = InsureeConfig.number_of_months_for_suspended_policy
+        today = date.today()
+        threshold_date = today - relativedelta(months=fixed_number_of_months)
+        if affiliation_type == 'affiliated':
+            idle_policies = Policy.objects.filter(
+                family=OuterRef('family'),
+                validity_to__isnull=True,
+                status=Policy.STATUS_IDLE
+            )
+            filters.append(Exists(idle_policies))
+
+        elif affiliation_type == 'insured':
+            active_policies = Policy.objects.filter(
+                family=OuterRef('family'),
+                validity_to__isnull=True,
+                status=Policy.STATUS_ACTIVE
+            )
+            filters.append(Exists(active_policies))
+
+        elif affiliation_type == 'preaffiliated':
+            # Cas 1 : police expirée, pas encore définitivement (dans les X derniers mois)
+            recent_expired_policies = Policy.objects.filter(
+                family=OuterRef('family'),
+                validity_to__isnull=True,
+                status=Policy.STATUS_EXPIRED,
+                expiry_date__lte=threshold_date
+            )
+            # Cas 2 : aucune police du tout, jamais
+            any_policy = Policy.objects.filter(
+                family=OuterRef('family')
+            )
+            filters.append(
+                Q(Exists(recent_expired_policies)) | Q(~Exists(any_policy))
+            )
+
+        elif affiliation_type == 'suspended':
+            # On cherche les polices expirées entre il y a 8 mois et aujourd'hui
+            old_expired_policies = Policy.objects.filter(
+                family=OuterRef('family'),
+                validity_to__isnull=True,
+                status=Policy.STATUS_EXPIRED,
+                expiry_date__gte=threshold_date          # Déjà expirée (au plus tard aujourd'hui)
+            )
+            filters.append(Exists(old_expired_policies))
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
@@ -248,6 +350,15 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             )
             filters.extend(filters_from_signal)
 
+        is_subfamily = kwargs.get('is_subfamily', None)
+        if is_subfamily is not None:
+            if is_subfamily:
+                filters.append(Q(parent_id__isnull=False))
+                
+        family_type = kwargs.get('family_type', None)
+        if family_type is not None:
+            filters.append(Q(family_type__code=family_type))
+
         officer = kwargs.get('officer', None)
         if officer:
             officer_policies_families = Policy.objects.filter(
@@ -285,12 +396,45 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
         dinstinct_queryset = Family.objects.filter(id__in=ids)
+        affiliation_type = kwargs.get("affiliation_type", None)
+        if not affiliation_type:
+            return gql_optimizer.query(dinstinct_queryset.all(), info)
+        fixed_number_of_months = InsureeConfig.number_of_months_for_suspended_policy
+        today = date.today()
+        threshold_date = today - relativedelta(months=fixed_number_of_months)
+
+        if affiliation_type == 'affiliated':
+            own_exists, child_exists = make_own_and_child_exists(status=Policy.STATUS_IDLE)
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
+
+        elif affiliation_type == 'insured':
+            own_exists, child_exists = make_own_and_child_exists(status=Policy.STATUS_ACTIVE)
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
+
+        elif affiliation_type == 'preaffiliated':
+            own_exists, child_exists = make_own_and_child_exists(
+                status=Policy.STATUS_EXPIRED, expiry_date__lte=threshold_date
+            )
+            own_any, child_any = make_own_and_child_exists()  # sans status, pour "aucune police"
+            dinstinct_queryset = dinstinct_queryset.filter(
+                Q(own_exists) | Q(child_exists) | (~Q(own_any) & ~Q(child_any))
+            )
+
+        elif affiliation_type == 'suspended':
+            own_exists, child_exists = make_own_and_child_exists(
+                status=Policy.STATUS_EXPIRED, expiry_date__gte=threshold_date
+            )
+            dinstinct_queryset = dinstinct_queryset.filter(Q(own_exists) | Q(child_exists))
+
         return gql_optimizer.query(dinstinct_queryset.all(), info)
 
-    def resolve_insuree_officers(self, info, **kwargs):
+    def resolve_insuree_officers(self, info, location_id=None, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
-
+        if InsureeConfig.use_contextual_enrolment_officer_selection:
+          
+            return _get_contextual_insuree_officers(info, location_id=location_id, **kwargs)
+        
     def resolve_insuree_policy(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
             raise PermissionDenied(_("unauthorized"))
@@ -333,6 +477,8 @@ class Mutation(graphene.ObjectType):
     remove_insurees = RemoveInsureesMutation.Field()
     set_family_head = SetFamilyHeadMutation.Field()
     change_insuree_family = ChangeInsureeFamilyMutation.Field()
+    move_families_to_parent_mutation = MoveFamilyToParentMutation.Field()
+    delete_families_from_parent_mutation = DeleteFamiliesFromParentMutation.Field()
 
 
 def on_family_mutation(kwargs, k='uuid'):
@@ -443,3 +589,32 @@ def _get_additional_filter(sender, additional_filter, user, signal: Signal):
         )
         filters_from_signal = _read_signal_results(results_signal)
     return filters_from_signal
+
+def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
+            raise PermissionDenied(_("unauthorized"))
+
+        user = info.context.user
+        i_user = getattr(user, '_u', None)
+        
+        if i_user:
+            user_roles = UserRole.objects.filter(user_id=i_user.id, validity_to__isnull=True)
+            roles = list(
+                Role.objects.filter(
+                    id__in=user_roles.values_list("role_id", flat=True),
+                    validity_to__isnull=True
+                ).values_list("name", flat=True)
+            )
+            # If the user is an Enrolment Officer (EO)
+            if "Enrolment Officer" in roles:
+                return Officer.objects.filter(id=user.officer.id, validity_to__isnull=True)
+            
+            # Non-EO user
+            if location_id:
+                officers = Officer.objects.filter(officer_villages__location__id=location_id, validity_to__isnull=True)
+
+                if officers.exists():
+                    return officers
+
+        # No officers found → return all valid EOs
+        return Officer.objects.filter(validity_to__isnull=True)

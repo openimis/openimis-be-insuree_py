@@ -2,8 +2,9 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .apps import InsureeConfig
-from .models import Insuree, InsureePhoto, Education, Profession, Gender, IdentificationType, \
-    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation, InsureeStatusReason
+from .models import Insuree, InsureePhoto, FamilyAttachment, Education, Profession, Gender, IdentificationType, \
+    Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation,\
+         InsureeStatusReason, IncomeLevels,NoDisability, NonDisablingDisease, MutualInsuranceCoverage, HousingType, ResidenceEnvironment
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
 from core import prefix_filterset, filter_validity, ExtendedConnection
@@ -39,6 +40,30 @@ class PhotoGQLType(DjangoObjectType):
             "id": ["exact"]
         }
 
+class AttachmentGQLType(DjangoObjectType):
+    document = graphene.String()
+
+    def resolve_attachment(self, info):
+        if self.document:
+            return self.document
+        elif InsureeConfig.insuree_photos_root_path and self.folder and self.filename:
+            return load_photo_file(self.folder, self.filename)
+        return None
+
+    class Meta:
+        model = FamilyAttachment
+        filter_fields = {
+            "id": ["exact"]
+        }
+class IncomeLevelsGQLType(DjangoObjectType):
+
+    class Meta:
+        model = IncomeLevels
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "id":["exact"]
+        }
+        connection_class = ExtendedConnection
 
 class IdentificationTypeGQLType(DjangoObjectType):
     class Meta:
@@ -104,10 +129,88 @@ class InsureeStatusReasonGQLType(DjangoObjectType):
         connection_class = ExtendedConnection
 
 
+class NoDisabilityGQLType(DjangoObjectType):
+    class Meta:
+        model = NoDisability
+        filter_fields = {
+            "code": ["exact"],
+            "no_disability_label": ["icontains"],
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+
+
+class NondisablingDiseaseGQLType(DjangoObjectType):
+    class Meta:
+        model = NonDisablingDisease
+        filter_fields = {
+            "code": ["exact"],
+            "non_disabling_disease": ["icontains"],
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+
+class MutualInsuranceCoverageGQLType(DjangoObjectType):
+    class Meta:
+        model = MutualInsuranceCoverage
+        filter_fields = {
+            "code": ["exact"],
+            "mutual_insurance_coverage": ["icontains"],
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+
+
+class HousingTypeGQLType(DjangoObjectType):
+    class Meta:
+        model = HousingType
+        filter_fields = {
+            "code": ["exact"],
+            "housing_type": ["icontains"],
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+
+class ResidenceEnvironmentGQLType(DjangoObjectType):
+    class Meta:
+        model = ResidenceEnvironment
+        filter_fields = {
+            "code": ["exact"],
+            "residence_environment": ["icontains"],
+        }
+        interfaces = (graphene.relay.Node,)
+        connection_class = ExtendedConnection
+
+
 class InsureeGQLType(DjangoObjectType):
     age = graphene.Int(source='age')
     client_mutation_id = graphene.String()
     photo = PhotoGQLType()
+
+    noDisability = graphene.Field(NoDisabilityGQLType)
+    nonDisablingDisease = graphene.Field(NondisablingDiseaseGQLType)
+    mutualInsuranceCoverage = graphene.Field(MutualInsuranceCoverageGQLType)
+    housingType = graphene.Field(HousingTypeGQLType)
+    residenceEnvironment = graphene.Field(ResidenceEnvironmentGQLType)
+
+    def resolve_noDisability(self, info):
+        return self.no_disability
+
+    def resolve_nonDisablingDisease(self, info):
+        return self.non_disabling_disease
+
+    def resolve_mutualInsuranceCoverage(self, info):
+        return self.mutual_insurance_coverage
+
+    def resolve_housingType(self, info):
+        return self.housing_type
+
+    def resolve_residenceEnvironment(self, info):
+        return self.residence_environment
 
     def resolve_current_village(self, info):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
@@ -202,6 +305,8 @@ class FamilyGQLType(DjangoObjectType):
             "address": ["exact", "istartswith", "icontains", "iexact"],
             "ethnicity": ["exact"],
             "is_offline": ["exact"],
+            "parent__id": ["exact"],
+            "parent__uuid": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
             **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
             **prefix_filterset("members__", InsureeGQLType._meta.filter_fields)

@@ -105,3 +105,12 @@ msgstr "Validator module import error."
 
 msgid "validator_function_not_found"
 msgstr "Validator function not found."
+
+msgid "family.validation.assign_self"
+msgstr "Cannot assign family %(id)s to itself"
+
+msgid "family.validation.not_exist"
+msgstr "Family %(id)s does not exist"
+
+msgid "config.no_chfid"
+msgstr "No CHFID provided, yet the configuration is not active."

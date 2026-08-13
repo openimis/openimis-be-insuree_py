@@ -1,6 +1,7 @@
 import base64
 import logging
 import pathlib
+import random
 import shutil
 import uuid
 from importlib import import_module
@@ -12,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
-from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
+from insuree.models import (InsureePhoto, FamilyAttachment, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
                             InsureeStatusReason)
 from django.core.exceptions import ValidationError
 from core.models import filter_validity, resolved_id_reference
@@ -63,13 +64,7 @@ def custom_insuree_number_validation(insuree_number):
                  "message": _("validator_function_not_found")}]
 
 
-def validate_insuree_number(insuree_number, insuree_uuid=None):
-    query = Insuree.objects.filter(
-        chf_id=insuree_number, validity_to__isnull=True)
-    insuree = query.first()
-    if insuree_uuid and insuree and uuid.UUID(insuree.uuid) != uuid.UUID(insuree_uuid):
-        return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
-                 "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
+def validate_insuree_number(insuree_number, insuree_uuid=None): 
 
     if InsureeConfig.get_insuree_number_validator():
         return custom_insuree_number_validation(insuree_number)
@@ -106,6 +101,13 @@ def validate_insuree_number(insuree_number, insuree_uuid=None):
             logger.exception("Failed insuree number validation", exc)
             return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_exception,
                      "message": "Insuree number validation failed"}]
+            
+    query = Insuree.objects.filter(
+        chf_id=insuree_number, validity_to__isnull=True)
+    insuree = query.first()
+    if insuree_uuid and insuree and uuid.UUID(insuree.uuid) != uuid.UUID(insuree_uuid):
+        return [{"errorCode": InsureeConfig.validation_code_taken_insuree_number,
+                 "message": "Insuree number has to be unique, %s exists in system" % insuree_number}]
     return []
 
 
@@ -148,6 +150,11 @@ def reset_insuree_before_update(insuree):
     insuree.type_of_id = None
     insuree.health_facility = None
     insuree.offline = None
+    insuree.housing_type = None
+    insuree.non_disabling_disease = None
+    insuree.no_disability = None
+    insuree.mutual_insurance_coverage = None
+    insuree.residence_environment = None
     insuree.json_ext = None
 
 
@@ -171,9 +178,23 @@ def handle_insuree_photo(user, now, insuree, data):
     data['audit_user_id'] = user.id_for_audit
     data['validity_from'] = now
     data['insuree_id'] = insuree.id
-    if 'uuid' not in data or (existing_insuree_photo and data['uuid'] == existing_insuree_photo.uuid):
-        data['uuid'] = str(uuid.uuid4())
     photo_bin = data.get('photo', None)
+    # no photo changes
+    if (
+        'uuid' in data and existing_insuree_photo and
+        uuid.UUID(data['uuid']) == uuid.UUID(existing_insuree_photo.uuid)
+    ):
+        existing_insuree_photo_bin = load_photo_file(
+            existing_insuree_photo.folder,
+            existing_insuree_photo.filename
+        )
+        if photo_bin == existing_insuree_photo_bin: 
+            return existing_insuree_photo
+        else:
+            # we ignore the uuid, FE must have messup
+            data['uuid'] = str(uuid.uuid4())
+    if 'uuid' not in data:
+        data['uuid'] = str(uuid.uuid4())
     if photo_bin and InsureeConfig.insuree_photos_root_path \
             and (existing_insuree_photo is None or existing_insuree_photo.photo != photo_bin):
         (file_dir, file_name) = create_file(now, insuree.id, photo_bin, data['uuid'])
@@ -221,7 +242,7 @@ def create_file(date, insuree_id, photo_bin, name):
     file_name = name
 
     _create_dir(file_dir)
-    with open(_photo_dir(file_dir, file_name), "xb") as f:
+    with open(_photo_dir(file_dir, file_name), "wb") as f:
         f.write(base64.b64decode(photo_bin))
         f.close()
     return file_dir, file_name
@@ -245,6 +266,16 @@ def load_photo_file(file_dir, file_name):
     except FileNotFoundError:
         logger.error(f"{photo_path} not found")
 
+def handle_family_attachments(user, now, family, data):
+    data['family_id'] = family.id
+    document_bin = data.get('document', None)
+    if document_bin and InsureeConfig.insuree_photos_root_path:
+        (file_dir, file_name) = create_file(now, family.id, document_bin, data['filename'])
+        data['folder'] = file_dir
+        data['filename'] = file_name
+    family_attachment = FamilyAttachment.objects.create(**data)
+    family_attachment.save()
+    return family_attachment
 
 def validate_insuree_data(insuree):
     if not insuree.dob:
@@ -288,16 +319,28 @@ class InsureeService:
 
     @register_service_signal('insuree_service.create_or_update')
     def create_or_update(self, data):
-        photo_data = data.pop('photo', None)
+        photo_data = data.pop('photo', None)    
         from core import datetime
         now = datetime.datetime.now()
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
+        insuree = None
+        passport = data.get('passport')
         status = data.get('status', InsureeStatus.ACTIVE)
         if status not in [choice[0] for choice in InsureeStatus.choices]:
             raise ValidationError(_("mutation.insuree.wrong_status"))
         if InsureeConfig.is_insuree_photo_required and photo_data is None:
             raise ValidationError(_("mutation.insuree.no_required_photo"))
+        # Générer un NIN si manquant
+        if not passport:
+            formatted_nin = ""
+            while not formatted_nin or Insuree.objects.filter(passport=formatted_nin).exists():
+                length = random.choice([7, 9])
+                min_nin = 10**(length - 1)
+                max_nin = (10**length) - 1
+                random_nin = random.randint(min_nin, max_nin)
+                formatted_nin = str(random_nin)
+            data["passport"] = formatted_nin
         if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
             status_reason = InsureeStatusReason.objects.get(code=data.get('status_reason', None),
                                                             validity_to__isnull=True)
@@ -310,12 +353,47 @@ class InsureeService:
         elif "uuid" in data:
             insuree = Insuree.objects.filter(uuid=data["uuid"]).first()
             if not insuree:
-                insuree = Insuree.objects.create(**data)
-            self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
+                if InsureeConfig.custom_chif_id:
+                    chfid_total_length = 12
+                    nin = data.get("passport")
+                    random_length = chfid_total_length - len(nin)
+                    if random_length <= 0:
+                        raise ValidationError(_("Le NIN est trop long pour générer un CHFID valide."))
+                    min_num = 1
+                    max_num = int("9" * random_length)
+                    formatted_num = 0
+                    while formatted_num == 0 or Insuree.objects.filter(chf_id=nin + formatted_num).exists():
+                        random_num = random.randint(min_num, max_num)
+                        formatted_num = str(random_num).zfill(random_length)
+                        data["chf_id"] = str(nin) + str(formatted_num)
+                insuree = Insuree(**data)
+                # insuree = Insuree.objects.create(**data)
+            add_on_existing_policy = data.get('add_on_existing_policy', False)
+            if add_on_existing_policy:
+                self.activate_policies_of_insuree(insuree, audit_user_id=data['audit_user_id'])
+        if "uuid" not in data:
+            if InsureeConfig.custom_chif_id:
+                chfid_total_length = 12
+                nin = data.get("passport")
+                random_length = chfid_total_length - len(nin)
+                if random_length <= 0:
+                    raise ValidationError(_("Le NIN est trop long pour générer un CHFID valide."))
+                min_num = 1
+                max_num = int("9" * random_length)
+                formatted_num = 0
+                while formatted_num == 0 or Insuree.objects.filter(chf_id=nin + formatted_num).exists():
+                    random_num = random.randint(min_num, max_num)
+                    formatted_num = str(random_num).zfill(random_length)
+                    data["chf_id"] = str(nin) + str(formatted_num)
         if InsureeConfig.insuree_fsp_mandatory and 'health_facility_id' not in data:
             raise ValidationError("mutation.insuree.fsp_required")
 
-        insuree = Insuree(**data)
+        
+        if not insuree:
+            insuree = Insuree(**data)
+        else:
+            self._update(insuree, data)
+            
         return self._create_or_update(insuree, photo_data)
 
     def disable_policies_of_insuree(self, insuree, status_date):
@@ -330,16 +408,20 @@ class InsureeService:
         from policy.models import Policy
         policies_to_activate = Policy.objects.filter(family=insuree.family, validity_to__isnull=True)
         for policy in policies_to_activate:
-            if policy.expiry_date >= now:
-                current_policy_dict = {"effective_date": now, "expiry_date": policy.expiry_date,
-                                       "audit_user_id": audit_user_id, "offline": policy.offline,
-                                       "start_date": policy.start_date, "policy": policy, "insuree": insuree,
-                                       "enrollment_date": policy.enroll_date}
-                current_policy = InsureePolicy(**current_policy_dict)
-                current_policy.save()
+            if policy.expiry_date:
+                if policy.expiry_date >= now:
+                    current_policy_dict = {"effective_date": now, "expiry_date": policy.expiry_date,
+                                        "audit_user_id": audit_user_id, "offline": policy.offline,
+                                        "start_date": policy.start_date, "policy": policy, "insuree": insuree,
+                                        "enrollment_date": policy.enroll_date}
+                    current_policy = InsureePolicy(**current_policy_dict)
+                    current_policy.save()
 
     def _create_or_update(self, insuree, photo_data=None):
-        validate_insuree(insuree)
+        if not InsureeConfig.custom_chif_id:
+            if not insuree.chf_id:
+                raise ValidationError(_("config.no_chfid"))
+        validate_insuree(insuree) 
         if insuree.id:
             filters = Q(id=insuree.id)
             # remove it from now3 to avoid id at creation
@@ -353,13 +435,42 @@ class InsureeService:
         if existing_insuree:
             existing_insuree.save_history()
             insuree.id = existing_insuree.id
+        else:
+            if InsureeConfig.custom_chif_id:
+                if insuree.head != True:
+                    
+                    # Générer un NIN si manquant
+                    if not insuree.passport:
+                        formatted_nin = ""
+                        while not formatted_nin or Insuree.objects.filter(passport=formatted_nin).exists():
+                            length = random.choice([7, 9])
+                            min_nin = 10**(length - 1)
+                            max_nin = (10**length) - 1
+                            random_nin = random.randint(min_nin, max_nin)
+                            formatted_nin = str(random_nin)
+                        insuree.passport = formatted_nin
+                        
+                    if not insuree.chf_id: #Si le CHFID n'a pas deja été généré on genere
+                        # Si c'est le head insuree son chfid aura deja été généré grace au NIN de la famille
+                        chfid_total_length = 12
+                        nin = insuree.passport
+                        random_length = chfid_total_length - len(nin)
+                        if random_length <= 0:
+                            raise ValidationError(_("Le NIN est trop long pour générer un CHFID valide."))
+                        min_num = 1
+                        max_num = int("9" * random_length)
+                        formatted_num = 0
+                        while formatted_num == 0 or Insuree.objects.filter(chf_id=nin + formatted_num).exists():
+                            random_num = random.randint(min_num, max_num)
+                            formatted_num = str(random_num).zfill(random_length)
+                            insuree.chf_id = str(insuree.passport) + str(formatted_num)
         insuree.save()
         if photo_data:
             photo = handle_insuree_photo(self.user, insuree.validity_from, insuree, photo_data)
             if photo:
                 insuree.photo = photo
                 insuree.photo_date = photo.date
-                insuree.save()
+                insuree.save() 
         return insuree
 
     def remove(self, insuree):
@@ -392,6 +503,14 @@ class InsureeService:
                     'message': _("insuree.mutation.failed_to_delete_insuree") % {'chfid': insuree.chf_id},
                     'detail': insuree.uuid}]
             }
+
+    def _update(self, insuree, data):
+        insuree.save_history()
+        # reset the non required fields
+        # (each update is 'complete', necessary to be able to set 'null')
+        reset_insuree_before_update(insuree)
+        [setattr(insuree, key, data[key]) for key in data]
+
 
     def cancel_policies(self, insuree):
         try:
@@ -433,7 +552,6 @@ class InsureePolicyService:
                     offline=False,
                     audit_user_id=self.user.i_user.id
                 )
-                print(ip.__dict__)
                 ip.save()
 
 
@@ -443,9 +561,37 @@ class FamilyService:
 
     def create_or_update(self, data):
         head_insuree_data = data.pop('head_insuree', None)
+        family = None
+        attachements_data = data.pop('attachments', None)
         
         if head_insuree_data:
             head_insuree_data["head"] = True
+            passport = head_insuree_data.get("passport")
+            # Générer un NIN si manquant
+            if not passport:
+                formatted_nin = ""
+                while not formatted_nin or Insuree.objects.filter(passport=formatted_nin).exists():
+                    length = random.choice([7, 9])
+                    min_nin = 10**(length - 1)
+                    max_nin = (10**length) - 1
+                    random_nin = random.randint(min_nin, max_nin)
+                    formatted_nin = str(random_nin)
+                head_insuree_data["passport"] = formatted_nin
+            family = Family.objects.filter(uuid=data["uuid"]).first() if data.get("uuid") else None
+            if not family:
+                if InsureeConfig.custom_chif_id:
+                    chfid_total_length = 12
+                    nin = head_insuree_data.get("passport")
+                    random_length = chfid_total_length - len(nin)
+                    if random_length <= 0:
+                        raise ValidationError(_("Le NIN est trop long pour générer un CHFID valide."))
+                    min_num = 1
+                    max_num = int("9" * random_length)
+                    formatted_num = 0
+                    while formatted_num == 0 or Insuree.objects.filter(chf_id=nin + formatted_num).exists():
+                        random_num = random.randint(min_num, max_num)
+                        formatted_num = str(random_num).zfill(random_length)
+                        head_insuree_data["chf_id"] = str(head_insuree_data["passport"]) + str(formatted_num)
             head_insuree = InsureeService(
                 self.user).create_or_update(head_insuree_data)
             data["head_insuree_id"] = head_insuree.id
@@ -458,10 +604,11 @@ class FamilyService:
 
         data['audit_user_id'] = self.user.id_for_audit
         data['validity_from'] = now
+        data.pop("contribution", None) 
         family = Family(**data)
-        return self._create_or_update(family)
+        return self._create_or_update(family, attachements_data)
 
-    def _create_or_update(self, family):
+    def _create_or_update(self, family, attachements_data=None):
         if family.id:
             filters = Q(id=family.id)
             # remove it from now3 to avoid id at creation
@@ -472,20 +619,40 @@ class FamilyService:
             filters = None
         existing_family = Family.objects.filter(*filter_validity(), filters).first() if filters else None
         if existing_family:
-            return self._update(existing_family, family)
+            return self._update(existing_family, family, attachements_data)
         else:
-            return self._create(family)
+            return self._create(family, attachements_data)
 
-    def _create(self, family):
+    def _create(self, family, attachements_data):
+        from core import datetime
+        now = datetime.datetime.now()
         family.save()
         family.head_insuree.family = family
         family.head_insuree.save()
+        FamilyAttachment.objects.filter(
+            family_id=family.id
+        ).delete()
+        if attachements_data:
+            for attachment in attachements_data:
+                handle_family_attachments(
+                    self.user, now, family, attachment
+                )
         return family
 
-    def _update(self, existing_family, family):
+    def _update(self, existing_family, family, attachements_data):
+        from core import datetime
+        now = datetime.datetime.now()
         existing_family.save_history()
         family.id = existing_family.id
         family.save()
+        FamilyAttachment.objects.filter(
+            family_id=family.id
+        ).delete()
+        if attachements_data:
+            for attachment in attachements_data:
+                handle_family_attachments(
+                    self.user, now, family, attachment
+                )
         if family.head_insuree.family != family:
             family.head_insuree.family = family
             family.head_insuree.save()
