@@ -56,6 +56,8 @@ from .gql_mutations import (
     SetFamilyHeadMutation,
     UpdateFamilyMutation,
     UpdateInsureeMutation,
+    MoveFamilyToParentMutation,
+    DeleteFamiliesFromParentMutation
 )
 from .signals import signal_before_insuree_policy_query, _read_signal_results, \
     signal_before_family_query, signal_before_insuree_search_query
