@@ -13,10 +13,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='IdentificationType',
             fields=[
-                ('code', models.CharField(db_column='IdentificationCode', max_length=1, primary_key=True, serialize=False)),
-                ('identification_type', models.CharField(db_column='IdentificationTypes', max_length=50)),
-                ('alt_language', models.CharField(blank=True, db_column='AltLanguage', max_length=50, null=True)),
-                ('sort_order', models.IntegerField(blank=True, db_column='SortOrder', null=True)),
+                ('code', models.CharField(db_column='IdentificationCode',
+                 max_length=1, primary_key=True, serialize=False)),
+                ('identification_type', models.CharField(
+                    db_column='IdentificationTypes', max_length=50)),
+                ('alt_language', models.CharField(blank=True,
+                 db_column='AltLanguage', max_length=50, null=True)),
+                ('sort_order', models.IntegerField(
+                    blank=True, db_column='SortOrder', null=True)),
             ],
             options={
                 'db_table': 'tblIdentificationTypes',

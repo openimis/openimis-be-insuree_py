@@ -1,7 +1,6 @@
-from insuree.models import Family, Insuree
-from report.services import run_stored_proc_report
+from insuree.models import Insuree
 from django.db.models import F, Case, When, Value
-from django.db.models.functions import Cast, Rank
+from django.db.models.functions import Rank
 from django.db.models.expressions import Window
 
 # If manually pasting from reportbro and you have test data, search and replace \" with \\"

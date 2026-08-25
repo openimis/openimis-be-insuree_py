@@ -14,12 +14,14 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='insuree',
             name='chf_id',
-            field=models.CharField(blank=True, db_column='CHFID', max_length=50, null=True),
+            field=models.CharField(
+                blank=True, db_column='CHFID', max_length=50, null=True),
         ),
         migrations.AlterField(
             model_name='insuree',
             name='dob',
-            field=core.fields.DateField(blank=True, db_column='DOB', null=True),
+            field=core.fields.DateField(
+                blank=True, db_column='DOB', null=True),
         ),
         migrations.AlterField(
             model_name='insuree',
@@ -29,6 +31,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='insuree',
             name='status',
-            field=models.CharField(blank=True, choices=[('AC', 'Active'), ('IN', 'Inactive'), ('DE', 'Dead')], default='AC', max_length=2, null=True),
+            field=models.CharField(blank=True, choices=[(
+                'AC', 'Active'), ('IN', 'Inactive'), ('DE', 'Dead')], default='AC', max_length=2, null=True),
         ),
     ]

@@ -1261,9 +1261,9 @@ WITH PendingInsurees AS
                  P."CHFID",
                  MAX(P."PhotoDate")                                                  PhotoDate,
                  ROW_NUMBER() OVER (PARTITION BY P."CHFID" ORDER BY O."OfficerID")   RNo,
-                 case 
-                    when CAST(O."WorksTo" AS DATE) <= CAST({'GETDATE()' if settings.MSSQL else 'NOW()'} AS DATE) 
-                    THEN 'N' 
+                 case
+                    when CAST(O."WorksTo" AS DATE) <= CAST({'GETDATE()' if settings.MSSQL else 'NOW()'} AS DATE)
+                    THEN 'N'
                     ELSE 'A'
                  END OfficerStatus
           FROM "tblSubmittedPhotos" P

@@ -22,14 +22,19 @@ DEFAULT_CFG = {
     "gql_mutation_update_insurees_perms": ["101103"],
     "gql_mutation_delete_insurees_perms": ["101104"],
     "insuree_photos_root_path": os.path.abspath("./images/insurees"),
-    "excluded_insuree_chfids": ['999999999'],  # fake insurees (and bound families) used, for example, in 'funding'
-    "renewal_photo_age_adult": 60,  # age (in months) of a picture due for renewal for adults
-    "renewal_photo_age_child": 12,  # age (in months) of a picture due for renewal for children
-    "insuree_number_validator": None,  # Insuree number *function* that validates the insuree number for example
-                                       # 'msystems.utils.is_valid_resident_identifier'
+    # fake insurees (and bound families) used, for example, in 'funding'
+    "excluded_insuree_chfids": ['999999999'],
+    # age (in months) of a picture due for renewal for adults
+    "renewal_photo_age_adult": 60,
+    # age (in months) of a picture due for renewal for children
+    "renewal_photo_age_child": 12,
+    # Insuree number *function* that validates the insuree number for example
+    "insuree_number_validator": None,
+    # 'msystems.utils.is_valid_resident_identifier'
     "insuree_number_max_length": None,  # Insuree number length to validate
     "insuree_number_min_length": None,  # Insuree number length to validate
-    "insuree_number_modulo_root": None,  # modulo base for checksum on last digit, requires length to be set too
+    # modulo base for checksum on last digit, requires length to be set too
+    "insuree_number_modulo_root": None,
     "validation_code_taken_insuree_number": 1,
     "validation_code_no_insuree_number": 2,
     "validation_code_invalid_insuree_number_len": 3,
@@ -85,7 +90,6 @@ class InsureeConfig(AppConfig):
         for field in cfg:
             if hasattr(InsureeConfig, field):
                 setattr(InsureeConfig, field, cfg[field])
-
 
     def ready(self):
         from core.models import ModuleConfiguration

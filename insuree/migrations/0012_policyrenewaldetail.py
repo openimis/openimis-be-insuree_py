@@ -15,11 +15,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='PolicyRenewalDetail',
             fields=[
-                ('validity_from', core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now)),
-                ('validity_to', core.fields.DateTimeField(blank=True, db_column='ValidityTo', null=True)),
-                ('legacy_id', models.IntegerField(blank=True, db_column='LegacyID', null=True)),
-                ('id', models.AutoField(db_column='RenewalDetailID', primary_key=True, serialize=False)),
-                ('audit_user_id', models.IntegerField(blank=True, db_column='AuditCreateUser', null=True)),
+                ('validity_from', core.fields.DateTimeField(
+                    db_column='ValidityFrom', default=datetime.datetime.now)),
+                ('validity_to', core.fields.DateTimeField(
+                    blank=True, db_column='ValidityTo', null=True)),
+                ('legacy_id', models.IntegerField(
+                    blank=True, db_column='LegacyID', null=True)),
+                ('id', models.AutoField(db_column='RenewalDetailID',
+                 primary_key=True, serialize=False)),
+                ('audit_user_id', models.IntegerField(
+                    blank=True, db_column='AuditCreateUser', null=True)),
             ],
             options={
                 'db_table': 'tblPolicyRenewalDetails',

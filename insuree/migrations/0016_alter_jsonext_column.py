@@ -21,4 +21,3 @@ class Migration(migrations.Migration):
                           reverse_sql='ALTER TABLE [tblFamilies] ALTER COLUMN [JsonExt] TEXT'
                           if settings.MSSQL else psql_code),
     ]
-

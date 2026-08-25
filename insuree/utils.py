@@ -30,7 +30,8 @@ class IdentifierValidator:
         for i in range(12):
             if not (ZERO_CHAR <= idn[i] <= NINE_CHAR):
                 return False
-            crc += (ord(idn[i]) - ord(ZERO_CHAR)) * (7 if i % 3 == 0 else (3 if i % 3 == 1 else 1))
+            crc += (ord(idn[i]) - ord(ZERO_CHAR)) * (
+                7 if i % 3 == 0 else (3 if i % 3 == 1 else 1))
         if not (ZERO_CHAR <= idn[12] <= NINE_CHAR):
             return False
         return crc % 10 == (ord(idn[12]) - ord(ZERO_CHAR))

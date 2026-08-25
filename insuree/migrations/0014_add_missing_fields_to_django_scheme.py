@@ -72,17 +72,20 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='family',
             name='confirmation_type',
-            field=models.ForeignKey(blank=True, db_column='ConfirmationType', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='families', to='insuree.confirmationtype'),
+            field=models.ForeignKey(blank=True, db_column='ConfirmationType', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='families', to='insuree.confirmationtype'),
         ),
         migrations.AddField(
             model_name='family',
             name='family_type',
-            field=models.ForeignKey(blank=True, db_column='FamilyType', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='families', to='insuree.familytype'),
+            field=models.ForeignKey(blank=True, db_column='FamilyType', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='families', to='insuree.familytype'),
         ),
         migrations.AddField(
             model_name='family',
             name='head_insuree',
-            field=models.OneToOneField(db_column='InsureeID', default=None, on_delete=django.db.models.deletion.DO_NOTHING, related_name='head_of', to='insuree.insuree'),
+            field=models.OneToOneField(db_column='InsureeID', default=None,
+                                       on_delete=django.db.models.deletion.DO_NOTHING, related_name='head_of', to='insuree.insuree'),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -93,32 +96,38 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='family',
             name='location',
-            field=models.ForeignKey(blank=True, db_column='LocationId', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='location.location'),
+            field=models.ForeignKey(blank=True, db_column='LocationId', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, to='location.location'),
         ),
         migrations.AddField(
             model_name='family',
             name='uuid',
-            field=models.CharField(db_column='FamilyUUID', default=uuid.uuid4, max_length=36, unique=True),
+            field=models.CharField(
+                db_column='FamilyUUID', default=uuid.uuid4, max_length=36, unique=True),
         ),
         migrations.AddField(
             model_name='insuree',
             name='education',
-            field=models.ForeignKey(blank=True, db_column='Education', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.education'),
+            field=models.ForeignKey(blank=True, db_column='Education', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.education'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='family',
-            field=models.ForeignKey(blank=True, db_column='FamilyID', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='members', to='insuree.family'),
+            field=models.ForeignKey(blank=True, db_column='FamilyID', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='members', to='insuree.family'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='gender',
-            field=models.ForeignKey(blank=True, db_column='Gender', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.gender'),
+            field=models.ForeignKey(blank=True, db_column='Gender', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.gender'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='health_facility',
-            field=models.ForeignKey(blank=True, db_column='HFID', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='location.healthfacility'),
+            field=models.ForeignKey(blank=True, db_column='HFID', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='location.healthfacility'),
         ),
         migrations.AddField(
             model_name='insuree',
@@ -128,85 +137,101 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='insuree',
             name='photo',
-            field=models.OneToOneField(blank=True, db_column='PhotoID', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='insuree.insureephoto'),
+            field=models.OneToOneField(blank=True, db_column='PhotoID', null=True,
+                                       on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='insuree.insureephoto'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='profession',
-            field=models.ForeignKey(blank=True, db_column='Profession', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.profession'),
+            field=models.ForeignKey(blank=True, db_column='Profession', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.profession'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='relationship',
-            field=models.ForeignKey(blank=True, db_column='Relationship', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.relation'),
+            field=models.ForeignKey(blank=True, db_column='Relationship', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='insuree.relation'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='type_of_id',
-            field=models.ForeignKey(blank=True, db_column='TypeOfId', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='insuree.identificationtype'),
+            field=models.ForeignKey(blank=True, db_column='TypeOfId', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, to='insuree.identificationtype'),
         ),
         migrations.AddField(
             model_name='insuree',
             name='uuid',
-            field=models.CharField(db_column='InsureeUUID', default=uuid.uuid4, max_length=36, unique=True),
+            field=models.CharField(
+                db_column='InsureeUUID', default=uuid.uuid4, max_length=36, unique=True),
         ),
         migrations.AddField(
             model_name='insureephoto',
             name='insuree',
-            field=models.ForeignKey(blank=True, db_column='InsureeID', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='photos', to='insuree.insuree'),
+            field=models.ForeignKey(blank=True, db_column='InsureeID', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='photos', to='insuree.insuree'),
         ),
         migrations.AddField(
             model_name='insureepolicy',
             name='insuree',
-            field=models.ForeignKey(db_column='InsureeID', default=None, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insuree_policies', to='insuree.insuree'),
+            field=models.ForeignKey(db_column='InsureeID', default=None, on_delete=django.db.models.deletion.DO_NOTHING,
+                                    related_name='insuree_policies', to='insuree.insuree'),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='insureepolicy',
             name='policy',
-            field=models.ForeignKey(db_column='PolicyId', default=None, on_delete=django.db.models.deletion.DO_NOTHING, related_name='insuree_policies', to='policy.policy'),
+            field=models.ForeignKey(db_column='PolicyId', default=None, on_delete=django.db.models.deletion.DO_NOTHING,
+                                    related_name='insuree_policies', to='policy.policy'),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='policyrenewaldetail',
             name='insuree',
-            field=models.ForeignKey(db_column='InsureeID', default=None, on_delete=django.db.models.deletion.DO_NOTHING, related_name='policy_renewal_details', to='insuree.insuree'),
+            field=models.ForeignKey(db_column='InsureeID', default=None, on_delete=django.db.models.deletion.DO_NOTHING,
+                                    related_name='policy_renewal_details', to='insuree.insuree'),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='policyrenewaldetail',
             name='policy_renewal',
-            field=models.ForeignKey(db_column='RenewalID', default=None, on_delete=django.db.models.deletion.DO_NOTHING, related_name='details', to='policy.policyrenewal'),
+            field=models.ForeignKey(db_column='RenewalID', default=None,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, related_name='details', to='policy.policyrenewal'),
             preserve_default=False,
         ),
         migrations.AlterField(
             model_name='family',
             name='validity_from',
-            field=core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now),
+            field=core.fields.DateTimeField(
+                db_column='ValidityFrom', default=datetime.datetime.now),
         ),
         migrations.AlterField(
             model_name='insuree',
             name='current_village',
-            field=models.ForeignKey(blank=True, db_column='CurrentVillage', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='location.location'),
+            field=models.ForeignKey(blank=True, db_column='CurrentVillage', null=True,
+                                    on_delete=django.db.models.deletion.DO_NOTHING, to='location.location'),
         ),
         migrations.AlterField(
             model_name='insuree',
             name='validity_from',
-            field=core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now),
+            field=core.fields.DateTimeField(
+                db_column='ValidityFrom', default=datetime.datetime.now),
         ),
         migrations.AlterField(
             model_name='insureephoto',
             name='folder',
-            field=models.CharField(blank=True, db_column='PhotoFolder', max_length=255, null=True),
+            field=models.CharField(
+                blank=True, db_column='PhotoFolder', max_length=255, null=True),
         ),
         migrations.AlterField(
             model_name='insureephoto',
             name='validity_from',
-            field=core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now),
+            field=core.fields.DateTimeField(
+                db_column='ValidityFrom', default=datetime.datetime.now),
         ),
         migrations.AlterField(
             model_name='insureepolicy',
             name='validity_from',
-            field=core.fields.DateTimeField(db_column='ValidityFrom', default=datetime.datetime.now),
+            field=core.fields.DateTimeField(
+                db_column='ValidityFrom', default=datetime.datetime.now),
         ),
     ]

@@ -1,8 +1,5 @@
-import re
-
 import graphene
 
-from claim.apps import ClaimConfig
 from core.gql.export_mixin import ExportableQueryMixin
 from core.schema import signal_mutation_module_validate
 from core.services import wait_for_mutation
@@ -12,22 +9,56 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
-from location.models import Location, LocationManager
+from location.models import LocationManager
 
 from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number
-from .models import FamilyMutation, InsureeMutation
+from .models import (
+    ConfirmationType,
+    Education,
+    Family,
+    FamilyMutation,
+    FamilyType,
+    Gender,
+    IdentificationType,
+    Insuree,
+    InsureeMutation,
+    InsureePolicy,
+    Profession,
+    Relation,
+)
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
 from core.schema import OrderedDjangoFilterConnectionField, OfficerGQLType
 from core.gql_queries import ValidationMessageGQLType
 from policy.models import Policy
-from core.models import Officer, Role, UserRole
-from location.models import UserDistrict
-
-# We do need all queries and mutations in the namespace here.
-from .gql_queries import *  # lgtm [py/polluting-import]
-from .gql_mutations import *  # lgtm [py/polluting-import]
+from core.models import Officer
+from .gql_queries import (
+    ConfirmationTypeGQLType,
+    EducationGQLType,
+    FamilyGQLType,
+    FamilyTypeGQLType,
+    GenderGQLType,
+    IdentificationTypeGQLType,
+    InsureeGQLType,
+    InsureePolicyGQLType,
+    InsureeStatusReasonGQLType,
+    ProfessionGQLType,
+    RelationGQLType,
+)
+from .gql_mutations import (
+    ChangeInsureeFamilyMutation,
+    CreateFamilyMutation,
+    CreateInsureeMutation,
+    DeleteFamiliesMutation,
+    DeleteInsureesMutation,
+    RemoveInsureesMutation,
+    SetFamilyHeadMutation,
+    UpdateFamilyMutation,
+    UpdateInsureeMutation,
+    MoveFamilyToParentMutation,
+    DeleteFamiliesFromParentMutation
+)
 from .signals import signal_before_insuree_policy_query, _read_signal_results, \
     signal_before_family_query, signal_before_insuree_search_query
 
@@ -67,7 +98,6 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
 
 class Query(ExportableQueryMixin, graphene.ObjectType):
     exportable_fields = ['insurees']
-
 
     can_add_insuree = graphene.Field(
         graphene.List(graphene.String),
@@ -171,7 +201,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
         chf_id = kwargs.get('chf_id')
-        
+
         if chf_id is not None:
             errors = validate_insuree_number(chf_id)
             if errors:
@@ -201,13 +231,23 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
                 f = "parent__" + f
             current_village = "current_village__" + f
             family_location = "family__location__" + f
-            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location})) |
-                        (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
+            filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location}))
+                        | (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
 
-        if not info.context.user._u.is_imis_admin and (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None) and not LocationConfig.no_location_check:
+        if (not info.context.user._u.is_imis_admin
+                and (kwargs.get('ignore_location') is False or kwargs.get('ignore_location') is None)
+                and not LocationConfig.no_location_check):
             # Limit the list by the logged in user location mapping
-            filters += [Q(LocationManager().build_user_location_filter_query(info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']) |
-                        LocationManager().build_user_location_filter_query(info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']))]
+            filters += [
+                Q(
+                    LocationManager().build_user_location_filter_query(
+                        info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']
+                    )
+                    | LocationManager().build_user_location_filter_query(
+                        info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']
+                    )
+                )
+            ]
 
         return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
 
@@ -305,7 +345,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
     def resolve_insuree_officers(self, info, location_id=None, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
-        
+
         if InsureeConfig.use_contextual_enrolment_officer_selection:
             return _get_contextual_insuree_officers(info, location_id=location_id, **kwargs)
 
@@ -336,8 +376,8 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
                 f = "parent__" + f
             current_village = "insuree__current_village__" + f
             family_location = "insuree__family__location__" + f
-            filters += [(Q(insuree__current_village__isnull=False) & Q(**{current_village: parent_location})) |
-                        (Q(insuree__current_village__isnull=True) & Q(**{family_location: parent_location}))]
+            filters += [(Q(insuree__current_village__isnull=False) & Q(**{current_village: parent_location}))
+                        | (Q(insuree__current_village__isnull=True) & Q(**{family_location: parent_location}))]
         return gql_optimizer.query(InsureePolicy.objects.filter(*filters).all(), info)
 
 
@@ -351,6 +391,8 @@ class Mutation(graphene.ObjectType):
     remove_insurees = RemoveInsureesMutation.Field()
     set_family_head = SetFamilyHeadMutation.Field()
     change_insuree_family = ChangeInsureeFamilyMutation.Field()
+    move_families_to_parent_mutation = MoveFamilyToParentMutation.Field()
+    delete_families_from_parent_mutation = DeleteFamiliesFromParentMutation.Field()
 
 
 def on_family_mutation(kwargs, k='uuid'):
@@ -462,24 +504,25 @@ def _get_additional_filter(sender, additional_filter, user, signal: Signal):
         filters_from_signal = _read_signal_results(results_signal)
     return filters_from_signal
 
+
 def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
-            raise PermissionDenied(_("unauthorized"))
+    if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
+        raise PermissionDenied(_("unauthorized"))
 
-        user = info.context.user
-        i_user = getattr(user, 'i_user', None)
-        
-        if getattr(user, 'officer', None):
-            return Officer.objects.filter(id=user.officer.id, *Officer.filter_validity())
-        elif i_user:
-            # If the user is an Enrolment Officer (EO)          
-            # Non-EO user
-            if location_id:
-                officers = Officer.objects.filter(officer_villages__location__id=location_id, *Officer.filter_validity())
+    user = info.context.user
+    i_user = getattr(user, 'i_user', None)
 
-                if officers.exists():
-                    return officers
+    if getattr(user, 'officer', None):
+        return Officer.objects.filter(id=user.officer.id, *Officer.filter_validity())
+    elif i_user:
+        # If the user is an Enrolment Officer (EO)
+        # Non-EO user
+        if location_id:
+            officers = Officer.objects.filter(
+                officer_villages__location__id=location_id, *Officer.filter_validity())
 
-        # No officers found → return all valid EOs
-        return Officer.objects.filter(*Officer.filter_validity())
-    
+            if officers.exists():
+                return officers
+
+    # No officers found → return all valid EOs
+    return Officer.objects.filter(*Officer.filter_validity())

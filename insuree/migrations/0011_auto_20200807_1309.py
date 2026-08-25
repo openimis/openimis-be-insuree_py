@@ -33,19 +33,28 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InsureePhoto',
             fields=[
-                ('legacy_id', models.IntegerField(blank=True, db_column='LegacyID', null=True)),
-                ('id', models.AutoField(db_column='PhotoID', primary_key=True, serialize=False)),
-                ('uuid', models.CharField(db_column='PhotoUUID', default=uuid.uuid4, max_length=36, unique=True)),
-                ('insuree_id', models.IntegerField(blank=True, db_column='InsureeID', null=True)),
-                ('chf_id', models.CharField(blank=True, db_column='CHFID', max_length=12, null=True)),
+                ('legacy_id', models.IntegerField(
+                    blank=True, db_column='LegacyID', null=True)),
+                ('id', models.AutoField(db_column='PhotoID',
+                 primary_key=True, serialize=False)),
+                ('uuid', models.CharField(db_column='PhotoUUID',
+                 default=uuid.uuid4, max_length=36, unique=True)),
+                ('insuree_id', models.IntegerField(
+                    blank=True, db_column='InsureeID', null=True)),
+                ('chf_id', models.CharField(blank=True,
+                 db_column='CHFID', max_length=12, null=True)),
                 ('folder', models.CharField(db_column='PhotoFolder', max_length=255)),
-                ('filename', models.CharField(blank=True, db_column='PhotoFileName', max_length=250, null=True)),
+                ('filename', models.CharField(blank=True,
+                 db_column='PhotoFileName', max_length=250, null=True)),
                 ('photo', models.TextField(blank=True, null=True)),
                 ('officer_id', models.IntegerField(db_column='OfficerID')),
                 ('date', core.fields.DateField(db_column='PhotoDate')),
-                ('validity_from', core.fields.DateTimeField(db_column='ValidityFrom')),
-                ('validity_to', core.fields.DateTimeField(blank=True, db_column='ValidityTo', null=True)),
-                ('audit_user_id', models.IntegerField(blank=True, db_column='AuditUserID', null=True)),
+                ('validity_from', core.fields.DateTimeField(
+                    db_column='ValidityFrom')),
+                ('validity_to', core.fields.DateTimeField(
+                    blank=True, db_column='ValidityTo', null=True)),
+                ('audit_user_id', models.IntegerField(
+                    blank=True, db_column='AuditUserID', null=True)),
             ],
             options={
                 'db_table': 'tblPhotos',

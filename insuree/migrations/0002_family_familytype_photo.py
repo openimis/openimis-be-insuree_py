@@ -14,15 +14,24 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Family',
             fields=[
-                ('id', models.AutoField(db_column='FamilyID', primary_key=True, serialize=False)),
-                ('legacy_id', models.IntegerField(blank=True, db_column='LegacyID', null=True)),
-                ('poverty', models.BooleanField(blank=True, db_column='Poverty', null=True)),
-                ('address', models.CharField(blank=True, db_column='FamilyAddress', max_length=200, null=True)),
-                ('is_offline', models.BooleanField(blank=True, db_column='isOffline', null=True)),
-                ('ethnicity', models.CharField(blank=True, db_column='Ethnicity', max_length=1, null=True)),
-                ('confirmation_no', models.CharField(blank=True, db_column='ConfirmationNo', max_length=12, null=True)),
-                ('validity_from', core.fields.DateTimeField(db_column='ValidityFrom')),
-                ('validity_to', core.fields.DateTimeField(blank=True, db_column='ValidityTo', null=True)),
+                ('id', models.AutoField(db_column='FamilyID',
+                 primary_key=True, serialize=False)),
+                ('legacy_id', models.IntegerField(
+                    blank=True, db_column='LegacyID', null=True)),
+                ('poverty', models.BooleanField(
+                    blank=True, db_column='Poverty', null=True)),
+                ('address', models.CharField(blank=True,
+                 db_column='FamilyAddress', max_length=200, null=True)),
+                ('is_offline', models.BooleanField(
+                    blank=True, db_column='isOffline', null=True)),
+                ('ethnicity', models.CharField(blank=True,
+                 db_column='Ethnicity', max_length=1, null=True)),
+                ('confirmation_no', models.CharField(blank=True,
+                 db_column='ConfirmationNo', max_length=12, null=True)),
+                ('validity_from', core.fields.DateTimeField(
+                    db_column='ValidityFrom')),
+                ('validity_to', core.fields.DateTimeField(
+                    blank=True, db_column='ValidityTo', null=True)),
                 ('audituser_id', models.IntegerField(db_column='AuditUserID')),
             ],
             options={
@@ -33,10 +42,13 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='FamilyType',
             fields=[
-                ('code', models.CharField(db_column='FamilyTypeCode', max_length=2, primary_key=True, serialize=False)),
+                ('code', models.CharField(db_column='FamilyTypeCode',
+                 max_length=2, primary_key=True, serialize=False)),
                 ('type', models.CharField(db_column='FamilyType', max_length=50)),
-                ('sort_order', models.IntegerField(blank=True, db_column='SortOrder', null=True)),
-                ('alt_language', models.CharField(blank=True, db_column='AltLanguage', max_length=50, null=True)),
+                ('sort_order', models.IntegerField(
+                    blank=True, db_column='SortOrder', null=True)),
+                ('alt_language', models.CharField(blank=True,
+                 db_column='AltLanguage', max_length=50, null=True)),
             ],
             options={
                 'db_table': 'tblFamilyTypes',
@@ -46,16 +58,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Photo',
             fields=[
-                ('id', models.AutoField(db_column='PhotoID', primary_key=True, serialize=False)),
-                ('insuree_id', models.IntegerField(blank=True, db_column='InsureeID', null=True)),
-                ('chf_id', models.CharField(blank=True, db_column='CHFID', max_length=12, null=True)),
+                ('id', models.AutoField(db_column='PhotoID',
+                 primary_key=True, serialize=False)),
+                ('insuree_id', models.IntegerField(
+                    blank=True, db_column='InsureeID', null=True)),
+                ('chf_id', models.CharField(blank=True,
+                 db_column='CHFID', max_length=12, null=True)),
                 ('folder', models.CharField(db_column='PhotoFolder', max_length=255)),
-                ('filename', models.CharField(blank=True, db_column='PhotoFileName', max_length=250, null=True)),
+                ('filename', models.CharField(blank=True,
+                 db_column='PhotoFileName', max_length=250, null=True)),
                 ('officer_id', models.IntegerField(db_column='OfficerID')),
                 ('date', core.fields.DateField(db_column='PhotoDate')),
-                ('validity_from', core.fields.DateTimeField(db_column='ValidityFrom')),
-                ('validity_to', core.fields.DateTimeField(blank=True, db_column='ValidityTo', null=True)),
-                ('audit_user_id', models.IntegerField(blank=True, db_column='AuditUserID', null=True)),
+                ('validity_from', core.fields.DateTimeField(
+                    db_column='ValidityFrom')),
+                ('validity_to', core.fields.DateTimeField(
+                    blank=True, db_column='ValidityTo', null=True)),
+                ('audit_user_id', models.IntegerField(
+                    blank=True, db_column='AuditUserID', null=True)),
             ],
             options={
                 'db_table': 'tblPhotos',

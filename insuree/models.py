@@ -36,13 +36,15 @@ class InsureePhoto(core_models.VersionedModel):
                                 db_column='InsureeID', blank=True, null=True, related_name="photos")
     chf_id = models.CharField(
         db_column='CHFID', max_length=50, blank=True, null=True)
-    folder = models.CharField(db_column='PhotoFolder', max_length=255, blank=True, null=True)
+    folder = models.CharField(db_column='PhotoFolder',
+                              max_length=255, blank=True, null=True)
     filename = models.CharField(
         db_column='PhotoFileName', max_length=250, blank=True, null=True)
     # Support of BinaryField is database-related: prefer to stick to b64-encoded
     photo = models.TextField(blank=True, null=True)
     # No FK in database (so value may not be an existing officer.id !)
-    officer_id = models.IntegerField(db_column='OfficerID', blank=True, null=True)
+    officer_id = models.IntegerField(
+        db_column='OfficerID', blank=True, null=True)
     date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
     audit_user_id = models.IntegerField(
         db_column='AuditUserID', blank=True, null=True)
@@ -116,6 +118,10 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         models.DO_NOTHING, db_column='ConfirmationType', blank=True, null=True,
         related_name='families')
     audit_user_id = models.IntegerField(db_column='AuditUserID')
+    parent = models.ForeignKey(
+        'Family', models.DO_NOTHING, db_column='ParentFamily', blank=True, null=True)
+    polygamous = models.BooleanField(
+        db_column='PoligamousFamily', blank=True, null=True)
     # rowid = models.TextField(db_column='RowID', blank=True, null=True)
 
     def __str__(self):
@@ -179,11 +185,17 @@ class Education(models.Model):
 
 class IdentificationType(models.Model):
     # Field name made lowercase.
-    code = models.CharField(db_column='IdentificationCode', primary_key=True, max_length=1)
-    identification_type = models.CharField(db_column='IdentificationTypes', max_length=50)  # Field name made lowercase.
+    code = models.CharField(db_column='IdentificationCode',
+                            primary_key=True, max_length=1)
     # Field name made lowercase.
-    alt_language = models.CharField(db_column='AltLanguage', max_length=50, blank=True, null=True)
-    sort_order = models.IntegerField(db_column='SortOrder', blank=True, null=True)  # Field name made lowercase.
+    identification_type = models.CharField(
+        db_column='IdentificationTypes', max_length=50)
+    # Field name made lowercase.
+    alt_language = models.CharField(
+        db_column='AltLanguage', max_length=50, blank=True, null=True)
+    # Field name made lowercase.
+    sort_order = models.IntegerField(
+        db_column='SortOrder', blank=True, null=True)
 
     class Meta:
         managed = True
@@ -211,9 +223,11 @@ class InsureeStatus(models.TextChoices):
 
 class InsureeStatusReason(core_models.VersionedModel):
     id = models.SmallIntegerField(db_column='StatusReasonId', primary_key=True)
-    insuree_status_reason = models.CharField(db_column='StatusReason', max_length=50)
+    insuree_status_reason = models.CharField(
+        db_column='StatusReason', max_length=50)
     code = models.CharField(db_column='Code', max_length=5)
-    status_type = models.CharField(max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
+    status_type = models.CharField(
+        max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE)
 
     class Meta:
         managed = True
@@ -222,11 +236,13 @@ class InsureeStatusReason(core_models.VersionedModel):
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     id = models.AutoField(db_column='InsureeID', primary_key=True)
-    uuid = models.CharField(db_column='InsureeUUID', max_length=36, default=uuid.uuid4, unique=True)
+    uuid = models.CharField(db_column='InsureeUUID',
+                            max_length=36, default=uuid.uuid4, unique=True)
 
     family = models.ForeignKey(Family, models.DO_NOTHING, blank=True, null=True,
                                db_column='FamilyID', related_name="members")
-    chf_id = models.CharField(db_column='CHFID', max_length=50, blank=True, null=True)
+    chf_id = models.CharField(
+        db_column='CHFID', max_length=50, blank=True, null=True)
     last_name = models.CharField(db_column='LastName', max_length=100)
     other_names = models.CharField(db_column='OtherNames', max_length=100)
 
@@ -250,19 +266,26 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             return None
 
     head = models.BooleanField(db_column='IsHead', default=False)
-    marital = models.CharField(db_column='Marital', max_length=1, blank=True, null=True)
+    marital = models.CharField(
+        db_column='Marital', max_length=1, blank=True, null=True)
 
     passport = models.CharField(max_length=25, blank=True, null=True)
-    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)
-    email = models.CharField(db_column='Email', max_length=100, blank=True, null=True)
-    current_address = models.CharField(db_column='CurrentAddress', max_length=200, blank=True, null=True)
-    geolocation = models.CharField(db_column='GeoLocation', max_length=250, blank=True, null=True)
+    phone = models.CharField(
+        db_column='Phone', max_length=50, blank=True, null=True)
+    email = models.CharField(
+        db_column='Email', max_length=100, blank=True, null=True)
+    current_address = models.CharField(
+        db_column='CurrentAddress', max_length=200, blank=True, null=True)
+    geolocation = models.CharField(
+        db_column='GeoLocation', max_length=250, blank=True, null=True)
     current_village = models.ForeignKey(
         location_models.Location, models.DO_NOTHING, db_column='CurrentVillage', blank=True, null=True)
     photo = models.OneToOneField(InsureePhoto, models.DO_NOTHING,
                                  db_column='PhotoID', blank=True, null=True, related_name='+')
-    photo_date = core.fields.DateField(db_column='PhotoDate', blank=True, null=True)
-    card_issued = models.BooleanField(db_column='CardIssued', blank=True, null=True)
+    photo_date = core.fields.DateField(
+        db_column='PhotoDate', blank=True, null=True)
+    card_issued = models.BooleanField(
+        db_column='CardIssued', blank=True, null=True)
     relationship = models.ForeignKey(
         Relation, models.DO_NOTHING, db_column='Relationship', blank=True, null=True,
         related_name='insurees')
@@ -282,7 +305,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     status = models.CharField(
         max_length=2, choices=InsureeStatus.choices, default=InsureeStatus.ACTIVE, blank=True, null=True
     )
-    status_date = core.fields.DateField(db_column='status_date', null=True, blank=True)
+    status_date = core.fields.DateField(
+        db_column='status_date', null=True, blank=True)
     status_reason = models.ForeignKey(InsureeStatusReason, models.DO_NOTHING, db_column='StatusReason',
                                       blank=True, null=True, related_name='insurees')
     audit_user_id = models.IntegerField(db_column='AuditUserID')
@@ -317,8 +341,14 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         # ... so not to be used as 'strict filtering'
         if settings.ROW_SECURITY and not user.is_imis_admin and not LocationConfig.no_location_check:
             return queryset.filter(
-                Q(LocationManager().build_user_location_filter_query(user._u, prefix='current_village__parent__parent', loc_types=['D']) |
-                  LocationManager().build_user_location_filter_query(user._u, prefix='family__location__parent__parent', loc_types=['D']))
+                Q(
+                    LocationManager().build_user_location_filter_query(
+                        user._u, prefix='current_village__parent__parent', loc_types=['D']
+                    )
+                    | LocationManager().build_user_location_filter_query(
+                        user._u, prefix='family__location__parent__parent', loc_types=['D']
+                    )
+                )
             )
 
         return queryset
@@ -331,14 +361,19 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
 class InsureePolicy(core_models.VersionedModel):
     id = models.AutoField(db_column='InsureePolicyID', primary_key=True)
 
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, db_column='InsureeID', related_name="insuree_policies")
+    insuree = models.ForeignKey(
+        Insuree, models.DO_NOTHING, db_column='InsureeID', related_name="insuree_policies")
     policy = models.ForeignKey("policy.Policy", models.DO_NOTHING, db_column='PolicyId',
                                related_name="insuree_policies")
 
-    enrollment_date = core.fields.DateField(db_column='EnrollmentDate', blank=True, null=True)
-    start_date = core.fields.DateField(db_column='StartDate', blank=True, null=True)
-    effective_date = core.fields.DateField(db_column='EffectiveDate', blank=True, null=True)
-    expiry_date = core.fields.DateField(db_column='ExpiryDate', blank=True, null=True)
+    enrollment_date = core.fields.DateField(
+        db_column='EnrollmentDate', blank=True, null=True)
+    start_date = core.fields.DateField(
+        db_column='StartDate', blank=True, null=True)
+    effective_date = core.fields.DateField(
+        db_column='EffectiveDate', blank=True, null=True)
+    expiry_date = core.fields.DateField(
+        db_column='ExpiryDate', blank=True, null=True)
 
     offline = models.BooleanField(db_column='isOffline', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
@@ -360,8 +395,14 @@ class InsureePolicy(core_models.VersionedModel):
         if settings.ROW_SECURITY and not user.is_imis_admin:
             # Limit the list by the logged in user location mapping
             return queryset.filter(
-                Q(LocationManager().build_user_location_filter_query(user._u, prefix='insuree__current_village__parent__parent', loc_types=['D']) |
-                    LocationManager().build_user_location_filter_query(user._u, prefix='insuree__family__location__parent__parent', loc_types=['D']))
+                Q(
+                    LocationManager().build_user_location_filter_query(
+                        user._u, prefix='insuree__current_village__parent__parent', loc_types=['D']
+                    )
+                    | LocationManager().build_user_location_filter_query(
+                        user._u, prefix='insuree__family__location__parent__parent', loc_types=['D']
+                    )
+                )
             )
 
         return queryset
@@ -372,8 +413,10 @@ class InsureePolicy(core_models.VersionedModel):
 
 
 class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
-    insuree = models.ForeignKey(Insuree, models.DO_NOTHING, related_name='mutations')
-    mutation = models.ForeignKey(core_models.MutationLog, models.DO_NOTHING, related_name='insurees')
+    insuree = models.ForeignKey(
+        Insuree, models.DO_NOTHING, related_name='mutations')
+    mutation = models.ForeignKey(
+        core_models.MutationLog, models.DO_NOTHING, related_name='insurees')
 
     class Meta:
         managed = True
@@ -381,8 +424,10 @@ class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
 
 
 class FamilyMutation(core_models.UUIDModel, core_models.ObjectMutation):
-    family = models.ForeignKey(Family, models.DO_NOTHING, related_name='mutations')
-    mutation = models.ForeignKey(core_models.MutationLog, models.DO_NOTHING, related_name='families')
+    family = models.ForeignKey(
+        Family, models.DO_NOTHING, related_name='mutations')
+    mutation = models.ForeignKey(
+        core_models.MutationLog, models.DO_NOTHING, related_name='families')
 
     class Meta:
         managed = True
@@ -401,7 +446,8 @@ class PolicyRenewalDetail(core_models.VersionedModel):
     policy_renewal = models.ForeignKey('policy.PolicyRenewal', models.DO_NOTHING, db_column='RenewalID',
                                        related_name='details')
 
-    audit_user_id = models.IntegerField(db_column='AuditCreateUser', null=True, blank=True)
+    audit_user_id = models.IntegerField(
+        db_column='AuditCreateUser', null=True, blank=True)
 
     class Meta:
         managed = True

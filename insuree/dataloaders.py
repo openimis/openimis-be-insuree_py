@@ -14,5 +14,6 @@ class InsureeLoader(DataLoader):
 
 class FamilyLoader(DataLoader):
     def batch_load_fn(self, keys):
-        families = {family.id: family for family in Family.objects.filter(id__in=keys)}
+        families = {
+            family.id: family for family in Family.objects.filter(id__in=keys)}
         return Promise.resolve([families.get(family_id) for family_id in keys])

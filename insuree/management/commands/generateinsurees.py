@@ -52,40 +52,49 @@ class Command(BaseCommand):
             family_props = dict(
                 location_id=self.get_random_village(),
             )
-            insuree = create_test_insuree(is_head=True, custom_props=props, family_custom_props=family_props)
+            insuree = create_test_insuree(
+                is_head=True, custom_props=props, family_custom_props=family_props)
             if verbose:
                 print(insuree_num, "created head insuree and family", insuree.other_names, insuree.last_name,
                       insuree.chf_id)
             for member_num in range(1, nb_members + 1):
                 props["other_names"] = fake.first_name()
-                props["dob"] = fake.date_between(start_date='-105y', end_date='today')
+                props["dob"] = fake.date_between(
+                    start_date='-105y', end_date='today')
                 props["family_id"] = insuree.family_id
-                member = create_test_insuree(with_family=False, custom_props=props)
+                member = create_test_insuree(
+                    with_family=False, custom_props=props)
                 if verbose:
-                    print("Created family member", member_num, member.other_names)
+                    print("Created family member",
+                          member_num, member.other_names)
 
             if policy:
                 from policy.test_helpers import create_test_policy_with_IPs
                 product = self.get_random_product()
                 officer_id = self.get_random_officer()
-                policy = create_test_policy_with_IPs(product, insuree, policy_props={"officer_id": officer_id})
+                policy = create_test_policy_with_IPs(
+                    product, insuree, policy_props={"officer_id": officer_id})
                 if verbose:
-                    print("Generated policy for family", insuree.family_id, policy)
+                    print("Generated policy for family",
+                          insuree.family_id, policy)
 
     def get_random_product(self):
         if not self.products:
             from product.models import Product
-            self.products = Product.objects.filter(validity_to__isnull=True).values_list("pk", flat=True)
+            self.products = Product.objects.filter(
+                validity_to__isnull=True).values_list("pk", flat=True)
         return random.choice(self.products)
 
     def get_random_village(self):
         if not self.villages:
             from location.models import Location
-            self.villages = Location.objects.filter(type="V", validity_to__isnull=True).values_list("pk", flat=True)
+            self.villages = Location.objects.filter(
+                type="V", validity_to__isnull=True).values_list("pk", flat=True)
         return random.choice(self.villages)
 
     def get_random_officer(self):
         if not self.officers:
             from core.models import Officer
-            self.officers = Officer.objects.filter(validity_to__isnull=True).values_list("pk", flat=True)
+            self.officers = Officer.objects.filter(
+                validity_to__isnull=True).values_list("pk", flat=True)
         return random.choice(self.officers)

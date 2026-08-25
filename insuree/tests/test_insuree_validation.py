@@ -18,7 +18,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = None
         InsureeConfig.insuree_number_min_length = None
         InsureeConfig.insuree_number_modulo_root = None
-        
+
         self.assertEqual(validate_insuree_number(None), [])
         self.assertEqual(validate_insuree_number("valid"), [])
         self.assertEqual(validate_insuree_number("fail1"), ["fail1"])
@@ -26,7 +26,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = None
         InsureeConfig.insuree_number_min_length = None
         InsureeConfig.insuree_number_modulo_root = None
-        
+
         self.assertEqual(validate_insuree_number(None), [])
         self.assertEqual(validate_insuree_number("valid"), [])
         self.assertEqual(validate_insuree_number("fail1"), [])
@@ -36,7 +36,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = 5
         InsureeConfig.insuree_number_min_length = 5
         InsureeConfig.insuree_number_modulo_root = None
-        
+
         self.assertEqual(len(validate_insuree_number(None)), 1)
         self.assertEqual(len(validate_insuree_number("")), 1)
         self.assertEqual(len(validate_insuree_number("foo")), 1)
@@ -46,7 +46,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = 7
         InsureeConfig.insuree_number_min_length = 7
         InsureeConfig.insuree_number_modulo_root = None
-        
+
         self.assertEqual(len(validate_insuree_number("12345")), 1)
         self.assertEqual(len(validate_insuree_number("1234567")), 0)
 
@@ -55,7 +55,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = 5
         InsureeConfig.insuree_number_min_length = 5
         InsureeConfig.insuree_number_modulo_root = 7
-        
+
         self.assertEqual(len(validate_insuree_number(None)), 1)
         self.assertEqual(len(validate_insuree_number("12342")), 0)
         self.assertEqual(len(validate_insuree_number("12345")), 1)
@@ -64,7 +64,7 @@ class InsureeValidationTest(TestCase):
         InsureeConfig.insuree_number_max_length = 7
         InsureeConfig.insuree_number_min_length = 7
         InsureeConfig.insuree_number_modulo_root = 5
-        
+
         self.assertEqual(len(validate_insuree_number("12345")), 1)
         self.assertEqual(len(validate_insuree_number("1234561")), 0)
         self.assertEqual(len(validate_insuree_number("1234560")), 1)

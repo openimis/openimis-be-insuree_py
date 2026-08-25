@@ -6,7 +6,7 @@ from .models import Insuree, InsureePhoto, Education, Profession, Gender, Identi
     Family, FamilyType, ConfirmationType, Relation, InsureePolicy, FamilyMutation, InsureeMutation, InsureeStatusReason
 from location.schema import LocationGQLType
 from policy.gql_queries import PolicyGQLType
-from core import prefix_filterset, filter_validity, ExtendedConnection
+from core import prefix_filterset, ExtendedConnection
 from django.utils.translation import gettext as _
 from django.core.exceptions import PermissionDenied
 
@@ -142,7 +142,7 @@ class InsureeGQLType(DjangoObjectType):
     class Meta:
         model = Insuree
         filter_fields = {
-            "uuid": ["exact","iexact"],
+            "uuid": ["exact", "iexact"],
             "chf_id": ["exact", "istartswith", "icontains", "iexact"],
             "last_name": ["exact", "istartswith", "icontains", "iexact"],
             "other_names": ["exact", "istartswith", "icontains", "iexact"],
@@ -194,7 +194,7 @@ class FamilyGQLType(DjangoObjectType):
     class Meta:
         model = Family
         filter_fields = {
-            "uuid": ["exact","iexact"],
+            "uuid": ["exact", "iexact"],
             "poverty": ["exact", "isnull"],
             "confirmation_no": ["exact", "istartswith", "icontains", "iexact"],
             "confirmation_type": ["exact"],
@@ -202,6 +202,8 @@ class FamilyGQLType(DjangoObjectType):
             "address": ["exact", "istartswith", "icontains", "iexact"],
             "ethnicity": ["exact"],
             "is_offline": ["exact"],
+            "parent__id": ["exact"],
+            "parent__uuid": ["exact"],
             **prefix_filterset("location__", LocationGQLType._meta.filter_fields),
             **prefix_filterset("head_insuree__", InsureeGQLType._meta.filter_fields),
             **prefix_filterset("members__", InsureeGQLType._meta.filter_fields)

@@ -14,11 +14,13 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='insureephoto',
             name='date',
-            field=core.fields.DateField(blank=True, db_column='PhotoDate', null=True),
+            field=core.fields.DateField(
+                blank=True, db_column='PhotoDate', null=True),
         ),
         migrations.AlterField(
             model_name='insureephoto',
             name='officer_id',
-            field=models.IntegerField(blank=True, db_column='OfficerID', null=True),
+            field=models.IntegerField(
+                blank=True, db_column='OfficerID', null=True),
         ),
     ]

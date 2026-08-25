@@ -16,9 +16,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InsureeMutation',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('insuree', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='mutations', to='insuree.Insuree')),
-                ('mutation', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='insurees', to='core.MutationLog')),
+                ('id', models.UUIDField(default=uuid.uuid4,
+                 editable=False, primary_key=True, serialize=False)),
+                ('insuree', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING,
+                 related_name='mutations', to='insuree.Insuree')),
+                ('mutation', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING,
+                 related_name='insurees', to='core.MutationLog')),
             ],
             options={
                 'db_table': 'insuree_InsureeMutation',
@@ -28,9 +31,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='FamilyMutation',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('family', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='mutations', to='insuree.Family')),
-                ('mutation', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='families', to='core.MutationLog')),
+                ('id', models.UUIDField(default=uuid.uuid4,
+                 editable=False, primary_key=True, serialize=False)),
+                ('family', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING,
+                 related_name='mutations', to='insuree.Family')),
+                ('mutation', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING,
+                 related_name='families', to='core.MutationLog')),
             ],
             options={
                 'db_table': 'insuree_FamilyMutation',

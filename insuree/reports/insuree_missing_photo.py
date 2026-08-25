@@ -2021,14 +2021,14 @@ WITH {"" if settings.MSSQL else "RECURSIVE"} locations AS (SELECT "LocationId", 
                    FROM "tblLocations" l
                             INNER JOIN locations ON locations."LocationId" = l."ParentLocationId"
                    WHERE l."ValidityTo" IS NULL)
-SELECT i."CHFID" as chf_id, i."LastName" as last_name, i."OtherNames" as other_names, i."Gender" as gender, 
+SELECT i."CHFID" as chf_id, i."LastName" as last_name, i."OtherNames" as other_names, i."Gender" as gender,
        i."IsHead" as is_head, d."DistrictName" as district_name, w."WardName" as ward_name,v."VillageName" as village_name,
        o."Code" as officer_code, o."LastName" as officer_last_name, o."OtherNames" as officer_other_names,
        {
-           "IIF(coalesce(CAST("'"'"WorksTo"'"'" AS DATE), DATEADD(DAY, 1, GETDATE())) <= CAST(GETDATE() AS DATE), 'N', 'A') OfficerStatus"
-           if settings.MSSQL else
-           "CASE WHEN COALESCE(CAST("'"'"WorksTo"'"'" AS DATE), CURRENT_DATE + INTERVAL '1 day') <= CAST(CURRENT_DATE AS DATE) THEN 'N' ELSE 'A' END AS OfficerStatus"
-       }
+    "IIF(coalesce(CAST("'"'"WorksTo"'"'" AS DATE), DATEADD(DAY, 1, GETDATE())) <= CAST(GETDATE() AS DATE), 'N', 'A') OfficerStatus"
+    if settings.MSSQL else
+    "CASE WHEN COALESCE(CAST("'"'"WorksTo"'"'" AS DATE), CURRENT_DATE + INTERVAL '1 day') <= CAST(CURRENT_DATE AS DATE) THEN 'N' ELSE 'A' END AS OfficerStatus"
+}
 FROM "tblFamilies" f
          INNER JOIN locations ON locations."LocationId" = f."LocationId"
          INNER JOIN "tblInsuree" i ON f."FamilyID" = i."FamilyID"

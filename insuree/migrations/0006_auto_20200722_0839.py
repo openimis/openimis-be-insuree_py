@@ -2,9 +2,11 @@
 
 from django.db import migrations
 
+
 def cleanup_current_village(apps, schema_editor):
     Insuree = apps.get_model('insuree', 'Insuree')
     Insuree.objects.filter(current_village=0).update(current_village=None)
+
 
 class Migration(migrations.Migration):
 

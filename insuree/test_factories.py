@@ -14,6 +14,7 @@ l6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5e
 iiigD//2Q==
 """
 
+
 class FamilyFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Family
