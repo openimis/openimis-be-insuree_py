@@ -66,7 +66,9 @@ def validate_insuree_number(insuree_number, insuree_uuid=None):
     insuree_number = str(insuree_number)
 
     if InsureeConfig.insuree_number_validator:
-        return custom_insuree_number_validation(insuree_number)
+        errors = custom_insuree_number_validation(insuree_number)
+        if errors:
+            return errors
     if InsureeConfig.insuree_number_max_length:
         if not insuree_number:
             return [
@@ -114,13 +116,13 @@ def validate_insuree_number(insuree_number, insuree_uuid=None):
             logger.exception("Failed insuree number validation", exc)
             return [{"errorCode": InsureeConfig.validation_code_invalid_insuree_number_exception,
                      "message": "Insuree number validation failed"}]
-    query = Insuree.objects.filter(
-        chf_id=insuree_number, validity_to__isnull=True)
-    insuree = query.first()
-    if insuree_uuid and insuree and uuid.UUID(insuree.uuid) != uuid.UUID(insuree_uuid):
+    query = Insuree.objects.filter(chf_id=insuree_number, validity_to__isnull=True)
+    if insuree_uuid:
+        query = query.exclude(uuid=insuree_uuid)
+    if query.exists():
         return [{
             "errorCode": InsureeConfig.validation_code_taken_insuree_number,
-            "message": "Insuree number has to be unique, %s exists in system" % insuree_number
+            "message": "Insuree number must be unique, %s already exists" % insuree_number
         }]
 
     return []
