@@ -12,6 +12,11 @@ from location import models as location_models
 from location.models import LocationManager
 from location.apps import LocationConfig
 
+# The ENROLMENT narrowing is not spelled out here: `build_user_location_filter_query`
+# applies it, working the village path out of the credential's registry params, so the
+# calls below carry it unchanged.
+
+
 class Gender(models.Model):
     code = models.CharField(db_column='Code', primary_key=True, max_length=1)
     gender = models.CharField(
