@@ -7,6 +7,7 @@ from core.utils import filter_validity
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
+from django.core.cache import cache
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
 from location.models import LocationManager
@@ -74,6 +75,28 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
     ):
         if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
+        ## Display Specific Family informations
+        ## To check : 
+        # If a familly has been requested in GraphQL with more or less fields in first request 
+        # the cached version will not answer the complete fields list.
+        family_uuid = args.get("uuid", None)
+        if family_uuid:
+            # Generate a cache key for the specific family request
+            cache_key = f"family_{family_uuid}"
+            cached_data = cache.get(cache_key)
+
+            # Return cached data if available
+            if cached_data:
+                return cached_data
+
+            # Retrieve the specific family from the database
+            family = Family.objects.filter(uuid=family_uuid)
+
+            # Cache the result
+            cache.set(cache_key, family, None)
+
+            return family  # Return the family 
+        
         qs = super(FamiliesConnectionField, cls).resolve_queryset(
             connection, iterable, info,
             {k: args[k] for k in args.keys() if not k.startswith(
@@ -399,9 +422,12 @@ def on_family_mutation(kwargs, k='uuid'):
     family_uuid = kwargs['data'].get('uuid', None)
     if not family_uuid:
         return []
-    impacted_family = Family.objects.filter(Q(uuid=(family_uuid))).first()
+    impacted_family = Family.objects.filter(Q(uuid=(family_uuid))).first() 
     if impacted_family is None:
         return []
+    # Invalidate the cache for the impacted family
+    cache_key = f"family_{family_uuid}"
+    cache.delete(cache_key)
     FamilyMutation.objects.create(
         family=impacted_family, mutation_id=kwargs['mutation_log_id'])
     return []
@@ -416,6 +442,9 @@ def on_families_mutation(kwargs):
         return []
     impacted_families = Family.objects.filter(uuid__in=uuids).all()
     for family in impacted_families:
+        # Invalidate the cache for the impacted family
+        cache_key = f"family_{family.uuid}"
+        cache.delete(cache_key)
         FamilyMutation.objects.create(
             family=family, mutation_id=kwargs['mutation_log_id'])
     return []
