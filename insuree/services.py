@@ -271,7 +271,7 @@ def create_file(date, insuree_id, photo_bin, file_name):
     file_dir = path.join(str(date.year), str(date.month),
                          str(date.day), str(insuree_id))
     _create_dir(file_dir)
-    with open(_photo_dir(file_dir, file_name), "xb") as f:
+    with open(_photo_dir(file_dir, file_name), "wb") as f:
         f.write(base64.b64decode(photo_bin))
         f.close()
     return file_dir, file_name
