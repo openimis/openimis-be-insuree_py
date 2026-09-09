@@ -20,6 +20,7 @@ setup(
     author_email='xgillmann@bluesquarehub.com',
     install_requires=[
         'django',
+        'factory-boy',
         'django-db-signals',
         'djangorestframework',
         'openimis-be-location',
