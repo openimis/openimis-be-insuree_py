@@ -91,3 +91,5 @@ class InsureeValidationTest(TestCase):
 
         self.assertEqual(len(validate_insuree_number("123456789")), 1)
         self.assertEqual(validate_insuree_number("123456789", insuree.uuid), [])
+        # lookups pass new=False: the number is expected to already be in use
+        self.assertEqual(validate_insuree_number("123456789", new=False), [])

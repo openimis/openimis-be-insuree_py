@@ -203,9 +203,11 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         chf_id = kwargs.get('chf_id')
 
         if chf_id is not None:
-            errors = validate_insuree_number(chf_id)
+            # new=False: this is a lookup, so the number is expected to exist and
+            # the uniqueness check must not reject it. Only the format is checked.
+            errors = validate_insuree_number(chf_id, new=False)
             if errors:
-                return ValidationMessageGQLType(False, errors[0]['errorCode'], errors[0]['message'])
+                raise ValueError(errors[0]['message'])
             filters.append(Q(chf_id=chf_id))
         if additional_filter:
             filters_from_signal = _insuree_insuree_additional_filters(

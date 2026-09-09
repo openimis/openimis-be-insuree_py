@@ -5,6 +5,7 @@ from graphene.test import Client
 from insuree.apps import InsureeConfig
 from insuree import schema as insuree_schema
 from insuree.models import Insuree
+from insuree.test_factories import base64_photo_png, base64_photo_png_alt
 from insuree.test_helpers import create_test_insuree
 from location.models import UserDistrict
 
@@ -41,8 +42,8 @@ class InsureePhotoTest(openIMISGraphQLTestCase):
         }
         cls.test_photo_path = InsureeConfig.insuree_photos_root_path
         cls.test_photo_uuid = str(uuid.uuid4())
-        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
-        cls.photo_base64_2 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAABMElEQVR4nO3RMQ0AIADAMEASmhCLLGT0YFWwZPOePeIsHfC7BmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYA7AFCcgJe0cBN0wAAAABJRU5ErkJggg=="
+        cls.photo_base64 = base64_photo_png
+        cls.photo_base64_2 = base64_photo_png_alt
         cls.test_user = create_test_interactive_user(
             username=cls._TEST_USER_NAME,
             password=cls.test_user_PASSWORD,
