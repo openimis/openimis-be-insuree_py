@@ -15,6 +15,7 @@ from core.test_helpers import (
     create_receptionist_role,
     create_enrolment_officer_role,
 )
+from insuree.test_factories import base64_photo_png, base64_photo_png_alt
 from insuree.test_helpers import (
     create_test_insuree,
     create_test_gender,
@@ -78,9 +79,9 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
                               "R1D1", "R2D1", "R2D2", "R2D1", cls.test_village.parent.parent.code])
         cls.admin_dist_token = BaseTestContext(
             user=cls.admin_dist_user).get_jwt()
-        cls.photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjBBbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
+        cls.photo_base64 = base64_photo_png
 
-        cls.photo_base64_2 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAABMElEQVR4nO3RMQ0AIADAMEASmhCLLGT0YFWwZPOePeIsHfC7BmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYArAFYA7AGYA3AGoA1AGsA1gCsAVgDsAZgDcAagDUAawDWAKwBWAOwBmANwBqANQBrANYA7AFCcgJe0cBN0wAAAABJRU5ErkJggg=="
+        cls.photo_base64_2 = base64_photo_png_alt
         cls.eo_user = create_test_interactive_user(
             username="Positif", roles=[create_enrolment_officer_role().id])
         cls.non_eo_user = create_test_interactive_user(username="NonEo", roles=[
@@ -93,7 +94,7 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         ])
         cls.eo_token = get_token(cls.eo_user, DummyContext(user=cls.eo_user))
         cls.non_eo_token = get_token(
-            cls.non_eo_user, DummyContext(user=cls.eo_user))
+            cls.non_eo_user, DummyContext(user=cls.non_eo_user))
         cls.test_officer = create_test_officer(villages=[cls.test_village], custom_props={
                                                'code': "Positif", 'last_name': "Positif", 'other_names': "Le"})
         cls.eo_user.officer = cls.test_officer
