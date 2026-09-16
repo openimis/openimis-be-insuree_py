@@ -28,6 +28,8 @@ class Gender(models.Model):
 
 
 class InsureePhoto(core_models.VersionedModel):
+    row_scope = core_models.ParentScope("insuree")
+
     id = models.AutoField(db_column='PhotoID', primary_key=True)
     uuid = models.CharField(db_column='PhotoUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -413,6 +415,8 @@ class InsureePolicy(core_models.VersionedModel):
 
 
 class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("insuree")
+
     insuree = models.ForeignKey(
         Insuree, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(
@@ -424,6 +428,8 @@ class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
 
 
 class FamilyMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("family")
+
     family = models.ForeignKey(
         Family, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(
