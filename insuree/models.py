@@ -28,6 +28,8 @@ class Gender(models.Model):
 
 
 class InsureePhoto(core_models.VersionedModel):
+    row_scope = core_models.ParentScope("insuree")
+
     id = models.AutoField(db_column='PhotoID', primary_key=True)
     uuid = models.CharField(db_column='PhotoUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -91,6 +93,21 @@ class ConfirmationType(models.Model):
 
 
 class Family(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("family", action)
+
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -235,6 +252,21 @@ class InsureeStatusReason(core_models.VersionedModel):
 
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("insuree", action)
+
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -413,6 +445,8 @@ class InsureePolicy(core_models.VersionedModel):
 
 
 class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("insuree")
+
     insuree = models.ForeignKey(
         Insuree, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(
@@ -424,6 +458,8 @@ class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
 
 
 class FamilyMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("family")
+
     family = models.ForeignKey(
         Family, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(

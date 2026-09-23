@@ -11,6 +11,7 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import PermissionDenied
 
 from .services import load_photo_file
+from core.gql import ScopedQuerysetMixin
 
 
 class GenderGQLType(DjangoObjectType):
@@ -21,7 +22,7 @@ class GenderGQLType(DjangoObjectType):
         }
 
 
-class PhotoGQLType(DjangoObjectType):
+class PhotoGQLType(ScopedQuerysetMixin, DjangoObjectType):
     photo = graphene.String()
 
     def resolve_photo(self, info):
@@ -242,11 +243,11 @@ class InsureePolicyGQLType(DjangoObjectType):
         return InsureePolicy.get_queryset(queryset, info)
 
 
-class FamilyMutationGQLType(DjangoObjectType):
+class FamilyMutationGQLType(ScopedQuerysetMixin, DjangoObjectType):
     class Meta:
         model = FamilyMutation
 
 
-class InsureeMutationGQLType(DjangoObjectType):
+class InsureeMutationGQLType(ScopedQuerysetMixin, DjangoObjectType):
     class Meta:
         model = InsureeMutation

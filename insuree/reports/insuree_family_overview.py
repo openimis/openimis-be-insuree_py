@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db.models import Q, F
+from django.utils.dateparse import parse_date
 
 # If manually pasting from reportbro and you have test data, search and replace \" with \\"
 template = """
@@ -1708,6 +1709,13 @@ def insuree_family_overview_query(user, date_from=None, date_to=None, **kwargs):
     if date_from:
         filters &= Q(validity_from__gte=date_from)
     if date_to:
+        # Run through the REST endpoint, every parameter arrives as a string
+        # off the query string; the day+1 arithmetic below needs a real date,
+        # and concatenating a timedelta onto a str is a 500.
+        if isinstance(date_to, str):
+            date_to = parse_date(date_to)
+            if date_to is None:
+                return {"error": "Error - date_to is not a valid ISO date"}
         filters &= Q(validity_from__lte=date_to + datetimedelta(days=1))
     queryset = Insuree.objects
     if settings.ROW_SECURITY:
