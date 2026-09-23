@@ -93,6 +93,21 @@ class ConfirmationType(models.Model):
 
 
 class Family(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("family", action)
+
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -237,6 +252,21 @@ class InsureeStatusReason(core_models.VersionedModel):
 
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("insuree", action)
+
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
