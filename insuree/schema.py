@@ -24,6 +24,7 @@ from .models import (
     Insuree,
     InsureeMutation,
     InsureePolicy,
+    InsureeStatusReason,
     Profession,
     Relation,
 )
@@ -189,6 +190,20 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
                     }
                 )
         return warnings
+
+    # `insureeStatusReasons` was the module's only entry point with no check at all:
+    # neither a `resolve_*` nor a `get_queryset` on the type. A reference table, so
+    # the stakes are low, but R8 admits no implicit exception. The right chosen is
+    # that of the other insuree nomenclatures (`resolve_insuree_genders` just below),
+    # the object describing an insuree status.
+    #
+    # The `str` argument declared on the field (`schema.py:126`) stays without effect
+    # - it already had none, no resolver reading it; the filtering goes through the
+    # type's `filterset`.
+    def resolve_insuree_status_reasons(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+            raise PermissionDenied(_("unauthorized"))
+        return InsureeStatusReason.objects.all()
 
     def resolve_insuree_genders(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):

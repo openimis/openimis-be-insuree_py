@@ -263,7 +263,12 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
+            # The update right (101103), not the create one (101102): editing an
+            # existing insuree is not creating one, and the two are separate rights.
+            # This checked create until now, so a role holding only "create insuree"
+            # could edit every insuree it could reach, while a role holding only
+            # "update insuree" could edit none.
+            if not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
                 raise PermissionDenied(_("unauthorized"))
             if 'uuid' not in data:
                 raise ValidationError(
@@ -339,6 +344,14 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         errors = []
+        if type(user) is AnonymousUser or not user.id:
+            raise ValidationError(_("mutation.authentication_required"))
+        # Re-parenting a family is an edit of that family, so it takes the same right
+        # as the other family edits here (SetFamilyHead, UpdateFamily). Before this,
+        # any authenticated user could re-parent or orphan an arbitrary family by
+        # uuid - and cancel its policies with it.
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         for child_family_uuid in data["family_uuids"]:
             if not child_family_uuid:
                 errors.append({
@@ -401,6 +414,14 @@ class DeleteFamiliesFromParentMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         errors = []
+        if type(user) is AnonymousUser or not user.id:
+            raise ValidationError(_("mutation.authentication_required"))
+        # Re-parenting a family is an edit of that family, so it takes the same right
+        # as the other family edits here (SetFamilyHead, UpdateFamily). Before this,
+        # any authenticated user could re-parent or orphan an arbitrary family by
+        # uuid - and cancel its policies with it.
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         for child_family_uuid in data["family_uuids"]:
             if not child_family_uuid:
                 errors.append({
