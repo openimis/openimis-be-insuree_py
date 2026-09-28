@@ -22,11 +22,30 @@ class GenderGQLType(DjangoObjectType):
         }
 
 
+def may_read_insuree_fields(user):
+    """Whether `user` may see the fields an insuree lookup displays.
+
+    The register right (101101) is one way in. The enquiry right (101105) is the
+    other: the CHFID picker and the enquiry dialog project the photo, the family, the
+    first point of service and the current village, so a right that resolves an
+    identifier and then cannot show anything about it would authorise nothing usable.
+    What 101105 does *not* reach is the family's own fields (101001) or anything
+    behind a mutation right - those are other grants, and they stay where they are.
+    """
+    return user.has_perms(InsureeConfig.gql_query_insuree_perms) or user.has_perms(
+        InsureeConfig.gql_query_insuree_inquire_perms
+    )
+
+
 class PhotoGQLType(ScopedQuerysetMixin, DjangoObjectType):
     photo = graphene.String()
 
     def resolve_photo(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_photo_perms):
+        if not info.context.user.has_perms(
+            InsureeConfig.gql_query_insuree_photo_perms
+        ) and not info.context.user.has_perms(
+            InsureeConfig.gql_query_insuree_inquire_perms
+        ):
             raise PermissionDenied(_("unauthorized"))
         if self.photo:
             return self.photo
@@ -111,7 +130,7 @@ class InsureeGQLType(DjangoObjectType):
     photo = PhotoGQLType()
 
     def resolve_current_village(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not may_read_insuree_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         if "location_loader" in info.context.dataloaders and self.current_village_id:
             return info.context.dataloaders["location_loader"].load(
@@ -120,14 +139,14 @@ class InsureeGQLType(DjangoObjectType):
         return self.current_village
 
     def resolve_family(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not may_read_insuree_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         if "family_loader" in info.context.dataloaders and self.family_id:
             return info.context.dataloaders["family_loader"].load(self.family_id)
         return self.family
 
     def resolve_health_facility(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not may_read_insuree_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         if "health_facililty" in info.context.dataloaders and self.health_facility_id:
             return info.context.dataloaders["health_facility"].load(
@@ -136,7 +155,7 @@ class InsureeGQLType(DjangoObjectType):
         return self.health_facility
 
     def resolve_photo(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not may_read_insuree_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         return self.photo
 
@@ -177,17 +196,32 @@ class InsureeGQLType(DjangoObjectType):
         return Insuree.get_queryset(queryset, info)
 
 
+def may_read_family_fields(user):
+    """Whether `user` may see the family fields an insuree lookup displays.
+
+    The family register right (101001) is one way in; the enquiry right is the other.
+    The picker projects the whole family - `fetchInsuree` sends
+    `family{...FAMILY_FULL_PROJECTION}` - so without this an enquiry resolves the
+    insuree and then fails field by field on their family. What this does *not* open
+    is the `families` query or the Families page: both stay on 101001, which is the
+    right the front-end route is guarded by.
+    """
+    return user.has_perms(InsureeConfig.gql_query_families_perms) or user.has_perms(
+        InsureeConfig.gql_query_insuree_inquire_perms
+    )
+
+
 class FamilyGQLType(DjangoObjectType):
     client_mutation_id = graphene.String()
 
     def resolve_location(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not may_read_family_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         if "location_loader" in info.context.dataloaders:
             return info.context.dataloaders["location_loader"].load(self.location_id)
 
     def resolve_head_insuree(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not may_read_family_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         if "insuree_loader" in info.context.dataloaders:
             return info.context.dataloaders["insuree_loader"].load(self.head_insuree_id)
@@ -213,7 +247,7 @@ class FamilyGQLType(DjangoObjectType):
         connection_class = ExtendedConnection
 
     def resolve_client_mutation_id(self, info):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not may_read_family_fields(info.context.user):
             raise PermissionDenied(_("unauthorized"))
         family_mutation = self.mutations.select_related(
             'mutation').filter(mutation__status=0).first()

@@ -356,11 +356,21 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             queryset = cls.objects.all()
         return queryset
 
+    # Set by `resolve_insurees` on the request when the caller asked for
+    # `ignoreLocation` *and* holds the enquiry right. Row security runs here, in
+    # `get_queryset`, after the resolver and on its queryset, so the resolver dropping
+    # its own district filter was never enough: this filter put it straight back, and
+    # `ignoreLocation` did nothing at all for anyone but a superuser. The flag is how
+    # the resolver's decision reaches the only place that can act on it.
+    SCOPE_LIFTED = "insuree_location_scope_lifted"
+
     @classmethod
     def get_queryset(cls, queryset, user):
         queryset = cls.filter_queryset(queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
+        scope_lifted = False
         if isinstance(user, ResolveInfo):
+            scope_lifted = getattr(user.context, cls.SCOPE_LIFTED, False)
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
@@ -371,7 +381,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         # The insuree "health facility" is the "First Point of Service"
         # (aka the 'preferred/reference' HF for an insuree)
         # ... so not to be used as 'strict filtering'
-        if settings.ROW_SECURITY and not user.is_imis_admin and not LocationConfig.no_location_check:
+        if (settings.ROW_SECURITY and not scope_lifted and not user.is_imis_admin
+                and not LocationConfig.no_location_check):
             return queryset.filter(
                 Q(
                     LocationManager().build_user_location_filter_query(

@@ -22,12 +22,12 @@ DJANGO_PERMS = {
         "create": ("insuree.add_insuree", 101102),
         "update": ("insuree.change_insuree", 101103),
         "delete": ("insuree.delete_insuree", 101104),
-        # Looking up an insuree across the whole territory, ignoring the caller's
-        # districts. Its own identifier (101106): this is the one action that
-        # deliberately leaves the geographical scope, so it has to be grantable - and
-        # revocable - on its own.
-        "queryNational": ("insuree.view_national_insuree", 101106),
-        # Declared long ago and checked nowhere.
+        # The enquiry: resolving an insuree from an identifier, across the whole
+        # territory, without the register that `query` opens. It is what the CHFID
+        # picker and the enquiry dialog do, and it has its own identifier (101105), so
+        # it is grantable - and revocable - without 101101. Declared long ago, seeded
+        # on the standard roles, and until now checked nowhere, which is why leaving
+        # the caller's districts cost nothing.
         "inquire": ("insuree.inquire_insuree", 101105),
         "queryPolicy": ("insuree.view_insuree_policy", 101500),
         # Enrolment officers read from the insuree screen: an alias of the read right.
@@ -48,7 +48,6 @@ _PERM_CFG = {
     "gql_query_insuree_officers_perms": ("insuree", "queryOfficers"),
     "gql_query_insuree_policy_perms": ("insuree", "queryPolicy"),
     "gql_query_insuree_inquire_perms": ("insuree", "inquire"),
-    "gql_query_national_insuree_perms": ("insuree", "queryNational"),
     "gql_mutation_create_insurees_perms": ("insuree", "create"),
     "gql_mutation_update_insurees_perms": ("insuree", "update"),
     "gql_mutation_delete_insurees_perms": ("insuree", "delete"),
@@ -73,12 +72,6 @@ DEFAULT_CFG = {
     # query from everyone to that entity's readers. A dedicated id would narrow it
     # further and is the better end state.
     "gql_query_insuree_family_members": ["101101"],
-    # Looking an insuree up by CHFID nationwide, ignoring the caller's districts.
-    # A new right with an id of its own (101106, the next free slot in this block)
-    # rather than an alias: this is the one operation that deliberately leaves the
-    # location scope, so it has to be grantable - and revocable - on its own. It was
-    # reachable with the claim create/update rights, which meant every claim clerk
-    # could resolve any insuree in the country from a CHFID.
     "insuree_photos_root_path": os.path.abspath("./images/insurees"),
     # fake insurees (and bound families) used, for example, in 'funding'
     "excluded_insuree_chfids": ['999999999'],
@@ -118,12 +111,6 @@ class InsureeConfig(AppConfig):
     gql_query_families_perms = RIGHTS.perms("family", "query")
     gql_query_insuree_officers_perms = RIGHTS.perms("insuree", "queryOfficers")
     gql_query_insuree_policy_perms = RIGHTS.perms("insuree", "queryPolicy")
-    gql_query_national_insuree_perms = RIGHTS.perms("insuree", "queryNational")
-    # `__load_config` only assigns config keys that already exist as attributes here,
-    # so a key declared in DEFAULT_CFG without one is silently never loaded:
-    # gql_query_insuree_inquire_perms (101105) had no attribute, which is why reading
-    # `InsureeConfig.gql_query_insuree_inquire_perms` raises AttributeError and why
-    # nothing in the codebase checks it.
     gql_query_insuree_inquire_perms = RIGHTS.perms("insuree", "inquire")
     gql_query_insuree_photo_perms = RIGHTS.perms("insuree", "queryPhoto")
     gql_mutation_create_families_perms = RIGHTS.perms("family", "create")
