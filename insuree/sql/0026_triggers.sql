@@ -99,6 +99,10 @@ BEGIN
         INSERT INTO "insuree_InsureeIndividual" ("InsureeID", individual_id) VALUES (NEW."InsureeID", v_uuid);
         PERFORM insuree_write_history(v_uuid, '+', v_user, v_reason);
     ELSE
+        -- The individual keeps its id; the view shows the insuree's new uuid.
+        IF NEW."InsureeUUID" IS DISTINCT FROM OLD."InsureeUUID" AND NEW."InsureeUUID" IS NOT NULL THEN
+            v_json := v_json || jsonb_build_object('insuree_uuid', NEW."InsureeUUID");
+        END IF;
         UPDATE individual_individual SET
             first_name = NEW."OtherNames", last_name = NEW."LastName",
             dob = COALESCE(NEW."DOB", DATE '1970-01-01'), "Json_ext" = "Json_ext" || v_json,

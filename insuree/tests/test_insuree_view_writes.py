@@ -121,6 +121,14 @@ class InsureeViewWriteTest(TestCase):
         stored.save()
         self.assertEqual(len(Insuree.objects.get(pk=stored.pk).uuid), 36)
 
+    def test_a_new_uuid_is_found_under_that_uuid(self):
+        insuree = create_test_insuree()
+        individual_id = individual_of(insuree).id
+        insuree.uuid = "f8c56ada-d76d-4f6c-aad3-cfddc9fb38eb"
+        insuree.save()
+        self.assertEqual(Insuree.objects.get(uuid=insuree.uuid).pk, insuree.pk)
+        self.assertEqual(individual_of(insuree).id, individual_id)
+
     def test_a_missing_birth_date_reads_back_as_missing(self):
         insuree = create_test_insuree(custom_props={"dob": None})
         self.assertIsNone(Insuree.objects.get(pk=insuree.pk).dob)
