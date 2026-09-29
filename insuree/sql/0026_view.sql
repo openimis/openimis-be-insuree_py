@@ -22,7 +22,8 @@ ALTER SEQUENCE "tblInsuree_InsureeID_seq" OWNED BY "insuree_InsureeIndividual"."
 CREATE VIEW "tblInsuree" AS
 SELECT
     l."InsureeID",
-    COALESCE(u.i_user_id, -1)::integer AS "AuditUserID",
+    COALESCE((SELECT u.i_user_id FROM "core_User" u WHERE u.id = i."UserUpdatedUUID"), -1)::integer
+        AS "AuditUserID",
     (i."Json_ext" ->> 'chf_id')::varchar(50) AS "CHFID",
     (i."Json_ext" ->> 'card_issued')::boolean AS "CardIssued",
     (i."Json_ext" ->> 'current_address')::varchar(200) AS "CurrentAddress",
@@ -60,5 +61,4 @@ SELECT
     (i."Json_ext" ->> 'status_date')::date AS "status_date",
     (i."Json_ext" ->> 'status_reason_id')::smallint AS "StatusReason"
 FROM "insuree_InsureeIndividual" l
-JOIN individual_individual i ON i."UUID" = l.individual_id
-LEFT JOIN "core_User" u ON u.id = i."UserUpdatedUUID";
+JOIN individual_individual i ON i."UUID" = l.individual_id;
