@@ -397,8 +397,20 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     class Meta:
-        managed = True
+        # A view over individual_individual since insuree 0026; its triggers
+        # carry the writes. The table that was here is tblInsuree_history.
+        managed = False
         db_table = 'tblInsuree'
+
+
+class InsureeIndividual(models.Model):
+    """The individual an insuree is, under the integer id other tables use."""
+    insuree_id = models.AutoField(db_column='InsureeID', primary_key=True)
+    individual = models.OneToOneField(
+        'individual.Individual', models.DO_NOTHING)
+
+    class Meta:
+        db_table = 'insuree_InsureeIndividual'
 
 
 class InsureePolicy(core_models.VersionedModel):
