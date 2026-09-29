@@ -10,6 +10,7 @@ from insuree.individual_bridge import (
     restore_insuree_heads,
 )
 from insuree.models import InsureeIndividual
+from insuree.sql import read_sql
 from insuree.test_helpers import create_test_insuree
 
 HISTORY_ROW = 'SELECT * FROM "tblInsuree_history" WHERE "InsureeID" = %s'
@@ -29,6 +30,7 @@ def execute(sql, params=None):
 
 class IndividualBridgeTest(TestCase):
     def setUp(self):
+        # Seeding writes heads here, as the table held them before 0027.
         execute(
             'ALTER TABLE "tblInsuree_history"'
             ' DROP CONSTRAINT IF EXISTS "tblInsuree_history_copies_only"'
@@ -134,6 +136,10 @@ class IndividualBridgeTest(TestCase):
         individual_id = InsureeIndividual.objects.get(
             insuree_id=insuree_id
         ).individual_id
+        # As migrating back does: the keys to the links go first, in a
+        # transaction with no deferred checks pending.
+        execute("SET CONSTRAINTS ALL IMMEDIATE")
+        execute(read_sql("0028_reverse.sql"))
         restore_insuree_heads(connection)
         self.assertEqual(fetch_one(HISTORY_ROW, [insuree_id]), before)
         self.assertFalse(Individual.objects.filter(id=individual_id).exists())
