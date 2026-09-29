@@ -56,7 +56,7 @@ SELECT
     (i."Json_ext" ->> 'passport')::varchar(25) AS "passport",
     (i."Json_ext" ->> 'source')::varchar(50) AS "Source",
     (i."Json_ext" ->> 'source_version')::varchar(15) AS "SourceVersion",
-    i."Json_ext" -> 'legacy_json_ext' AS "JsonExt",
+    NULLIF(i."Json_ext" -> 'legacy_json_ext', 'null'::jsonb) AS "JsonExt",
     (i."Json_ext" ->> 'status')::varchar(2) AS "status",
     (i."Json_ext" ->> 'status_date')::date AS "status_date",
     (i."Json_ext" ->> 'status_reason_id')::smallint AS "StatusReason"
