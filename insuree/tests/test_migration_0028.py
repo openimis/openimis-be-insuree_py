@@ -89,6 +89,14 @@ class InsureeConstraintsTest(TestCase):
             plan('SELECT * FROM "tblInsuree" WHERE "InsureeUUID" = %s', ["x"]),
         )
         self.assertIn(
+            "insuree_validity_from",
+            plan(
+                'SELECT * FROM "tblInsuree" WHERE "ValidityTo" IS NULL'
+                ' ORDER BY "ValidityFrom" DESC LIMIT 10',
+                [],
+            ),
+        )
+        self.assertIn(
             "insuree_family_id",
             plan('SELECT * FROM "tblInsuree" WHERE "FamilyID" = %s', [1]),
         )

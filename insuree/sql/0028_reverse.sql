@@ -13,4 +13,5 @@ DROP INDEX insuree_chf_id;
 DROP INDEX insuree_family_id;
 DROP INDEX insuree_current_village_id;
 DROP INDEX insuree_health_facility_id;
+DROP INDEX insuree_validity_from;
 DROP INDEX insuree_uuid;

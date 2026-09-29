@@ -19,4 +19,6 @@ CREATE INDEX insuree_chf_id ON individual_individual ((("Json_ext" ->> 'chf_id')
 CREATE INDEX insuree_family_id ON individual_individual ((("Json_ext" ->> 'family_id')::integer));
 CREATE INDEX insuree_current_village_id ON individual_individual ((("Json_ext" ->> 'current_village_id')::integer));
 CREATE INDEX insuree_health_facility_id ON individual_individual ((("Json_ext" ->> 'health_facility_id')::integer));
+-- Insuree lists are ordered by ValidityFrom, which the view reads from here.
+CREATE INDEX insuree_validity_from ON individual_individual ((COALESCE("DateUpdated", "DateCreated")));
 CREATE INDEX insuree_uuid ON individual_individual ((COALESCE("Json_ext" ->> 'insuree_uuid', "UUID"::text)::varchar(36)));
