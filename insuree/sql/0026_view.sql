@@ -10,6 +10,8 @@ BEGIN
 END $$;
 
 ALTER TABLE "tblInsuree" RENAME TO "tblInsuree_history";
+-- Old versions are found from their head; the move reads it for every row.
+CREATE INDEX "tblInsuree_history_LegacyID" ON "tblInsuree_history" ("LegacyID");
 
 CREATE TABLE "insuree_InsureeIndividual" (
     "InsureeID" integer PRIMARY KEY DEFAULT nextval('"tblInsuree_InsureeID_seq"'),

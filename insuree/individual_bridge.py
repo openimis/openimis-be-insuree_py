@@ -11,10 +11,11 @@ from insuree.sql import read_sql
 
 _NEXT_HEADS = """
     SELECT "InsureeID" FROM "tblInsuree_history"
-    WHERE "LegacyID" IS NULL ORDER BY "InsureeID" LIMIT %s FOR UPDATE
+    WHERE "LegacyID" IS NULL AND "InsureeID" > %s
+    ORDER BY "InsureeID" LIMIT %s FOR UPDATE
 """
 _NEXT_LINKED = """
-    SELECT "InsureeID" FROM "insuree_InsureeIndividual"
+    SELECT "InsureeID" FROM "insuree_InsureeIndividual" WHERE "InsureeID" > %s
     ORDER BY "InsureeID" LIMIT %s FOR UPDATE
 """
 _COUNT_REFERENCES = """
@@ -24,17 +25,20 @@ _COUNT_REFERENCES = """
 
 
 def _batches(connection, next_ids_sql, batch_size, work):
-    moved = 0
+    # Paged from the last id handled: rows already moved are deleted, and a
+    # scan from the start would walk past all of them on every batch.
+    moved, last = 0, -1
     while True:
         with transaction.atomic(using=connection.alias):
             with connection.cursor() as cursor:
                 cursor.execute("SET LOCAL lock_timeout = '5s'")
-                cursor.execute(next_ids_sql, [batch_size])
+                cursor.execute(next_ids_sql, [last, batch_size])
                 ids = [row[0] for row in cursor.fetchall()]
                 if not ids:
                     return moved
                 work(cursor, {"ids": ids})
                 moved += len(ids)
+                last = ids[-1]
 
 
 def move_insuree_heads(connection, batch_size=5000):

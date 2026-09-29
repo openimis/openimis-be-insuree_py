@@ -13,7 +13,6 @@ ALTER TABLE "tblContractDetails" ADD CONSTRAINT "tblContractDetails_InsureeID_fk
 
 -- Every chain head now lives in the individual table; only copies stay here.
 ALTER TABLE "tblInsuree_history" ADD CONSTRAINT "tblInsuree_history_copies_only" CHECK ("LegacyID" IS NOT NULL) NOT VALID;
-CREATE INDEX "tblInsuree_history_LegacyID" ON "tblInsuree_history" ("LegacyID");
 
 -- The exact expressions the view exposes: an index on a different cast is not used.
 CREATE INDEX insuree_chf_id ON individual_individual ((("Json_ext" ->> 'chf_id')::varchar(50)));

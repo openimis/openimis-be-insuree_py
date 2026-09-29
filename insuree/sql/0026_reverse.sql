@@ -12,6 +12,7 @@ DROP FUNCTION IF EXISTS insuree_fields_json(jsonb);
 
 ALTER SEQUENCE "tblInsuree_InsureeID_seq" OWNED BY NONE;
 DROP TABLE "insuree_InsureeIndividual";
+DROP INDEX "tblInsuree_history_LegacyID";
 ALTER TABLE "tblInsuree_history" RENAME TO "tblInsuree";
 ALTER SEQUENCE "tblInsuree_InsureeID_seq" OWNED BY "tblInsuree"."InsureeID";
 

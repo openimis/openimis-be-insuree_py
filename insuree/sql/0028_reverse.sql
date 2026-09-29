@@ -9,7 +9,6 @@ ALTER TABLE "insuree_InsureeMutation" DROP CONSTRAINT "insuree_InsureeMutation_i
 ALTER TABLE "tblPolicyHolderInsuree" DROP CONSTRAINT "tblPolicyHolderInsuree_InsureeId_fk_insuree_individual";
 ALTER TABLE "tblContractDetails" DROP CONSTRAINT "tblContractDetails_InsureeID_fk_insuree_individual";
 ALTER TABLE "tblInsuree_history" DROP CONSTRAINT IF EXISTS "tblInsuree_history_copies_only";
-DROP INDEX "tblInsuree_history_LegacyID";
 DROP INDEX insuree_chf_id;
 DROP INDEX insuree_family_id;
 DROP INDEX insuree_current_village_id;

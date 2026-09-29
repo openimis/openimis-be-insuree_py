@@ -15,8 +15,8 @@ WITH batch AS (
            insuree_fields_json(to_jsonb(b))
                || CASE WHEN b."InsureeUUID" <> b.individual_uuid::text
                        THEN jsonb_build_object('insuree_uuid', b."InsureeUUID") ELSE '{}'::jsonb END,
-           (SELECT min(c."ValidityFrom") FROM "tblInsuree_history" c
-            WHERE c."LegacyID" = b."InsureeID" OR c."InsureeID" = b."InsureeID"),
+           LEAST(b."ValidityFrom", (SELECT min(c."ValidityFrom") FROM "tblInsuree_history" c
+                                    WHERE c."LegacyID" = b."InsureeID")),
            b."ValidityFrom", 1, b."OtherNames", b."LastName", COALESCE(b."DOB", DATE '1970-01-01'),
            COALESCE(b.user_id, (SELECT id FROM "core_User" WHERE username = 'insuree_legacy')), COALESCE(b.user_id, (SELECT id FROM "core_User" WHERE username = 'insuree_legacy')),
            COALESCE(b."CurrentVillage", (SELECT "LocationId" FROM "tblFamilies" WHERE "FamilyID" = b."FamilyID")),
