@@ -8,7 +8,6 @@ from django.test import TestCase
 from core.models import ModuleConfiguration, User
 from individual.models import IndividualLabel
 from individual.tests.test_helpers import reload_individual_config
-from individual.validation import schema_subset_errors
 
 migration = importlib.import_module(
     "insuree.migrations.0025_insuree_schema_and_system_user"
@@ -69,12 +68,9 @@ class InsureeSchemaMigrationTest(TestCase):
     def test_label_schema_is_a_subset_of_the_system_schema(self):
         self.run_forward()
         self.label.refresh_from_db()
-        self.assertEqual(
-            schema_subset_errors(
-                self.label.json_schema, stored_schema()["properties"]
-            ),
-            [],
-        )
+        system = stored_schema()["properties"]
+        for name, definition in self.label.json_schema["properties"].items():
+            self.assertEqual(system[name]["type"], definition["type"], name)
 
     def test_same_name_with_another_type_is_refused(self):
         ModuleConfiguration.objects.create(

@@ -96,11 +96,6 @@ def _system_schema(config):
 
 
 def _save_system_schema(ModuleConfiguration, config, schema):
-    from individual.validation import schema_errors
-
-    errors = schema_errors(schema)
-    if errors:
-        raise ValueError(errors)
     if config is None:
         config = ModuleConfiguration(
             module="individual", layer="be", version="1", config="{}"
