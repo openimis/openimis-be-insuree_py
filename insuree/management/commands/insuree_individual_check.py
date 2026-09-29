@@ -243,5 +243,7 @@ class Command(BaseCommand):
             self.stdout.write("VACUUM skipped: running inside a transaction")
             return
         for table in ('"tblInsuree_history"', "individual_individual"):
-            self.cursor.execute("VACUUM (ANALYZE) %s" % table)
+            # No parallel workers: their shared memory outgrows the 64 MB
+            # /dev/shm a Postgres container gets by default.
+            self.cursor.execute("VACUUM (ANALYZE, PARALLEL 0) %s" % table)
             self.stdout.write("vacuumed %s" % table)
