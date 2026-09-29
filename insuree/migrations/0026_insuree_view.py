@@ -21,7 +21,7 @@ def forward(apps, schema_editor):
         cursor.execute("SET LOCAL lock_timeout = '5s'")
         views = dependent_views.capture(cursor, '"tblInsuree"')
         dependent_views.drop(cursor, views)
-        for name in ("0026_view.sql", "0026_triggers.sql"):
+        for name in ("0026_view.sql", "0026_triggers.sql", "0026_guards.sql"):
             cursor.execute(read_sql(name))
         dependent_views.recreate(cursor, views)
 
