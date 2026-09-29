@@ -1,9 +1,27 @@
+-- The json_ext keys that belong to the insuree: the ones the view reads.
+CREATE FUNCTION insuree_owned_json(j jsonb) RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$
+    SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb)
+    FROM jsonb_each(j) e
+    WHERE e.key = 'insuree_uuid'
+       OR e.key IN (SELECT jsonb_object_keys(insuree_fields_json('{}'::jsonb)))
+$$;
+
 -- Individual-side writes skip every insuree rule (number validation, policy
--- expiry on delete, versioning), so linked rows change only through the view.
+-- expiry on delete, versioning), so what the insuree owns changes only through
+-- the view. The rest of the row (location, other labels, other json_ext keys)
+-- stays the individual module's: groups and benefit plans write it.
 CREATE FUNCTION insuree_guard_linked_individual() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF current_setting('insuree.via_view', true) IS DISTINCT FROM 'on'
-       AND EXISTS (SELECT 1 FROM "insuree_InsureeIndividual" WHERE individual_id = OLD."UUID") THEN
+       AND EXISTS (SELECT 1 FROM "insuree_InsureeIndividual" WHERE individual_id = OLD."UUID")
+       AND (TG_OP = 'DELETE'
+            OR NEW."UUID" IS DISTINCT FROM OLD."UUID"
+            OR NEW.first_name IS DISTINCT FROM OLD.first_name
+            OR NEW.last_name IS DISTINCT FROM OLD.last_name
+            OR NEW.dob IS DISTINCT FROM OLD.dob
+            OR NEW."isDeleted" IS DISTINCT FROM OLD."isDeleted"
+            OR NOT 'INSUREE' = ANY (NEW.labels)
+            OR insuree_owned_json(NEW."Json_ext") IS DISTINCT FROM insuree_owned_json(OLD."Json_ext")) THEN
         RAISE EXCEPTION USING ERRCODE = 'IS003',
             MESSAGE = 'insuree_view: this individual is an insuree, change it through the insuree module';
     END IF;

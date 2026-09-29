@@ -63,6 +63,29 @@ class LinkedIndividualGuardTest(TestCase):
 
         self.assert_refused(write)
 
+    def test_removing_the_insuree_label_is_refused(self):
+        self.individual.labels = []
+        self.assert_refused(
+            lambda: self.individual.save(
+                user=User.objects.filter(username="Admin").first()
+            )
+        )
+
+    def test_what_the_insuree_does_not_own_stays_writable(self):
+        user = User.objects.filter(username="Admin").first()
+        village = (
+            Location.objects.filter(type="V", validity_to__isnull=True)
+            .exclude(id=self.individual.location_id)
+            .first()
+        )
+        self.individual.location_id = village.id
+        self.individual.labels = ["INSUREE", "BENEFICIARY"]
+        self.individual.json_ext = {**self.individual.json_ext, "income": 5}
+        self.individual.save(user=user)
+        stored = Individual.objects.get(id=self.individual.id)
+        self.assertEqual(stored.location_id, village.id)
+        self.assertEqual(stored.json_ext["income"], 5)
+
     def test_an_individual_that_is_not_an_insuree_is_not_guarded(self):
         user = User.objects.filter(username="Admin").first()
         other = Individual(first_name="A", last_name="B", dob="2000-01-01")
