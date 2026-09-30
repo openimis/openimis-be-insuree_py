@@ -67,7 +67,7 @@ def referenced_individuals(cursor):
     return counts
 
 
-def restore_insuree_heads(connection, batch_size=5000):
+def ensure_restorable(connection):
     with connection.cursor() as cursor:
         references = referenced_individuals(cursor)
     if references:
@@ -76,6 +76,10 @@ def restore_insuree_heads(connection, batch_size=5000):
             " them as individuals: %s"
             % ", ".join("%s (%s)" % item for item in references.items())
         )
+
+
+def restore_insuree_heads(connection, batch_size=5000):
+    ensure_restorable(connection)
 
     def restore(cursor, params):
         cursor.execute(read_sql("bridge_restore.sql"), params)

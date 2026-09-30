@@ -1,6 +1,7 @@
+import importlib
 import uuid
 
-from django.db import connection
+from django.db import connection, migrations
 from django.test import TestCase
 
 from core.models import User
@@ -169,3 +170,26 @@ class IndividualBridgeTest(TestCase):
         self.assertTrue(
             InsureeIndividual.objects.filter(insuree_id=self.template).exists()
         )
+
+    def test_reversing_0028_is_refused_first_while_a_group_holds_an_insuree(
+        self,
+    ):
+        migration = importlib.import_module(
+            "insuree.migrations.0028_insuree_constraints_and_indexes"
+        )
+        user = User.objects.filter(username="Admin").first()
+        individual = Individual.objects.get(
+            id=InsureeIndividual.objects.get(
+                insuree_id=self.template
+            ).individual_id
+        )
+        group = Group(code="G3")
+        group.save(user=user)
+        GroupIndividual(group=group, individual=individual).save(user=user)
+        operations = migration.Migration.operations
+        self.assertIsInstance(operations[-1], migrations.RunPython)
+        with connection.schema_editor() as editor:
+            with self.assertRaisesMessage(
+                RuntimeError, "individual_groupindividual"
+            ):
+                operations[-1].reverse_code(None, editor)
