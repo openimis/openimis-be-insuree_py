@@ -21,7 +21,7 @@ UUID_PATTERN = (
 )
 NEW_CONSTRAINTS = """
     SELECT conrelid::regclass::text, conname, convalidated FROM pg_constraint
-    WHERE conname LIKE '%%fk_insuree_individual'
+    WHERE conname LIKE '%fk_insuree_individual'
        OR conname = 'tblInsuree_history_copies_only'
     ORDER BY 1
 """
@@ -212,6 +212,24 @@ class Command(BaseCommand):
             )
 
     def check_structure(self):
+        self.cursor.execute(NEW_CONSTRAINTS)
+        constraints = self.cursor.fetchall()
+        self.report(
+            True,
+            int(len(constraints) < len(REFERENCING) + 1),
+            "the constraints of insuree 0028 are missing: run migrate insuree",
+        )
+        self.report(
+            True,
+            int(
+                self.scalar(
+                    "SELECT pg_get_serial_sequence("
+                    "'\"insuree_InsureeIndividual\"', 'InsureeID')"
+                )
+                is None
+            ),
+            "the insuree id sequence is not owned by the link table",
+        )
         self.report(
             True,
             self.scalar(
@@ -222,8 +240,6 @@ class Command(BaseCommand):
             ),
             "views still reading the history table instead of the view",
         )
-        self.cursor.execute(NEW_CONSTRAINTS)
-        constraints = self.cursor.fetchall()
         if constraints:
             self.report(
                 True,

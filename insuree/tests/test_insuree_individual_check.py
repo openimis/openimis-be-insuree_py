@@ -121,3 +121,13 @@ class InsureeIndividualCheckTest(TestCase):
         self.assertEqual(
             Individual.objects.get(id=other.id).json_ext["family_id"], "F-1"
         )
+
+    def test_missing_constraints_of_0028_block(self):
+        execute("SET CONSTRAINTS ALL IMMEDIATE")
+        execute(
+            'ALTER TABLE "tblClaim"'
+            ' DROP CONSTRAINT "tblClaim_InsureeID_fk_insuree_individual"'
+        )
+        passed, out = self.check()
+        self.assertFalse(passed)
+        self.assertIn("constraints of insuree 0028 are missing", out)
