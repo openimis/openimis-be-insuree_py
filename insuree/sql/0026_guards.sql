@@ -29,8 +29,10 @@ BEGIN
     RETURN NEW;
 END $$;
 
+-- The label cannot be removed from a linked individual, so rows without it are
+-- never insurees and skip the check.
 CREATE TRIGGER insuree_guard_linked_individual BEFORE UPDATE OR DELETE ON individual_individual
-    FOR EACH ROW EXECUTE FUNCTION insuree_guard_linked_individual();
+    FOR EACH ROW WHEN ('INSUREE' = ANY (OLD.labels)) EXECUTE FUNCTION insuree_guard_linked_individual();
 
 -- Individual row security reads location_id; an insuree without a village of its
 -- own follows its family, which moves without touching its members.

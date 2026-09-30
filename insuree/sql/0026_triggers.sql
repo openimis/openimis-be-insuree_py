@@ -141,5 +141,8 @@ BEGIN
     RETURN NULL;
 END $$;
 
+-- Only insurees carry the label; other individuals, bulk uploads included,
+-- queue no check.
 CREATE CONSTRAINT TRIGGER insuree_references AFTER INSERT OR UPDATE ON individual_individual
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION insuree_check_references();
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN ('INSUREE' = ANY (NEW.labels))
+    EXECUTE FUNCTION insuree_check_references();
