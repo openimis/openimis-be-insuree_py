@@ -1,7 +1,7 @@
 import datetime
 
 from django.db import connection, transaction
-from django.db.utils import DatabaseError
+from django.db.utils import DatabaseError, IntegrityError
 from django.test import TestCase
 
 from core.models import User
@@ -194,6 +194,14 @@ class InsureeViewWriteTest(TestCase):
         self.assertEqual(
             list(locked.values_list("pk", flat=True)), [insuree.pk]
         )
+
+    def test_a_uuid_another_insuree_has_is_refused(self):
+        first = create_test_insuree()
+        second = create_test_insuree()
+        second.uuid = first.uuid
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                second.save()
 
     def test_writing_through_the_view_keeps_the_callers_flag(self):
         insuree = create_test_insuree()

@@ -21,4 +21,5 @@ CREATE INDEX insuree_current_village_id ON individual_individual ((("Json_ext" -
 CREATE INDEX insuree_health_facility_id ON individual_individual ((("Json_ext" ->> 'health_facility_id')::integer));
 -- Insuree lists are ordered by ValidityFrom, which the view reads from here.
 CREATE INDEX insuree_validity_from ON individual_individual ((COALESCE("DateUpdated", "DateCreated")));
-CREATE INDEX insuree_uuid ON individual_individual ((COALESCE("Json_ext" ->> 'insuree_uuid', "UUID"::text)::varchar(36)));
+-- Unique, as InsureeUUID was on the table: FHIR clients set uuids themselves.
+CREATE UNIQUE INDEX insuree_uuid ON individual_individual ((COALESCE("Json_ext" ->> 'insuree_uuid', "UUID"::text)::varchar(36)));
