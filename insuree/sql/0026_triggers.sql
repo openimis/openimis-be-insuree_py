@@ -11,7 +11,7 @@ CREATE FUNCTION insuree_fields_json(r jsonb) RETURNS jsonb LANGUAGE sql IMMUTABL
         'type_of_id_code', r -> 'TypeOfId', 'vulnerability', r -> 'Vulnerability', 'offline', r -> 'isOffline',
         'passport', r -> 'passport', 'source', r -> 'Source', 'source_version', r -> 'SourceVersion',
         'legacy_json_ext', r -> 'JsonExt', 'status', r -> 'status', 'status_date', r -> 'status_date',
-        'status_reason_id', r -> 'StatusReason',
+        'status_reason_id', r -> 'StatusReason', 'validity_from', r -> 'ValidityFrom',
         'dob_unknown', COALESCE(r -> 'DOB', 'null'::jsonb) = 'null'::jsonb,
         -- The view derives validity_to from the update date; keep it only when they differ.
         'validity_to', CASE WHEN r -> 'ValidityTo' IS DISTINCT FROM r -> 'ValidityFrom'
@@ -70,7 +70,7 @@ BEGIN
     END IF;
 
     NEW."ValidityFrom" := COALESCE(NEW."ValidityFrom", now());
-    v_json := insuree_fields_json(to_jsonb(NEW));
+    v_json := insuree_fields_json(to_jsonb(NEW)) || jsonb_build_object('updated_by', v_user);
 
     v_previous := current_setting('insuree.via_view', true);
     PERFORM set_config('insuree.via_view', 'on', true);

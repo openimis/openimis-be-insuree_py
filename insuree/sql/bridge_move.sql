@@ -13,6 +13,7 @@ WITH batch AS (
         dob, "UserCreatedUUID", "UserUpdatedUUID", location_id, labels)
     SELECT b.individual_uuid, b."ValidityTo" IS NOT NULL,
            insuree_fields_json(to_jsonb(b))
+               || jsonb_build_object('updated_by', COALESCE(b.user_id, (SELECT id FROM "core_User" WHERE username = 'insuree_legacy')))
                || CASE WHEN b."InsureeUUID" <> b.individual_uuid::text
                        THEN jsonb_build_object('insuree_uuid', b."InsureeUUID") ELSE '{}'::jsonb END,
            LEAST(b."ValidityFrom", (SELECT min(c."ValidityFrom") FROM "tblInsuree_history" c

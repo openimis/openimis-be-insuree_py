@@ -212,3 +212,13 @@ class InsureeViewWriteTest(TestCase):
             cursor.execute("SELECT current_setting('insuree.via_view', true)")
             self.assertEqual(cursor.fetchone()[0], "on")
             cursor.execute("SELECT set_config('insuree.via_view', '', true)")
+
+    def test_an_individual_side_save_does_not_change_the_insuree(self):
+        insuree = create_test_insuree(custom_props={"audit_user_id": -1})
+        before = Insuree.objects.get(pk=insuree.pk)
+        individual = individual_of(insuree)
+        individual.json_ext = {**individual.json_ext, "income": 5}
+        individual.save(user=User.objects.filter(username="Admin").first())
+        after = Insuree.objects.get(pk=insuree.pk)
+        self.assertEqual(after.validity_from, before.validity_from)
+        self.assertEqual(after.audit_user_id, before.audit_user_id)

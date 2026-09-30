@@ -61,8 +61,12 @@ EXCEPTION WHEN others THEN
 END $$;
 
 CREATE FUNCTION insuree_timestamptz(value text) RETURNS timestamptz LANGUAGE sql IMMUTABLE AS $$
-    SELECT CASE WHEN value ~ '^[0-9]{4}-(0[1-9]|1[0-2])-[0-3][0-9][T ]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\.[0-9]+)?)?([+-][0-9]{2}(:?[0-9]{2})?|Z)$'
-        THEN insuree_checked_timestamptz(value) END
+    SELECT CASE
+        WHEN value ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-8])[T ]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\.[0-9]+)?)?([+-][0-9]{2}(:?[0-9]{2})?|Z)$'
+            THEN value::timestamptz
+        WHEN value ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(29|30|31)[T ]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\.[0-9]+)?)?([+-][0-9]{2}(:?[0-9]{2})?|Z)$'
+            THEN insuree_checked_timestamptz(value)
+    END
 $$;
 
 -- Same columns, order and types as the table it replaces: the PL/pgSQL reports
@@ -70,8 +74,12 @@ $$;
 CREATE VIEW "tblInsuree" AS
 SELECT
     l."InsureeID",
-    COALESCE((SELECT u.i_user_id FROM "core_User" u WHERE u.id = i."UserUpdatedUUID"), -1)::integer
-        AS "AuditUserID",
+    -- Who last changed the insuree through this view: individual-side saves (a group
+    -- join, a benefit plan sync) change the individual, not the insuree.
+    COALESCE((SELECT u.i_user_id FROM "core_User" u WHERE u.id = CASE
+        WHEN i."Json_ext" ->> 'updated_by' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            THEN (i."Json_ext" ->> 'updated_by')::uuid
+        ELSE i."UserUpdatedUUID" END), -1)::integer AS "AuditUserID",
     (i."Json_ext" ->> 'chf_id')::varchar(50) AS "CHFID",
     insuree_bool(i."Json_ext" ->> 'card_issued') AS "CardIssued",
     (i."Json_ext" ->> 'current_address')::varchar(200) AS "CurrentAddress",
@@ -96,9 +104,10 @@ SELECT
     insuree_smallint(i."Json_ext" ->> 'relationship_id') AS "Relationship",
     NULL::bytea AS "RowID",
     (i."Json_ext" ->> 'type_of_id_code')::varchar(1) AS "TypeOfId",
-    COALESCE(i."DateUpdated", i."DateCreated") AS "ValidityFrom",
+    COALESCE(insuree_timestamptz(i."Json_ext" ->> 'validity_from'), i."DateUpdated", i."DateCreated") AS "ValidityFrom",
     CASE WHEN i."isDeleted" THEN COALESCE(
-        insuree_timestamptz(i."Json_ext" ->> 'validity_to'), i."DateUpdated", i."DateCreated") END AS "ValidityTo",
+        insuree_timestamptz(i."Json_ext" ->> 'validity_to'), insuree_timestamptz(i."Json_ext" ->> 'validity_from'),
+        i."DateUpdated", i."DateCreated") END AS "ValidityTo",
     insuree_bool(i."Json_ext" ->> 'vulnerability') AS "Vulnerability",
     insuree_bool(i."Json_ext" ->> 'offline') AS "isOffline",
     (i."Json_ext" ->> 'passport')::varchar(25) AS "passport",

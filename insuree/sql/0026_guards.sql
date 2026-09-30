@@ -2,7 +2,7 @@
 CREATE FUNCTION insuree_owned_json(j jsonb) RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$
     SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb)
     FROM jsonb_each(j) e
-    WHERE e.key = 'insuree_uuid'
+    WHERE e.key IN ('insuree_uuid', 'updated_by')
        OR e.key IN (SELECT jsonb_object_keys(insuree_fields_json('{}'::jsonb)))
 $$;
 
