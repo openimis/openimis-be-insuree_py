@@ -31,23 +31,21 @@ RETURNS void LANGUAGE sql AS $$
 $$;
 
 -- Django saves an existing row with an UPDATE and falls back to an INSERT when
--- the UPDATE reports no row, so every handled row returns NEW (or OLD), never NULL.
+-- the UPDATE reports no row, so every UPDATE returns NEW. The view shows only
+-- linked rows (old versions stay in tblInsuree_history), so UPDATE and DELETE
+-- always find an individual.
 CREATE FUNCTION insuree_view_write() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     v_individual uuid;
+    v_previous text;
     v_user uuid;
     v_reason text;
     v_json jsonb;
     v_uuid uuid;
 BEGIN
     IF TG_OP = 'DELETE' THEN
-        IF EXISTS (SELECT 1 FROM "insuree_InsureeIndividual" WHERE "InsureeID" = OLD."InsureeID") THEN
-            RAISE EXCEPTION USING ERRCODE = 'IS001',
-                MESSAGE = 'insuree_view: a current insuree is not deleted, set validity_to instead';
-        END IF;
-        DELETE FROM "tblInsuree_history" WHERE "InsureeID" = OLD."InsureeID";
-        IF NOT FOUND THEN RETURN NULL; END IF;
-        RETURN OLD;
+        RAISE EXCEPTION USING ERRCODE = 'IS001',
+            MESSAGE = 'insuree_view: a current insuree is not deleted, set validity_to instead';
     END IF;
 
     -- The copy VersionedModel.save_history() makes of the row it is about to change.
@@ -59,12 +57,6 @@ BEGIN
 
     IF TG_OP = 'UPDATE' THEN
         SELECT individual_id INTO v_individual FROM "insuree_InsureeIndividual" WHERE "InsureeID" = OLD."InsureeID";
-        IF v_individual IS NULL THEN
-            DELETE FROM "tblInsuree_history" WHERE "InsureeID" = OLD."InsureeID";
-            IF NOT FOUND THEN RETURN NULL; END IF;
-            INSERT INTO "tblInsuree_history" SELECT (NEW).*;
-            RETURN NEW;
-        END IF;
     END IF;
 
     SELECT id INTO v_user FROM "core_User" WHERE i_user_id = NEW."AuditUserID" ORDER BY username LIMIT 1;
@@ -80,6 +72,7 @@ BEGIN
     NEW."ValidityFrom" := COALESCE(NEW."ValidityFrom", now());
     v_json := insuree_fields_json(to_jsonb(NEW));
 
+    v_previous := current_setting('insuree.via_view', true);
     PERFORM set_config('insuree.via_view', 'on', true);
     IF TG_OP = 'INSERT' THEN
         NEW."InsureeUUID" := COALESCE(NEW."InsureeUUID", gen_random_uuid()::text);
@@ -112,7 +105,7 @@ BEGIN
         WHERE "UUID" = v_individual;
         PERFORM insuree_write_history(v_individual, '~', v_user, v_reason);
     END IF;
-    PERFORM set_config('insuree.via_view', 'off', true);
+    PERFORM set_config('insuree.via_view', COALESCE(v_previous, ''), true);
     RETURN NEW;
 END $$;
 

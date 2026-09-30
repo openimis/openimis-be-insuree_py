@@ -35,6 +35,8 @@ CREATE TRIGGER insuree_guard_linked_individual BEFORE UPDATE OR DELETE ON indivi
 -- Individual row security reads location_id; an insuree without a village of its
 -- own follows its family, which moves without touching its members.
 CREATE FUNCTION insuree_family_location_moved() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    v_previous text := current_setting('insuree.via_view', true);
 BEGIN
     IF NEW."LocationId" IS DISTINCT FROM OLD."LocationId" THEN
         PERFORM set_config('insuree.via_view', 'on', true);
@@ -43,7 +45,7 @@ BEGIN
         WHERE l.individual_id = i."UUID"
           AND (i."Json_ext" ->> 'family_id')::integer = NEW."FamilyID"
           AND i."Json_ext" ->> 'current_village_id' IS NULL;
-        PERFORM set_config('insuree.via_view', 'off', true);
+        PERFORM set_config('insuree.via_view', COALESCE(v_previous, ''), true);
     END IF;
     RETURN NULL;
 END $$;

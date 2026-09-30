@@ -194,3 +194,13 @@ class InsureeViewWriteTest(TestCase):
         self.assertEqual(
             list(locked.values_list("pk", flat=True)), [insuree.pk]
         )
+
+    def test_writing_through_the_view_keeps_the_callers_flag(self):
+        insuree = create_test_insuree()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('insuree.via_view', 'on', true)")
+            insuree.phone = "+3"
+            insuree.save()
+            cursor.execute("SELECT current_setting('insuree.via_view', true)")
+            self.assertEqual(cursor.fetchone()[0], "on")
+            cursor.execute("SELECT set_config('insuree.via_view', '', true)")
