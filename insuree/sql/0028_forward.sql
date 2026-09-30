@@ -16,9 +16,9 @@ ALTER TABLE "tblInsuree_history" ADD CONSTRAINT "tblInsuree_history_copies_only"
 
 -- The exact expressions the view exposes: an index on a different cast is not used.
 CREATE INDEX insuree_chf_id ON individual_individual ((("Json_ext" ->> 'chf_id')::varchar(50)));
-CREATE INDEX insuree_family_id ON individual_individual ((("Json_ext" ->> 'family_id')::integer));
-CREATE INDEX insuree_current_village_id ON individual_individual ((("Json_ext" ->> 'current_village_id')::integer));
-CREATE INDEX insuree_health_facility_id ON individual_individual ((("Json_ext" ->> 'health_facility_id')::integer));
+CREATE INDEX insuree_family_id ON individual_individual ((insuree_int("Json_ext" ->> 'family_id')));
+CREATE INDEX insuree_current_village_id ON individual_individual ((insuree_int("Json_ext" ->> 'current_village_id')));
+CREATE INDEX insuree_health_facility_id ON individual_individual ((insuree_int("Json_ext" ->> 'health_facility_id')));
 -- Insuree lists are ordered by ValidityFrom, which the view reads from here.
 CREATE INDEX insuree_validity_from ON individual_individual ((COALESCE("DateUpdated", "DateCreated")));
 -- Unique, as InsureeUUID was on the table: FHIR clients set uuids themselves.

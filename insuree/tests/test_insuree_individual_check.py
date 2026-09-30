@@ -108,3 +108,16 @@ class InsureeIndividualCheckTest(TestCase):
         GroupIndividual(group=group, individual=individual).save(user=user)
         _, out = self.check()
         self.assertIn("individual_groupindividual", out)
+
+    def test_an_individual_with_a_non_integer_family_id_stays_writable(self):
+        user = User.objects.filter(username="Admin").first()
+        other = Individual(
+            first_name="A",
+            last_name="B",
+            dob="2000-01-01",
+            json_ext={"family_id": "F-1"},
+        )
+        other.save(user=user)
+        self.assertEqual(
+            Individual.objects.get(id=other.id).json_ext["family_id"], "F-1"
+        )

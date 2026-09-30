@@ -45,7 +45,7 @@ BEGIN
         UPDATE individual_individual i SET location_id = NEW."LocationId"
         FROM "insuree_InsureeIndividual" l
         WHERE l.individual_id = i."UUID"
-          AND (i."Json_ext" ->> 'family_id')::integer = NEW."FamilyID"
+          AND insuree_int(i."Json_ext" ->> 'family_id') = NEW."FamilyID"
           AND i."Json_ext" ->> 'current_village_id' IS NULL;
         PERFORM set_config('insuree.via_view', COALESCE(v_previous, ''), true);
     END IF;

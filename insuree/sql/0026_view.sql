@@ -19,6 +19,13 @@ CREATE TABLE "insuree_InsureeIndividual" (
 );
 ALTER SEQUENCE "tblInsuree_InsureeID_seq" OWNED BY "insuree_InsureeIndividual"."InsureeID";
 
+-- json_ext is shared with every individual: a key the view reads as an integer
+-- may hold anything for individuals that are not insurees. NULL instead of a
+-- cast error keeps them writable once 0028 indexes those keys.
+CREATE FUNCTION insuree_int(value text) RETURNS integer LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN value ~ '^-?[0-9]{1,9}$' THEN value::integer END
+$$;
+
 -- Same columns, order and types as the table it replaces: the PL/pgSQL reports
 -- and the uvw* views read it by position (SELECT *) as well as by name.
 CREATE VIEW "tblInsuree" AS
@@ -29,14 +36,14 @@ SELECT
     (i."Json_ext" ->> 'chf_id')::varchar(50) AS "CHFID",
     (i."Json_ext" ->> 'card_issued')::boolean AS "CardIssued",
     (i."Json_ext" ->> 'current_address')::varchar(200) AS "CurrentAddress",
-    (i."Json_ext" ->> 'current_village_id')::integer AS "CurrentVillage",
+    insuree_int(i."Json_ext" ->> 'current_village_id') AS "CurrentVillage",
     CASE WHEN COALESCE((i."Json_ext" ->> 'dob_unknown')::boolean, false) THEN NULL::date ELSE i.dob END AS "DOB",
     (i."Json_ext" ->> 'education_id')::smallint AS "Education",
     (i."Json_ext" ->> 'email')::varchar(100) AS "Email",
-    (i."Json_ext" ->> 'family_id')::integer AS "FamilyID",
+    insuree_int(i."Json_ext" ->> 'family_id') AS "FamilyID",
     (i."Json_ext" ->> 'gender_code')::varchar(1) AS "Gender",
     (i."Json_ext" ->> 'geolocation')::varchar(250) AS "GeoLocation",
-    (i."Json_ext" ->> 'health_facility_id')::integer AS "HFID",
+    insuree_int(i."Json_ext" ->> 'health_facility_id') AS "HFID",
     COALESCE(i."Json_ext" ->> 'insuree_uuid', i."UUID"::text)::varchar(36) AS "InsureeUUID",
     COALESCE((i."Json_ext" ->> 'head')::boolean, false) AS "IsHead",
     i.last_name::varchar(100) AS "LastName",

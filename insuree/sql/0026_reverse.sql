@@ -2,6 +2,7 @@ DROP TRIGGER IF EXISTS insuree_family_location_moved ON "tblFamilies";
 DROP TRIGGER IF EXISTS insuree_guard_linked_individual ON individual_individual;
 DROP TRIGGER IF EXISTS insuree_references ON individual_individual;
 DROP VIEW "tblInsuree";
+DROP FUNCTION insuree_int(text);
 DROP FUNCTION IF EXISTS insuree_family_location_moved();
 DROP FUNCTION IF EXISTS insuree_guard_linked_individual();
 DROP FUNCTION IF EXISTS insuree_owned_json(jsonb);
