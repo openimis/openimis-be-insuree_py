@@ -50,6 +50,17 @@ user behind an `AuditUserID` becomes the individual's author; an
 * A new model referencing `Insuree` must declare `db_constraint=False`:
   a view cannot be the target of a foreign key (system check
   `insuree.E003`).
+* The ten existing references to `Insuree` (claims, policies, families,
+  contracts, ...) keep their constraint, pointed at
+  `insuree_InsureeIndividual`. A migration that changes the database column
+  of one of them (type, null) fails: Django drops the constraint and creates
+  it again against `tblInsuree`, a view. Such a change needs a hand-written
+  migration that recreates the constraint against the link table.
+* The view reads `first_name`, `last_name`, `dob`, `isDeleted`,
+  `DateCreated`, `DateUpdated`, `UserUpdatedUUID` and `Json_ext` of
+  `individual_individual`; PostgreSQL refuses to change the type of a
+  column a view depends on, so a migration of the individual module that
+  does must drop and recreate the view around it.
 
 ### Upgrading an existing database
 
