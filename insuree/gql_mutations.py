@@ -15,6 +15,8 @@ from graphene import InputObjectType
 from .models import Family, Insuree, FamilyMutation, InsureeMutation
 from policy.models import Policy
 from location import models as location_models
+from .uba import check_enrolment_perms, has_enrolment_perms, has_enrolment_perms_somewhere, \
+    family_village, insuree_village
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,32 @@ class UpdateFamilyInputType(FamilyInputType):
 
 
 
+def _village(location_id):
+    if not location_id:
+        return None
+    return location_models.Location.objects.filter(id=location_id).first()
+
+
+def _current_family(family_uuid):
+    if not family_uuid:
+        return None
+    return Family.objects.filter(uuid=family_uuid, validity_to__isnull=True).first()
+
+
+def _current_insuree(insuree_uuid):
+    if not insuree_uuid:
+        return None
+    return Insuree.objects.filter(uuid=insuree_uuid, validity_to__isnull=True).first()
+
+
+def _insuree_target_village(data):
+    """The village an insuree is written to: the family's, their own without a family."""
+    family_id = data.get('family_id')
+    if family_id:
+        return family_village(Family.objects.filter(id=family_id).first())
+    return _village(data.get('current_village_id'))
+
+
 def update_or_create_insuree(data, user):
     #data["client_mutation_id_save"] = data.pop('client_mutation_id', None)
     data.pop('client_mutation_id', None)
@@ -139,8 +167,9 @@ class CreateFamilyMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_create_families_perms):
-                raise PermissionDenied(_("unauthorized"))
+            check_enrolment_perms(
+                user, InsureeConfig.gql_mutation_create_families_perms,
+                _village(data.get('location_id')))
             data['audit_user_id'] = user.id_for_audit
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
@@ -173,8 +202,11 @@ class UpdateFamilyMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
-                raise PermissionDenied(_("unauthorized"))
+            # the village it leaves and, when it moves, the one it goes to
+            villages = [family_village(_current_family(data.get('uuid')))]
+            if data.get('location_id'):
+                villages.append(_village(data['location_id']))
+            check_enrolment_perms(user, InsureeConfig.gql_mutation_update_families_perms, *villages)
             data['audit_user_id'] = user.id_for_audit
             client_mutation_id = data.get("client_mutation_id")
             family = update_or_create_family(data, user)
@@ -202,7 +234,8 @@ class DeleteFamiliesMutation(OpenIMISMutation):
 
     @classmethod
     def async_mutate(cls, user, **data):
-        if not user.has_perms(InsureeConfig.gql_mutation_delete_families_perms):
+        perms = InsureeConfig.gql_mutation_delete_families_perms
+        if not user.has_perms(perms) and not has_enrolment_perms_somewhere(user, perms):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for family_uuid in data["uuids"]:
@@ -215,6 +248,9 @@ class DeleteFamiliesMutation(OpenIMISMutation):
                     'title': family_uuid,
                     'list': [{'message': _("insuree.mutation.failed_to_delete_family") % {'uuid': family_uuid}}]
                 })
+                continue
+            if not has_enrolment_perms(user, perms, [family_village(family)]):
+                errors.append({'title': family_uuid, 'list': [{'message': _("unauthorized")}]})
                 continue
             errors += FamilyService(user).set_deleted(family,
                                                       data["delete_members"])
@@ -239,8 +275,8 @@ class CreateInsureeMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
-                raise PermissionDenied(_("unauthorized"))
+            check_enrolment_perms(
+                user, InsureeConfig.gql_mutation_create_insurees_perms, _insuree_target_village(data))
             data['audit_user_id'] = user.id_for_audit
             from core.utils import TimeUtils
             data['validity_from'] = TimeUtils.now()
@@ -272,11 +308,15 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
-                raise PermissionDenied(_("unauthorized"))
             if 'uuid' not in data:
                 raise ValidationError(
                     "There is no uuid in updateMutation input!")
+            # where the insuree is enrolled now and where the update puts them
+            villages = [insuree_village(_current_insuree(data['uuid']))]
+            target_village = _insuree_target_village(data)
+            if target_village is not None:
+                villages.append(target_village)
+            check_enrolment_perms(user, InsureeConfig.gql_mutation_create_insurees_perms, *villages)
             data['audit_user_id'] = user.id_for_audit
             client_mutation_id = data.get("client_mutation_id")
             insuree = update_or_create_insuree(data, user)
@@ -312,7 +352,8 @@ class DeleteInsureesMutation(OpenIMISMutation):
 
     @classmethod
     def async_mutate(cls, user, **data):
-        if not user.has_perms(InsureeConfig.gql_mutation_delete_insurees_perms):
+        perms = InsureeConfig.gql_mutation_delete_insurees_perms
+        if not user.has_perms(perms) and not has_enrolment_perms_somewhere(user, perms):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for insuree_uuid in data["uuids"]:
@@ -326,6 +367,9 @@ class DeleteInsureesMutation(OpenIMISMutation):
                     'list': [{'message': _(
                         "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
                 })
+                continue
+            if not has_enrolment_perms(user, perms, [insuree_village(insuree)]):
+                errors.append({'title': insuree_uuid, 'list': [{'message': _("unauthorized")}]})
                 continue
             if insuree.family and insuree.family.head_insuree.id == insuree.id:
                 errors.append({
@@ -354,7 +398,8 @@ class RemoveInsureesMutation(OpenIMISMutation):
 
     @classmethod
     def async_mutate(cls, user, **data):
-        if not user.has_perms(InsureeConfig.gql_mutation_delete_insurees_perms):
+        perms = InsureeConfig.gql_mutation_delete_insurees_perms
+        if not user.has_perms(perms) and not has_enrolment_perms_somewhere(user, perms):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for insuree_uuid in data["uuids"]:
@@ -368,6 +413,9 @@ class RemoveInsureesMutation(OpenIMISMutation):
                     'list': [{'message': _(
                         "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
                 }
+                continue
+            if not has_enrolment_perms(user, perms, [insuree_village(insuree)]):
+                errors.append({'title': insuree_uuid, 'list': [{'message': _("unauthorized")}]})
                 continue
             if insuree.family.head_insuree.id == insuree.id:
                 errors.append({
@@ -398,8 +446,9 @@ class SetFamilyHeadMutation(OpenIMISMutation):
 
     @classmethod
     def async_mutate(cls, user, **data):
-        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
-            raise PermissionDenied(_("unauthorized"))
+        check_enrolment_perms(
+            user, InsureeConfig.gql_mutation_update_families_perms,
+            family_village(_current_family(data.get('uuid'))))
         try:
             family = Family.objects.get(uuid=(data['uuid']))
             insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))
@@ -437,9 +486,11 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
 
     @classmethod
     def async_mutate(cls, user, **data):
-        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms) or \
-                not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
-            raise PermissionDenied(_("unauthorized"))
+        # the family the insuree leaves and the one they join
+        villages = (insuree_village(_current_insuree(data.get('insuree_uuid'))),
+                    family_village(_current_family(data.get('family_uuid'))))
+        check_enrolment_perms(user, InsureeConfig.gql_mutation_update_families_perms, *villages)
+        check_enrolment_perms(user, InsureeConfig.gql_mutation_update_insurees_perms, *villages)
         try:
             family = Family.objects.get(uuid=(data['family_uuid']))
             insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))

@@ -8,6 +8,7 @@ which is what these tests exercise end to end.
 """
 from django.core.cache import cache
 from django.test import TestCase
+from django.utils.translation import gettext as _
 
 from core.apps import ENROLMENT_UBA_LINK_TYPE
 from core.services.userServices import create_or_update_user_districts
@@ -135,3 +136,123 @@ class EnrolmentUbaRowSecurityTest(TestCase):
             self.officer_user)
         self.assertNotIn(
             self.other_insuree.id, set(visible.values_list("insuree_id", flat=True)))
+
+
+class EnrolmentUbaRightsTest(TestCase):
+    """
+    The rights side: an enrolment officer holding the insuree rights in the UBA bag only
+    may search (the rows being narrowed as above) and write on the villages they hold an
+    ENROLMENT link on - and nowhere else, a right in the UBA bag without a link being
+    granted nowhere.
+    """
+
+    UBA_RIGHTS = [101001, 101002, 101003, 101004, 101101, 101102, 101103, 101104]
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.linked_village = create_test_village({"name": "UbaRightsLinked"})
+        cls.district = cls.linked_village.parent.parent
+        cls.other_village = Location.objects.create(
+            name="UbaRightsOther", code="UBARO2", type="V",
+            parent=cls.linked_village.parent, audit_user_id=-1, validity_from="2019-01-01")
+
+        cls.role = create_test_role(name="UBA enrolment rights", uba_rights=cls.UBA_RIGHTS)
+        cls.officer_user = create_test_interactive_user(
+            username="ubarightsofficer", roles=[cls.role.id])
+        cls.unlinked_user = create_test_interactive_user(
+            username="ubarightsunlinked", roles=[cls.role.id])
+        cls.global_role = create_test_role(name="Global enrolment rights", rights=cls.UBA_RIGHTS)
+        cls.global_user = create_test_interactive_user(
+            username="ubarightsglobal", roles=[cls.global_role.id])
+        for user in (cls.officer_user, cls.unlinked_user, cls.global_user):
+            create_or_update_user_districts(user.i_user, [cls.district.id], -1)
+        create_test_user_business_access(
+            user=cls.officer_user, business_object=cls.linked_village,
+            link_type=ENROLMENT_UBA_LINK_TYPE)
+
+        cls.linked_insuree = create_test_insuree(
+            custom_props={"chf_id": "UBARI001", "current_village": cls.linked_village},
+            family_custom_props={"location": cls.linked_village})
+        cls.other_insuree = create_test_insuree(
+            custom_props={"chf_id": "UBARI002", "current_village": cls.other_village},
+            family_custom_props={"location": cls.other_village})
+
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_the_search_is_open_to_a_linked_officer(self):
+        from insuree.uba import can_query
+
+        self.assertTrue(can_query(self.officer_user, InsureeConfig.gql_query_families_perms))
+        self.assertTrue(can_query(self.officer_user, InsureeConfig.gql_query_insurees_perms))
+
+    def test_the_search_is_closed_without_a_link(self):
+        from insuree.uba import can_query
+
+        self.assertFalse(can_query(self.unlinked_user, InsureeConfig.gql_query_families_perms))
+
+    def test_a_write_is_granted_on_the_linked_village_only(self):
+        from insuree.uba import has_enrolment_perms
+
+        perms = InsureeConfig.gql_mutation_create_families_perms
+        self.assertTrue(has_enrolment_perms(self.officer_user, perms, [self.linked_village]))
+        self.assertFalse(has_enrolment_perms(self.officer_user, perms, [self.other_village]))
+        self.assertFalse(has_enrolment_perms(self.unlinked_user, perms, [self.linked_village]))
+
+    def test_a_write_touching_two_villages_needs_both(self):
+        from insuree.uba import has_enrolment_perms
+
+        self.assertFalse(has_enrolment_perms(
+            self.officer_user, InsureeConfig.gql_mutation_update_families_perms,
+            [self.linked_village, self.other_village]))
+
+    def test_a_write_on_an_unknown_village_needs_the_global_bag(self):
+        from insuree.uba import has_enrolment_perms
+
+        perms = InsureeConfig.gql_mutation_create_insurees_perms
+        self.assertFalse(has_enrolment_perms(self.officer_user, perms, [None]))
+        self.assertTrue(has_enrolment_perms(self.global_user, perms, [None]))
+
+    def test_the_global_bag_writes_anywhere(self):
+        from insuree.uba import has_enrolment_perms
+
+        self.assertTrue(has_enrolment_perms(
+            self.global_user, InsureeConfig.gql_mutation_update_insurees_perms,
+            [self.other_village]))
+
+    def test_an_insuree_is_located_by_its_family(self):
+        from insuree.uba import insuree_village
+
+        self.assertEqual(self.linked_village, insuree_village(self.linked_insuree))
+
+    def test_creating_a_family_on_another_village_is_refused(self):
+        from insuree.gql_mutations import CreateFamilyMutation
+
+        errors = CreateFamilyMutation.async_mutate(
+            self.officer_user, location_id=self.other_village.id, head_insuree={})
+        self.assertTrue(errors)
+        self.assertEqual(_("unauthorized"), errors[0]["detail"])
+
+    def test_deleting_families_is_checked_family_by_family(self):
+        from insuree.gql_mutations import DeleteFamiliesMutation
+
+        errors = DeleteFamiliesMutation.async_mutate(
+            self.officer_user,
+            uuids=[self.linked_insuree.family.uuid, self.other_insuree.family.uuid],
+            delete_members=False)
+        self.assertEqual([{"message": _("unauthorized")}], errors)
+        self.assertFalse(Family.objects.filter(
+            id=self.linked_insuree.family_id, validity_to__isnull=True).exists())
+        self.assertTrue(Family.objects.filter(
+            id=self.other_insuree.family_id, validity_to__isnull=True).exists())
+
+    def test_a_batch_write_is_refused_without_a_link(self):
+        from django.core.exceptions import PermissionDenied
+        from insuree.gql_mutations import DeleteInsureesMutation
+
+        with self.assertRaises(PermissionDenied):
+            DeleteInsureesMutation.async_mutate(
+                self.unlinked_user, uuids=[self.linked_insuree.uuid])

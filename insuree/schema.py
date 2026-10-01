@@ -4,6 +4,7 @@ from claim.apps import ClaimConfig
 from core.gql.export_mixin import ExportableQueryMixin
 from core.schema import signal_mutation_module_validate
 from core.utils import filter_validity
+from core.apps import ENROLMENT_UBA_LINK_TYPE
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
@@ -12,6 +13,7 @@ import graphene_django_optimizer as gql_optimizer
 from location.models import Location, LocationManager
 
 from insuree.apps import InsureeConfig
+from insuree.uba import can_query
 from .models import FamilyMutation, InsureeMutation
 from django.utils.translation import gettext as _
 from location.apps import LocationConfig
@@ -36,7 +38,7 @@ class FamiliesConnectionField(OrderedDjangoFilterConnectionField):
     def resolve_queryset(
             cls, connection, iterable, info, args, filtering_args, filterset_class
     ):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         qs = super(FamiliesConnectionField, cls).resolve_queryset(
             connection, iterable, info,
@@ -121,7 +123,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
     )
 
     def resolve_insuree_number_validity(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         errors = validate_insuree_number(kwargs['insuree_number'])
         if errors:
@@ -130,9 +132,10 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             return ValidationMessageGQLType(True, 0, "")
 
     def resolve_can_add_insuree(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
-        family = Family.objects.get(id=kwargs.get('family_id'))
+        # through the row filter: the query is open to UBA users, the family must be in scope
+        family = Family.get_queryset(Family.objects, info.context.user).get(id=kwargs.get('family_id'))
         warnings = []
         policies = family.policies\
             .filter(validity_to__isnull=True)\
@@ -153,12 +156,12 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         return warnings
 
     def resolve_insuree_genders(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
         return Gender.objects.order_by('sort_order').all()
 
     def resolve_insurees(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
@@ -193,14 +196,18 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         if not info.context.user._u.is_imis_admin and (kwargs.get('ignore_location') == False or kwargs.get('ignore_location') is None):
             # Limit the list by the logged in user location mapping
-            filters += [Q(LocationManager().build_user_location_filter_query(info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']) |
-                        LocationManager().build_user_location_filter_query(info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']))]
+            filters += [Q(LocationManager().build_user_location_filter_query(
+                            info.context.user._u, prefix='current_village__parent__parent',
+                            loc_types=['D'], link_types=ENROLMENT_UBA_LINK_TYPE) |
+                          LocationManager().build_user_location_filter_query(
+                            info.context.user._u, prefix='family__location__parent__parent',
+                            loc_types=['D'], link_types=ENROLMENT_UBA_LINK_TYPE))]
 
         # return gql_optimizer.query(Insuree.objects.filter(*filters).all(), info)
         return gql_optimizer.query(Insuree.objects.select_related('family', 'gender', 'health_facility', 'current_village').filter(*filters).all(), info)
 
     def resolve_family_members(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_family_members):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_family_members):
             raise PermissionDenied(_("unauthorized"))
         family = Family.objects.get(Q(uuid=(kwargs.get('family_uuid'))))
         return Insuree.objects.filter(
@@ -209,37 +216,37 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         ).order_by('-head', 'dob')
 
     def resolve_educations(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return Education.objects.order_by('sort_order').all()
 
     def resolve_professions(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return Profession.objects.order_by('sort_order').all()
 
     def resolve_identification_types(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return IdentificationType.objects.order_by('sort_order').all()
 
     def resolve_confirmation_types(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return ConfirmationType.objects.order_by('sort_order').all()
 
     def resolve_relations(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return Relation.objects.order_by('sort_order').all()
 
     def resolve_family_types(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
         return FamilyType.objects.order_by('sort_order').all()
 
     def resolve_families(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_families_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_families_perms):
             raise PermissionDenied(_("unauthorized"))
 
         filters = []
@@ -281,8 +288,9 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin and not LocationConfig.no_location_check:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
-                                                                           prefix='location__parent__parent', loc_types=['D'])]
+            filters += [LocationManager().build_user_location_filter_query(
+                info.context.user._u, prefix='location__parent__parent', loc_types=['D'],
+                link_types=ENROLMENT_UBA_LINK_TYPE)]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         # ids = Family.objects.filter(*filters).values_list('id')
@@ -292,11 +300,11 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
         return gql_optimizer.query(dinstinct_queryset.all(), info)
 
     def resolve_insuree_officers(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_officers_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_officers_perms):
             raise PermissionDenied(_("unauthorized"))
 
     def resolve_insuree_policy(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_policy_perms):
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filter', None)
@@ -309,7 +317,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             if len(filters_from_signal) == 0:
                 raise PermissionDenied(_("unauthorized"))
             filters.extend(filters_from_signal)
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_policy_perms):
+        if not can_query(info.context.user, InsureeConfig.gql_query_insuree_policy_perms):
             raise PermissionDenied(_("unauthorized"))
         parent_location = kwargs.get('parent_location')
         if parent_location is not None:
