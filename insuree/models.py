@@ -164,8 +164,10 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             )
         if settings.ROW_SECURITY and not user.is_imis_admin and not LocationConfig.no_location_check:
             from location.schema import LocationManager
+            # Matched at the level the user is granted (officer villages, user
+            # districts, ...): see build_user_village_filter_query, and its UBA TODO.
             return queryset.filter(
-                LocationManager().build_user_location_filter_query(user._u, prefix='location__parent__parent', loc_types=['D']))
+                LocationManager().build_user_village_filter_query(user._u, prefix='location'))
 
         return queryset
 
@@ -383,13 +385,15 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         # ... so not to be used as 'strict filtering'
         if (settings.ROW_SECURITY and not scope_lifted and not user.is_imis_admin
                 and not LocationConfig.no_location_check):
+            # Matched at the level the user is granted (officer villages, user
+            # districts, ...): see build_user_village_filter_query, and its UBA TODO.
             return queryset.filter(
                 Q(
-                    LocationManager().build_user_location_filter_query(
-                        user._u, prefix='current_village__parent__parent', loc_types=['D']
+                    LocationManager().build_user_village_filter_query(
+                        user._u, prefix='current_village'
                     )
-                    | LocationManager().build_user_location_filter_query(
-                        user._u, prefix='family__location__parent__parent', loc_types=['D']
+                    | LocationManager().build_user_village_filter_query(
+                        user._u, prefix='family__location'
                     )
                 )
             )
