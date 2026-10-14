@@ -157,3 +157,59 @@ class InsureeEnquiryQueryTestCase(RightsRoleGraphQLTestCase):
             user, LOOKUP_QUERY, variables={"chfId": self.away_insuree.chf_id}
         )
         self.assertEqual(self._chf_ids(response), [self.away_insuree.chf_id])
+
+    def test_picker_walks_the_family_location_up_to_the_region(self):
+        """
+        The picker projects the family location with its parents; an insuree
+        found out of district comes with where it lives, up to the region.
+        """
+        user = self._user("enq_ins_walk_up", ["gql_query_insuree_inquire_perms"])
+        response = self.assert_gql_ok(
+            user,
+            """
+            query ($chfId: String!) {
+              insurees(chfId: $chfId, ignoreLocation: true) {
+                edges { node { chfId family { location {
+                  code parent { code parent { code parent { code } } }
+                } } } }
+              }
+            }
+            """,
+            variables={"chfId": self.away_insuree.chf_id},
+        )
+        content = json.loads(response.content)
+        village = content["data"]["insurees"]["edges"][0]["node"]["family"]["location"]
+        self.assertEqual(village["code"], self.away_village.code)
+        self.assertEqual(village["parent"]["code"], self.away_village.parent.code)
+        self.assertEqual(
+            village["parent"]["parent"]["parent"]["code"],
+            self.away_village.parent.parent.parent.code,
+        )
+
+    def test_way_down_from_the_insurees_location_stays_scoped(self):
+        """
+        Going up is free, so the reverse relations hanging off a location must
+        not list the families and insurees of a branch the user is not assigned -
+        not even inside the lookup that lifted the scope for the insuree itself.
+        """
+        user = self._user("enq_ins_walk_down", ["gql_query_insuree_inquire_perms"])
+        response = self.assert_gql_ok(
+            user,
+            """
+            query ($chfId: String!) {
+              insurees(chfId: $chfId, ignoreLocation: true) {
+                edges { node { family { location {
+                  familySet { edges { node { uuid } } }
+                  insureeSet { edges { node { chfId } } }
+                } } } }
+              }
+            }
+            """,
+            variables={"chfId": self.away_insuree.chf_id},
+        )
+        content = json.loads(response.content)
+        village = content["data"]["insurees"]["edges"][0]["node"]["family"]["location"]
+        families = [e["node"]["uuid"] for e in village["familySet"]["edges"]]
+        insurees = [e["node"]["chfId"] for e in village["insureeSet"]["edges"]]
+        self.assertNotIn(str(self.away_insuree.family.uuid), families, msg=content)
+        self.assertNotIn(self.away_insuree.chf_id, insurees, msg=content)

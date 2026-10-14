@@ -281,7 +281,7 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             # `InsureeGQLType.get_queryset` -> `Insuree.get_queryset` runs after this
             # resolver and re-applies the same district filter, so dropping it here
             # was never enough on its own. The flag carries the decision to it.
-            setattr(info.context, Insuree.SCOPE_LIFTED, True)
+            Insuree.lift_scope(info)
         if (not user._u.is_imis_admin
                 and not ignore_location
                 and not LocationConfig.no_location_check):

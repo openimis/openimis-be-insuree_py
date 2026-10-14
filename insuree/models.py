@@ -364,7 +364,19 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     # its own district filter was never enough: this filter put it straight back, and
     # `ignoreLocation` did nothing at all for anyone but a superuser. The flag is how
     # the resolver's decision reaches the only place that can act on it.
+    # It holds the response paths of the lookups it was granted to, not a plain
+    # boolean: the request context is shared by every field of the response, and
+    # a connection nested under the lookup - `insureeSet` on the village of the
+    # insuree just found - must stay inside the caller's districts.
     SCOPE_LIFTED = "insuree_location_scope_lifted"
+
+    @classmethod
+    def lift_scope(cls, info):
+        lifted = getattr(info.context, cls.SCOPE_LIFTED, None)
+        if lifted is None:
+            lifted = set()
+            setattr(info.context, cls.SCOPE_LIFTED, lifted)
+        lifted.add(tuple(info.path or ()))
 
     @classmethod
     def get_queryset(cls, queryset, user):
@@ -372,7 +384,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         # GraphQL calls with an info object while Rest calls with the user itself
         scope_lifted = False
         if isinstance(user, ResolveInfo):
-            scope_lifted = getattr(user.context, cls.SCOPE_LIFTED, False)
+            scope_lifted = tuple(user.path or ()) in getattr(
+                user.context, cls.SCOPE_LIFTED, ()
+            )
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
