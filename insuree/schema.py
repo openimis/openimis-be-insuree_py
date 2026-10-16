@@ -382,8 +382,13 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin and not LocationConfig.no_location_check:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
-                                                                           prefix='location__parent__parent', loc_types=['D'])]
+            filters += [
+                LocationManager().build_user_location_filter_query(
+                    info.context.user._u,
+                    prefix='location__parent__parent',
+                    loc_types=['D'],
+                )
+            ]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
