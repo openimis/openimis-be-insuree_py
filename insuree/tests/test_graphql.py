@@ -29,11 +29,14 @@ from insuree.test_helpers import (
 from graphql_jwt.shortcuts import get_token
 from location.test_helpers import assign_user_districts, create_basic_test_locations, create_test_village
 from rest_framework import status
-from insuree.models import Family
+from insuree.models import Family, Insuree
 
 from insuree.apps import InsureeConfig
 from unittest.mock import patch
 from core.test_helpers import create_test_officer
+
+# A nine-digit number the validity test takes ownership of.
+FREE_INSUREE_NUMBER = "070707070"
 
 # from openIMIS import schema
 
@@ -438,11 +441,23 @@ query GetInsureeInquire($chfId: String) {
         # This validates the status code and if you get errors
         self.assertResponseNoErrors(response)
 
+    def _pin_insuree_number_rules(self, **overrides):
+        """Set the insuree-number rules for one test and put them back after.
+
+        They are class attributes on a shared config object, so a test that
+        assigns them directly changes them for everything that runs later.
+        """
+        for key, value in overrides.items():
+            self.addCleanup(setattr, InsureeConfig, key, getattr(InsureeConfig, key))
+            setattr(InsureeConfig, key, value)
+
     def test_validate_number_unvalidity_with_variables(self):
-        InsureeConfig. insuree_number_validator = None
-        InsureeConfig.insuree_number_max_length = 9
-        InsureeConfig.insuree_number_min_length = 9
-        InsureeConfig.insuree_number_modulo_root = None
+        self._pin_insuree_number_rules(
+            insuree_number_validator=None,
+            insuree_number_max_length=9,
+            insuree_number_min_length=9,
+            insuree_number_modulo_root=None,
+        )
 
         response = self.query(
             '''
@@ -464,10 +479,17 @@ query GetInsureeInquire($chfId: String) {
         self.assertFalse(content['data']['insureeNumberValidity']['isValid'])
 
     def test_validate_number_validity_with_variables(self):
-        InsureeConfig. insuree_number_validator = None
-        InsureeConfig.insuree_number_max_length = 9
-        InsureeConfig.insuree_number_min_length = 9
-        InsureeConfig.insuree_number_modulo_root = None
+        self._pin_insuree_number_rules(
+            insuree_number_validator=None,
+            insuree_number_max_length=9,
+            insuree_number_min_length=9,
+            insuree_number_modulo_root=None,
+        )
+        # `insureeNumberValidity` also rejects a number that is already in use,
+        # so the test has to own this one rather than hope it is free. A
+        # database seeded with demo insurees has it; this assertion was passing
+        # only where it happened not to. Rolled back with the test.
+        Insuree.objects.filter(chf_id=FREE_INSUREE_NUMBER).delete()
         response = self.query(
             '''
               query ($insuranceNumber: String!) {
@@ -479,7 +501,7 @@ query GetInsureeInquire($chfId: String) {
               }
               ''',
             headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
-            variables={"insuranceNumber": "070707070"})
+            variables={"insuranceNumber": FREE_INSUREE_NUMBER})
 
         content = json.loads(response.content)
 
