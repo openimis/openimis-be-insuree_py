@@ -29,7 +29,7 @@ from insuree.test_helpers import (
 from graphql_jwt.shortcuts import get_token
 from location.test_helpers import assign_user_districts, create_basic_test_locations, create_test_village
 from rest_framework import status
-from insuree.models import Family
+from insuree.models import Family, Insuree
 
 from insuree.apps import InsureeConfig
 from unittest.mock import patch
@@ -64,8 +64,12 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         create_test_relation()
         create_test_confirmation_type()
         cls.test_village = create_test_village()
-        cls.test_insuree = create_test_insuree(with_family=True, is_head=True, custom_props={
-                                               'current_village': cls.test_village}, family_custom_props={'location': cls.test_village})
+        cls.test_insuree = create_test_insuree(
+            with_family=True,
+            is_head=True,
+            custom_props={'current_village': cls.test_village},
+            family_custom_props={'location': cls.test_village},
+        )
         cls.admin_user = create_test_interactive_user(
             username="testLocationAdmin")
         cls.admin_token = BaseTestContext(user=cls.admin_user).get_jwt()
@@ -134,7 +138,10 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,
+        family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,
+        name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -165,7 +172,9 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,poverty,confirmationNo,validityFrom,validityTo,headInsuree{id,uuid,chfId,lastName,otherNames,email,phone, dob},location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,poverty,confirmationNo,validityFrom,validityTo,headInsuree{id,uuid,chfId,lastName,otherNames,
+        email,phone, dob},location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -196,7 +205,10 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,
+        family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,
+        name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -222,7 +234,11 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         {
           node
           {
-            id,uuid,chfId,lastName,otherNames,dob,age,validityFrom,validityTo,gender{code},status,family{id, uuid, address location{name, parent{name, parent{name}}}},photo{folder,filename,photo},gender{code, gender, altLanguage},healthFacility{id, uuid, code, name, level, servicesPricelist{id, uuid}, itemsPricelist{id, uuid}, contractStartDate, contractEndDate, location{id,uuid,code,name,type, parent{id,uuid,code,name,type}}}
+            id,uuid,chfId,lastName,otherNames,dob,age,validityFrom,validityTo,gender{code},status,family{id,
+             uuid, address location{name, parent{name, parent{name}}}},photo{folder,filename,photo},
+            gender{code, gender, altLanguage},healthFacility{id, uuid, code, name, level, servicesPricelist{id,
+             uuid}, itemsPricelist{id, uuid}, contractStartDate, contractEndDate, location{id,uuid,code,name,
+            type, parent{id,uuid,code,name,type}}}
           }
         }
       }
@@ -438,11 +454,23 @@ query GetInsureeInquire($chfId: String) {
         # This validates the status code and if you get errors
         self.assertResponseNoErrors(response)
 
+    def _pin_insuree_number_rules(self, **overrides):
+        """Set the insuree-number rules for one test and put them back after.
+
+        They are class attributes on a shared config object, so a test that
+        assigns them directly changes them for everything that runs later.
+        """
+        for key, value in overrides.items():
+            self.addCleanup(setattr, InsureeConfig, key, getattr(InsureeConfig, key))
+            setattr(InsureeConfig, key, value)
+
     def test_validate_number_unvalidity_with_variables(self):
-        InsureeConfig. insuree_number_validator = None
-        InsureeConfig.insuree_number_max_length = 9
-        InsureeConfig.insuree_number_min_length = 9
-        InsureeConfig.insuree_number_modulo_root = None
+        self._pin_insuree_number_rules(
+            insuree_number_validator=None,
+            insuree_number_max_length=9,
+            insuree_number_min_length=9,
+            insuree_number_modulo_root=None,
+        )
 
         response = self.query(
             '''
@@ -464,10 +492,27 @@ query GetInsureeInquire($chfId: String) {
         self.assertFalse(content['data']['insureeNumberValidity']['isValid'])
 
     def test_validate_number_validity_with_variables(self):
-        InsureeConfig. insuree_number_validator = None
-        InsureeConfig.insuree_number_max_length = 9
-        InsureeConfig.insuree_number_min_length = 9
-        InsureeConfig.insuree_number_modulo_root = None
+        self._pin_insuree_number_rules(
+            insuree_number_validator=None,
+            insuree_number_max_length=9,
+            insuree_number_min_length=9,
+            insuree_number_modulo_root=None,
+        )
+        # `insureeNumberValidity` also rejects a number that is already in
+        # use, so the test picks one that is free rather than assuming. It
+        # cannot clear the occupant instead: on a seeded database that insuree
+        # is referenced by claims, and the hard delete leaves the teardown's
+        # constraint check with a ForeignKeyViolation.
+        taken = set(
+            Insuree.objects.filter(chf_id__isnull=False).values_list(
+                "chf_id", flat=True
+            )
+        )
+        free_number = next(
+            candidate
+            for candidate in (f"{n:09d}" for n in range(70707070, 70717070))
+            if candidate not in taken
+        )
         response = self.query(
             '''
               query ($insuranceNumber: String!) {
@@ -479,7 +524,7 @@ query GetInsureeInquire($chfId: String) {
               }
               ''',
             headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
-            variables={"insuranceNumber": "070707070"})
+            variables={"insuranceNumber": free_number})
 
         content = json.loads(response.content)
 

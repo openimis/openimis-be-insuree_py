@@ -10,10 +10,19 @@ class ReportAPITests(APITestCase):
 
     admin_user = None
     admin_token = None
-    EFO_URL = f'/{settings.SITE_ROOT()}report/enrolled_families/pdf/?locationId=34&dateFrom=2019-04-01&dateTo=2019-04-30'
-    IFO_URL = f'/{settings.SITE_ROOT()}report/insuree_family_overview/pdf/?dateFrom=2023-11-01&dateTo=2023-12-31'
+    EFO_URL = (
+        f'/{settings.SITE_ROOT()}report/enrolled_families/pdf/'
+        '?locationId=34&dateFrom=2019-04-01&dateTo=2019-04-30'
+    )
+    IFO_URL = (
+        f'/{settings.SITE_ROOT()}report/insuree_family_overview/pdf/'
+        '?dateFrom=2023-11-01&dateTo=2023-12-31'
+    )
     IMP_URL = f'/{settings.SITE_ROOT()}report/insuree_missing_photo/pdf/'
-    IME_URL = f'/{settings.SITE_ROOT()}report/insurees_pending_enrollment/pdf/?dateFrom=2019-04-01&dateTo=2019-04-30&officerId=1&locationId=20'
+    IME_URL = (
+        f'/{settings.SITE_ROOT()}report/insurees_pending_enrollment/pdf/'
+        '?dateFrom=2019-04-01&dateTo=2019-04-30&officerId=1&locationId=20'
+    )
 
     @classmethod
     def setUpClass(cls):
@@ -23,8 +32,10 @@ class ReportAPITests(APITestCase):
         cls.admin_token = BaseTestContext(user=cls.admin_user).get_jwt()
 
     def test_single_enrolled_families_report(self):
-        report_role = create_test_role(perm_names=[
-                                       "gql_reports_families_insurees_overview_perms"], name="EnrolledFamiliesReportRole")
+        report_role = create_test_role(
+            perm_names=["gql_reports_families_insurees_overview_perms"],
+            name="EnrolledFamiliesReportRole",
+        )
         report_user = create_test_interactive_user(
             username="testEnrolledFamiliesUser", roles=[report_role.id])
         report_token = BaseTestContext(user=report_user).get_jwt()
@@ -43,8 +54,10 @@ class ReportAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_single_insuree_family_overview_report(self):
-        report_role = create_test_role(perm_names=[
-                                       "gql_reports_families_insurees_overview_perms"], name="InsureeFamilyOverviewReportRole")
+        report_role = create_test_role(
+            perm_names=["gql_reports_families_insurees_overview_perms"],
+            name="InsureeFamilyOverviewReportRole",
+        )
         report_user = create_test_interactive_user(
             username="testReportUser", roles=[report_role.id])
         report_token = BaseTestContext(user=report_user).get_jwt()
@@ -66,8 +79,10 @@ class ReportAPITests(APITestCase):
     def test_single_insuree_missing_photo_report(self):
         if not connection.vendor == 'postgresql':
             self.skipTest("This test can only be executed for PSQL database")
-        report_role = create_test_role(perm_names=[
-                                       "gql_reports_families_insurees_overview_perms"], name="InsureeMissingPhotoReportRole")
+        report_role = create_test_role(
+            perm_names=["gql_reports_families_insurees_overview_perms"],
+            name="InsureeMissingPhotoReportRole",
+        )
         report_user = create_test_interactive_user(
             username="testMissingPhotoUser", roles=[report_role.id])
         report_token = BaseTestContext(user=report_user).get_jwt()
@@ -88,8 +103,10 @@ class ReportAPITests(APITestCase):
     def test_single_insurees_pending_enrollment_report(self):
         if not connection.vendor == 'postgresql':
             self.skipTest("This test can only be executed for PSQL database")
-        report_role = create_test_role(perm_names=[
-                                       "gql_reports_families_insurees_overview_perms"], name="InsureesPendingEnrollmentReportRole")
+        report_role = create_test_role(
+            perm_names=["gql_reports_families_insurees_overview_perms"],
+            name="InsureesPendingEnrollmentReportRole",
+        )
         report_user = create_test_interactive_user(
             username="testPendingEnrollmentUser", roles=[report_role.id])
         report_token = BaseTestContext(user=report_user).get_jwt()
