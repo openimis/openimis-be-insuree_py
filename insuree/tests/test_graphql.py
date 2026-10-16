@@ -35,9 +35,6 @@ from insuree.apps import InsureeConfig
 from unittest.mock import patch
 from core.test_helpers import create_test_officer
 
-# A nine-digit number the validity test takes ownership of.
-FREE_INSUREE_NUMBER = "070707070"
-
 # from openIMIS import schema
 
 
@@ -67,8 +64,12 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         create_test_relation()
         create_test_confirmation_type()
         cls.test_village = create_test_village()
-        cls.test_insuree = create_test_insuree(with_family=True, is_head=True, custom_props={
-                                               'current_village': cls.test_village}, family_custom_props={'location': cls.test_village})
+        cls.test_insuree = create_test_insuree(
+            with_family=True,
+            is_head=True,
+            custom_props={'current_village': cls.test_village},
+            family_custom_props={'location': cls.test_village},
+        )
         cls.admin_user = create_test_interactive_user(
             username="testLocationAdmin")
         cls.admin_token = BaseTestContext(user=cls.admin_user).get_jwt()
@@ -137,7 +138,10 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,
+        family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,
+        name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -168,7 +172,9 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,poverty,confirmationNo,validityFrom,validityTo,headInsuree{id,uuid,chfId,lastName,otherNames,email,phone, dob},location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,poverty,confirmationNo,validityFrom,validityTo,headInsuree{id,uuid,chfId,lastName,otherNames,
+        email,phone, dob},location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -199,7 +205,10 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
     {
       node
       {
-        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
+        id,uuid,validityFrom,validityTo,chfId,otherNames,lastName,phone,gender{code},dob,marital,status,
+        family{uuid,location{id, uuid, code, name, type, parent{id,uuid,code,name,type,parent{id,uuid,code,
+        name,type,parent{id,uuid,code,name,type}}}}},currentVillage{id, uuid, code, name, type, parent{id,uuid,
+        code,name,type,parent{id,uuid,code,name,type,parent{id,uuid,code,name,type}}}}
       }
     }
       }
@@ -225,7 +234,11 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         {
           node
           {
-            id,uuid,chfId,lastName,otherNames,dob,age,validityFrom,validityTo,gender{code},status,family{id, uuid, address location{name, parent{name, parent{name}}}},photo{folder,filename,photo},gender{code, gender, altLanguage},healthFacility{id, uuid, code, name, level, servicesPricelist{id, uuid}, itemsPricelist{id, uuid}, contractStartDate, contractEndDate, location{id,uuid,code,name,type, parent{id,uuid,code,name,type}}}
+            id,uuid,chfId,lastName,otherNames,dob,age,validityFrom,validityTo,gender{code},status,family{id,
+             uuid, address location{name, parent{name, parent{name}}}},photo{folder,filename,photo},
+            gender{code, gender, altLanguage},healthFacility{id, uuid, code, name, level, servicesPricelist{id,
+             uuid}, itemsPricelist{id, uuid}, contractStartDate, contractEndDate, location{id,uuid,code,name,
+            type, parent{id,uuid,code,name,type}}}
           }
         }
       }
@@ -485,11 +498,21 @@ query GetInsureeInquire($chfId: String) {
             insuree_number_min_length=9,
             insuree_number_modulo_root=None,
         )
-        # `insureeNumberValidity` also rejects a number that is already in use,
-        # so the test has to own this one rather than hope it is free. A
-        # database seeded with demo insurees has it; this assertion was passing
-        # only where it happened not to. Rolled back with the test.
-        Insuree.objects.filter(chf_id=FREE_INSUREE_NUMBER).delete()
+        # `insureeNumberValidity` also rejects a number that is already in
+        # use, so the test picks one that is free rather than assuming. It
+        # cannot clear the occupant instead: on a seeded database that insuree
+        # is referenced by claims, and the hard delete leaves the teardown's
+        # constraint check with a ForeignKeyViolation.
+        taken = set(
+            Insuree.objects.filter(chf_id__isnull=False).values_list(
+                "chf_id", flat=True
+            )
+        )
+        free_number = next(
+            candidate
+            for candidate in (f"{n:09d}" for n in range(70707070, 70717070))
+            if candidate not in taken
+        )
         response = self.query(
             '''
               query ($insuranceNumber: String!) {
@@ -501,7 +524,7 @@ query GetInsureeInquire($chfId: String) {
               }
               ''',
             headers={"HTTP_AUTHORIZATION": f"Bearer {self.admin_token}"},
-            variables={"insuranceNumber": FREE_INSUREE_NUMBER})
+            variables={"insuranceNumber": free_number})
 
         content = json.loads(response.content)
 
