@@ -329,7 +329,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
-        
+
 
 class MoveFamilyToParentMutation(OpenIMISMutation):
     """
@@ -381,9 +381,11 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
                 continue
             insuree_service = InsureeService(user)
             if data['cancel_policies']:
-                insurees = Insuree.objects \
-                .prefetch_related('family') \
-                .filter(family_id=family.id)
+                insurees = (
+                    Insuree.objects
+                    .prefetch_related('family')
+                    .filter(family_id=family.id)
+                )
                 if insurees:
                     for insuree in insurees:
                         errors += insuree_service.cancel_policies(insuree)
@@ -451,9 +453,11 @@ class DeleteFamiliesFromParentMutation(OpenIMISMutation):
                 continue
             insuree_service = InsureeService(user)
             if data['cancel_policies']:
-                insurees = Insuree.objects \
-                .prefetch_related('family') \
-                .filter(family_id=family.id)
+                insurees = (
+                    Insuree.objects
+                    .prefetch_related('family')
+                    .filter(family_id=family.id)
+                )
                 if insurees:
                     for insuree in insurees:
                         errors += insuree_service.cancel_policies(insuree)

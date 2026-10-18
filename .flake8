@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 120
+
+# Historical schema changes: formatting them is churn on files that should not
+# be edited again. The assembly's own config excludes them for the same reason.
+exclude = */migrations/*
+
+# The report modules are JasperReports templates carried as Python literals -
+# embedded SQL and JSON. Their long lines are data, and the ones inside
+# f-strings cannot even take a `# noqa` comment, since `#` is a syntax error
+# in an f-string expression.
+per-file-ignores =
+    insuree/reports/*.py:E501

@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
-from location.models import LocationManager
+from location.models import LocationManager, OfficerVillage
 
 from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number
@@ -382,8 +382,13 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin and not LocationConfig.no_location_check:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
-                                                                           prefix='location__parent__parent', loc_types=['D'])]
+            filters += [
+                LocationManager().build_user_location_filter_query(
+                    info.context.user._u,
+                    prefix='location__parent__parent',
+                    loc_types=['D'],
+                )
+            ]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
@@ -566,8 +571,18 @@ def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
         # If the user is an Enrolment Officer (EO)
         # Non-EO user
         if location_id:
+            # One filter() call, so the conditions apply to the *same*
+            # officer_villages row: a link to this village that is still
+            # current. Without the link's own validity an officer removed from
+            # a village keeps appearing for it.
+            # distinct() guards the reverse join - create_or_update_officer_villages
+            # keeps one row per (officer, village) today, so it changes nothing
+            # now, but a join like this should not depend on that.
             officers = Officer.objects.filter(
-                officer_villages__location__id=location_id, *Officer.filter_validity())
+                *Officer.filter_validity(),
+                officer_villages__location__id=location_id,
+                *OfficerVillage.filter_validity(prefix="officer_villages__"),
+            ).distinct()
 
             if officers.exists():
                 return officers
