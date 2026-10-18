@@ -571,8 +571,18 @@ def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
         # If the user is an Enrolment Officer (EO)
         # Non-EO user
         if location_id:
+            # Both conditions sit in one filter() on purpose: they then apply
+            # to the *same* officer_villages row, i.e. a link to this village
+            # that is still current. Without the validity check an officer
+            # removed from a village keeps appearing for it.
+            # distinct() guards the reverse join - create_or_update_officer_villages
+            # keeps one row per (officer, village) today, so it changes nothing
+            # now, but a join like this should not depend on that.
             officers = Officer.objects.filter(
-                officer_villages__location__id=location_id, *Officer.filter_validity())
+                *Officer.filter_validity(),
+                officer_villages__location__id=location_id,
+                officer_villages__validity_to__isnull=True,
+            ).distinct()
 
             if officers.exists():
                 return officers

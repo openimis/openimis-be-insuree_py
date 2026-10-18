@@ -63,7 +63,12 @@ class InsureeGQLTestCase(openIMISGraphQLTestCase):
         create_test_education()
         create_test_relation()
         create_test_confirmation_type()
-        cls.test_village = create_test_village()
+        # An explicit code, because create_test_village() without one does
+        # not pass its generated code down to the village - only to the
+        # region, district and ward - so the village falls back to the shared
+        # "TST-V" default and arrives with whatever officers are already
+        # attached to it. That is why test_insuree_officers_query counted two.
+        cls.test_village = create_test_village({"code": "INSGQLV"})
         cls.test_insuree = create_test_insuree(
             with_family=True,
             is_head=True,
