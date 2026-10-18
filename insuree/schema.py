@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
-from location.models import LocationManager
+from location.models import LocationManager, OfficerVillage
 
 from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number
@@ -571,17 +571,17 @@ def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
         # If the user is an Enrolment Officer (EO)
         # Non-EO user
         if location_id:
-            # Both conditions sit in one filter() on purpose: they then apply
-            # to the *same* officer_villages row, i.e. a link to this village
-            # that is still current. Without the validity check an officer
-            # removed from a village keeps appearing for it.
+            # One filter() call, so the conditions apply to the *same*
+            # officer_villages row: a link to this village that is still
+            # current. Without the link's own validity an officer removed from
+            # a village keeps appearing for it.
             # distinct() guards the reverse join - create_or_update_officer_villages
             # keeps one row per (officer, village) today, so it changes nothing
             # now, but a join like this should not depend on that.
             officers = Officer.objects.filter(
                 *Officer.filter_validity(),
                 officer_villages__location__id=location_id,
-                officer_villages__validity_to__isnull=True,
+                *OfficerVillage.filter_validity(prefix="officer_villages__"),
             ).distinct()
 
             if officers.exists():
