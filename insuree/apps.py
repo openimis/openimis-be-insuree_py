@@ -146,6 +146,7 @@ class InsureeConfig(AppConfig):
 
     def ready(self):
         from core.models import ModuleConfiguration
+        from insuree import checks  # noqa: F401  registers the system checks
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
         self.__load_config(cfg)
         self._configure_photo_root(cfg)

@@ -1,0 +1,17 @@
+ALTER TABLE "tblClaim" DROP CONSTRAINT "tblClaim_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblClaimDedRem" DROP CONSTRAINT "tblClaimDedRem_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblFamilies" DROP CONSTRAINT "tblFamilies_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblHealthStatus" DROP CONSTRAINT "tblHealthStatus_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblInsureePolicy" DROP CONSTRAINT "tblInsureePolicy_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblPolicyRenewalDetails" DROP CONSTRAINT "tblPolicyRenewalDetails_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblPolicyRenewals" DROP CONSTRAINT "tblPolicyRenewals_InsureeID_fk_insuree_individual";
+ALTER TABLE "insuree_InsureeMutation" DROP CONSTRAINT "insuree_InsureeMutation_insuree_id_fk_insuree_individual";
+ALTER TABLE "tblPolicyHolderInsuree" DROP CONSTRAINT "tblPolicyHolderInsuree_InsureeId_fk_insuree_individual";
+ALTER TABLE "tblContractDetails" DROP CONSTRAINT "tblContractDetails_InsureeID_fk_insuree_individual";
+ALTER TABLE "tblInsuree_history" DROP CONSTRAINT IF EXISTS "tblInsuree_history_copies_only";
+DROP INDEX insuree_chf_id;
+DROP INDEX insuree_family_id;
+DROP INDEX insuree_current_village_id;
+DROP INDEX insuree_health_facility_id;
+DROP INDEX insuree_validity_from;
+DROP INDEX insuree_uuid;
