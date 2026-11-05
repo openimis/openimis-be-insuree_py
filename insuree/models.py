@@ -151,13 +151,13 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
         return queryset
 
     @classmethod
-    def get_queryset(cls, queryset, user):
-        queryset = cls.filter_queryset(queryset)
+    def get_queryset(cls, queryset, user, *, validity=None, audits=None):
+        queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
         if isinstance(user, ResolveInfo):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
-            return queryset.filter(id=-1)
+            return cls.no_rows(queryset)
         if InsureeConfig.excluded_insuree_chfids:
             queryset = queryset.exclude(
                 members__chf_id__in=InsureeConfig.excluded_insuree_chfids
@@ -379,8 +379,8 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         lifted.add(tuple(info.path or ()))
 
     @classmethod
-    def get_queryset(cls, queryset, user):
-        queryset = cls.filter_queryset(queryset)
+    def get_queryset(cls, queryset, user, *, validity=None, audits=None):
+        queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
         scope_lifted = False
         if isinstance(user, ResolveInfo):
@@ -389,7 +389,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             )
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
-            return queryset.filter(id=-1)
+            return cls.no_rows(queryset)
         if InsureeConfig.excluded_insuree_chfids:
             queryset = queryset.exclude(
                 chf_id__in=InsureeConfig.excluded_insuree_chfids
@@ -446,13 +446,13 @@ class InsureePolicy(core_models.VersionedModel):
         return queryset
 
     @classmethod
-    def get_queryset(cls, queryset, user):
-        queryset = cls.filter_queryset(queryset)
+    def get_queryset(cls, queryset, user, *, validity=None, audits=None):
+        queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
         if isinstance(user, ResolveInfo):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
-            return queryset.filter(id=-1)
+            return cls.no_rows(queryset)
         if settings.ROW_SECURITY and not user.is_imis_admin:
             # Limit the list by the logged in user location mapping
             return queryset.filter(
