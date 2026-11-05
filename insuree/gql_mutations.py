@@ -2,14 +2,16 @@ import logging
 from uuid import UUID
 import graphene
 from insuree.apps import InsureeConfig
-from insuree.services import InsureeService, FamilyService, InsureePolicyService
+from insuree.services import (
+    InsureeService, FamilyService, InsureePolicyService, scoped_families, scoped_insurees,
+)
 
 from core.schema import OpenIMISMutation
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext as _
 from graphene import InputObjectType
-from .models import Family, Insuree, FamilyMutation, InsureeMutation
+from .models import Insuree, FamilyMutation, InsureeMutation
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +198,7 @@ class DeleteFamiliesMutation(OpenIMISMutation):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for family_uuid in data["uuids"]:
-            family = Family.objects \
+            family = scoped_families(user) \
                 .prefetch_related('members') \
                 .filter(uuid=(family_uuid)) \
                 .first()
@@ -263,7 +265,12 @@ class UpdateInsureeMutation(OpenIMISMutation):
             if type(user) is AnonymousUser or not user.id:
                 raise ValidationError(
                     _("mutation.authentication_required"))
-            if not user.has_perms(InsureeConfig.gql_mutation_create_insurees_perms):
+            # The update right (101103), not the create one (101102): editing an
+            # existing insuree is not creating one, and the two are separate rights.
+            # This checked create until now, so a role holding only "create insuree"
+            # could edit every insuree it could reach, while a role holding only
+            # "update insuree" could edit none.
+            if not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
                 raise PermissionDenied(_("unauthorized"))
             if 'uuid' not in data:
                 raise ValidationError(
@@ -300,7 +307,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for insuree_uuid in data["uuids"]:
-            insuree = Insuree.objects \
+            insuree = scoped_insurees(user) \
                 .prefetch_related('family') \
                 .filter(uuid=UUID(str(insuree_uuid))) \
                 .first()
@@ -322,7 +329,7 @@ class DeleteInsureesMutation(OpenIMISMutation):
         if len(errors) == 1:
             errors = errors[0]['list']
         return errors
-        
+
 
 class MoveFamilyToParentMutation(OpenIMISMutation):
     """
@@ -339,6 +346,14 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         errors = []
+        if type(user) is AnonymousUser or not user.id:
+            raise ValidationError(_("mutation.authentication_required"))
+        # Re-parenting a family is an edit of that family, so it takes the same right
+        # as the other family edits here (SetFamilyHead, UpdateFamily). Before this,
+        # any authenticated user could re-parent or orphan an arbitrary family by
+        # uuid - and cancel its policies with it.
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         for child_family_uuid in data["family_uuids"]:
             if not child_family_uuid:
                 errors.append({
@@ -353,7 +368,7 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
                         "family.validation.assign_self") % {'id': child_family_uuid}}]
                 })
                 continue
-            family = Family.objects \
+            family = scoped_families(user) \
                 .prefetch_related('parent') \
                 .filter(uuid=(child_family_uuid)) \
                 .first()
@@ -366,16 +381,25 @@ class MoveFamilyToParentMutation(OpenIMISMutation):
                 continue
             insuree_service = InsureeService(user)
             if data['cancel_policies']:
-                insurees = Insuree.objects \
-                .prefetch_related('family') \
-                .filter(family_id=family.id)
+                insurees = (
+                    Insuree.objects
+                    .prefetch_related('family')
+                    .filter(family_id=family.id)
+                )
                 if insurees:
                     for insuree in insurees:
                         errors += insuree_service.cancel_policies(insuree)
-            parent_family = Family.objects \
+            parent_family = scoped_families(user) \
                 .prefetch_related('parent') \
                 .filter(uuid=(data["family_uuid"])) \
                 .first()
+            if parent_family is None:
+                errors.append({
+                    'title': data["family_uuid"],
+                    'list': [{'message': _(
+                        "family.validation.not_exist") % {'id': data["family_uuid"]}}]
+                })
+                continue
             setattr(family, 'parent', parent_family)
             family.save()
         normalized_errors = []
@@ -401,6 +425,14 @@ class DeleteFamiliesFromParentMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         errors = []
+        if type(user) is AnonymousUser or not user.id:
+            raise ValidationError(_("mutation.authentication_required"))
+        # Re-parenting a family is an edit of that family, so it takes the same right
+        # as the other family edits here (SetFamilyHead, UpdateFamily). Before this,
+        # any authenticated user could re-parent or orphan an arbitrary family by
+        # uuid - and cancel its policies with it.
+        if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
+            raise PermissionDenied(_("unauthorized"))
         for child_family_uuid in data["family_uuids"]:
             if not child_family_uuid:
                 errors.append({
@@ -408,7 +440,7 @@ class DeleteFamiliesFromParentMutation(OpenIMISMutation):
                     'list': [{'message': _("family.validation.uuid_required")}]
                 })
                 continue
-            family = Family.objects \
+            family = scoped_families(user) \
                 .prefetch_related('parent') \
                 .filter(uuid=(child_family_uuid)) \
                 .first()
@@ -421,9 +453,11 @@ class DeleteFamiliesFromParentMutation(OpenIMISMutation):
                 continue
             insuree_service = InsureeService(user)
             if data['cancel_policies']:
-                insurees = Insuree.objects \
-                .prefetch_related('family') \
-                .filter(family_id=family.id)
+                insurees = (
+                    Insuree.objects
+                    .prefetch_related('family')
+                    .filter(family_id=family.id)
+                )
                 if insurees:
                     for insuree in insurees:
                         errors += insuree_service.cancel_policies(insuree)
@@ -456,16 +490,16 @@ class RemoveInsureesMutation(OpenIMISMutation):
             raise PermissionDenied(_("unauthorized"))
         errors = []
         for insuree_uuid in data["uuids"]:
-            insuree = Insuree.objects \
+            insuree = scoped_insurees(user) \
                 .prefetch_related('family') \
                 .filter(uuid=(insuree_uuid)) \
                 .first()
             if insuree is None:
-                errors += {
+                errors.append({
                     'title': insuree_uuid,
                     'list': [{'message': _(
                         "insuree.validation.id_does_not_exist") % {'id': insuree_uuid}}]
-                }
+                })
                 continue
             if insuree.family.head_insuree.id == insuree.id:
                 errors.append({
@@ -499,8 +533,8 @@ class SetFamilyHeadMutation(OpenIMISMutation):
         if not user.has_perms(InsureeConfig.gql_mutation_update_families_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid=(data['uuid']))
-            insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))
+            family = scoped_families(user).get(uuid=(data['uuid']))
+            insuree = scoped_insurees(user).get(uuid=(data['insuree_uuid']))
             family.save_history()
             prev_head = family.head_insuree
             if prev_head:
@@ -539,8 +573,8 @@ class ChangeInsureeFamilyMutation(OpenIMISMutation):
                 not user.has_perms(InsureeConfig.gql_mutation_update_insurees_perms):
             raise PermissionDenied(_("unauthorized"))
         try:
-            family = Family.objects.get(uuid=(data['family_uuid']))
-            insuree = Insuree.objects.get(uuid=(data['insuree_uuid']))
+            family = scoped_families(user).get(uuid=(data['family_uuid']))
+            insuree = scoped_insurees(user).get(uuid=(data['insuree_uuid']))
             insuree.save_history()
             insuree.family = family
             insuree.save()

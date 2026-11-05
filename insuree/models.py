@@ -28,6 +28,8 @@ class Gender(models.Model):
 
 
 class InsureePhoto(core_models.VersionedModel):
+    row_scope = core_models.ParentScope("insuree")
+
     id = models.AutoField(db_column='PhotoID', primary_key=True)
     uuid = models.CharField(db_column='PhotoUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -91,6 +93,21 @@ class ConfirmationType(models.Model):
 
 
 class Family(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("family", action)
+
     id = models.AutoField(db_column='FamilyID', primary_key=True)
     uuid = models.CharField(db_column='FamilyUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -147,8 +164,10 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
             )
         if settings.ROW_SECURITY and not user.is_imis_admin and not LocationConfig.no_location_check:
             from location.schema import LocationManager
+            # Matched at the level the user is granted (officer villages, user
+            # districts, ...): see build_user_village_filter_query, and its UBA TODO.
             return queryset.filter(
-                LocationManager().build_user_location_filter_query(user._u, prefix='location__parent__parent', loc_types=['D']))
+                LocationManager().build_user_village_filter_query(user._u, prefix='location'))
 
         return queryset
 
@@ -235,6 +254,21 @@ class InsureeStatusReason(core_models.VersionedModel):
 
 
 class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
+    @classmethod
+    def get_rights(cls, action):
+        """
+        The rights governing an action on this entity, for GraphQL, REST and FHIR.
+
+        Redeclares nothing: the rights table is `insuree.apps.DJANGO_PERMS`, by entity
+        then by action, and `configured_perms` reads the *configured* value there -
+        the one ModuleConfiguration may have overridden - and not the declared
+        default. This model is only the access point, as `get_queryset` is for the
+        rows.
+        """
+        from insuree.apps import configured_perms
+
+        return configured_perms("insuree", action)
+
     id = models.AutoField(db_column='InsureeID', primary_key=True)
     uuid = models.CharField(db_column='InsureeUUID',
                             max_length=36, default=uuid.uuid4, unique=True)
@@ -324,11 +358,35 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
             queryset = cls.objects.all()
         return queryset
 
+    # Set by `resolve_insurees` on the request when the caller asked for
+    # `ignoreLocation` *and* holds the enquiry right. Row security runs here, in
+    # `get_queryset`, after the resolver and on its queryset, so the resolver dropping
+    # its own district filter was never enough: this filter put it straight back, and
+    # `ignoreLocation` did nothing at all for anyone but a superuser. The flag is how
+    # the resolver's decision reaches the only place that can act on it.
+    # It holds the response paths of the lookups it was granted to, not a plain
+    # boolean: the request context is shared by every field of the response, and
+    # a connection nested under the lookup - `insureeSet` on the village of the
+    # insuree just found - must stay inside the caller's districts.
+    SCOPE_LIFTED = "insuree_location_scope_lifted"
+
+    @classmethod
+    def lift_scope(cls, info):
+        lifted = getattr(info.context, cls.SCOPE_LIFTED, None)
+        if lifted is None:
+            lifted = set()
+            setattr(info.context, cls.SCOPE_LIFTED, lifted)
+        lifted.add(tuple(info.path or ()))
+
     @classmethod
     def get_queryset(cls, queryset, user):
         queryset = cls.filter_queryset(queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
+        scope_lifted = False
         if isinstance(user, ResolveInfo):
+            scope_lifted = tuple(user.path or ()) in getattr(
+                user.context, cls.SCOPE_LIFTED, ()
+            )
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return queryset.filter(id=-1)
@@ -339,14 +397,17 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         # The insuree "health facility" is the "First Point of Service"
         # (aka the 'preferred/reference' HF for an insuree)
         # ... so not to be used as 'strict filtering'
-        if settings.ROW_SECURITY and not user.is_imis_admin and not LocationConfig.no_location_check:
+        if (settings.ROW_SECURITY and not scope_lifted and not user.is_imis_admin
+                and not LocationConfig.no_location_check):
+            # Matched at the level the user is granted (officer villages, user
+            # districts, ...): see build_user_village_filter_query, and its UBA TODO.
             return queryset.filter(
                 Q(
-                    LocationManager().build_user_location_filter_query(
-                        user._u, prefix='current_village__parent__parent', loc_types=['D']
+                    LocationManager().build_user_village_filter_query(
+                        user._u, prefix='current_village'
                     )
-                    | LocationManager().build_user_location_filter_query(
-                        user._u, prefix='family__location__parent__parent', loc_types=['D']
+                    | LocationManager().build_user_village_filter_query(
+                        user._u, prefix='family__location'
                     )
                 )
             )
@@ -413,6 +474,8 @@ class InsureePolicy(core_models.VersionedModel):
 
 
 class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("insuree")
+
     insuree = models.ForeignKey(
         Insuree, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(
@@ -424,6 +487,8 @@ class InsureeMutation(core_models.UUIDModel, core_models.ObjectMutation):
 
 
 class FamilyMutation(core_models.UUIDModel, core_models.ObjectMutation):
+    row_scope = core_models.ParentScope("family")
+
     family = models.ForeignKey(
         Family, models.DO_NOTHING, related_name='mutations')
     mutation = models.ForeignKey(

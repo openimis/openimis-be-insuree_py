@@ -1,5 +1,16 @@
 from insuree.apps import InsureeConfig
-from insuree.models import Insuree, Family, Gender, InsureePhoto, Profession, Education, Relation, ConfirmationType, FamilyType, IdentificationType
+from insuree.models import (
+    ConfirmationType,
+    Education,
+    Family,
+    FamilyType,
+    Gender,
+    IdentificationType,
+    Insuree,
+    InsureePhoto,
+    Profession,
+    Relation,
+)
 from insuree.services import validate_insuree_number
 from insuree.test_factories import FamilyFactory, InsureeFactory, InsureePhotoFactory
 from location.models import Location

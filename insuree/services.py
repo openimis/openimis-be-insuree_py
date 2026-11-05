@@ -16,9 +16,41 @@ from core.signals import register_service_signal
 from insuree.apps import InsureeConfig
 from insuree.models import (InsureePhoto, PolicyRenewalDetail, Insuree, Family, InsureePolicy, InsureeStatus,
                             InsureeStatusReason)
-from django.core.exceptions import ValidationError
+from django.conf import settings
+from django.core.exceptions import PermissionDenied, ValidationError
 
 logger = logging.getLogger(__name__)
+
+
+def scoped_families(user):
+    """The families ``user`` may read, hence act on."""
+    return Family.get_queryset(Family.objects.all(), user)
+
+
+def scoped_insurees(user):
+    """The insurees ``user`` may read, hence act on."""
+    return Insuree.get_queryset(Insuree.objects.all(), user)
+
+
+def check_in_scope(model, user, obj):
+    """Refuse to change ``obj`` when ``user`` may not read it.
+
+    Out of scope reads as "does not exist", as for reads: the answer must not
+    tell which ids exist elsewhere.
+    """
+    if obj is not None and not model.get_queryset(model.objects.filter(id=obj.id), user).exists():
+        raise model.DoesNotExist(f"{model.__name__} {obj.uuid} does not exist")
+
+
+def check_location_allowed(user, *location_ids):
+    """Refuse to place a family or insuree in a location ``user`` is not granted."""
+    ids = [location_id for location_id in location_ids if location_id]
+    if not ids or not settings.ROW_SECURITY or getattr(user, "is_imis_admin", False):
+        return
+    from location.models import LocationManager
+
+    if not LocationManager().is_allowed(user, ids):
+        raise PermissionDenied(_("unauthorized"))
 
 
 def create_insuree_renewal_detail(policy_renewal):
@@ -365,6 +397,13 @@ class InsureeService:
         elif 'chf_id' in data and not create_only:
             insuree = Insuree.objects.filter(
                 chf_id=data["chf_id"], *Insuree.filter_validity()).first()
+        # Writes follow reads: an existing insuree outside the user's scope cannot
+        # be updated (by uuid or by CHFID), nor placed where the user has no grant.
+        check_in_scope(Insuree, self.user, insuree)
+        check_location_allowed(self.user, data.get("current_village_id"))
+        if data.get("family_id"):
+            family = Family.objects.filter(id=data["family_id"]).first()
+            check_in_scope(Family, self.user, family)
         if status in [InsureeStatus.INACTIVE, InsureeStatus.DEAD]:
             status_reason = InsureeStatusReason.objects.get(code=data.get('status_reason', None),
                                                             validity_to__isnull=True)
@@ -569,6 +608,10 @@ class FamilyService:
             filters = None
         existing_family = Family.objects.filter(
             *Family.filter_validity(), filters).first() if filters else None
+        # Writes follow reads: an existing family outside the user's scope cannot
+        # be updated, nor any family placed where the user has no grant.
+        check_in_scope(Family, self.user, existing_family)
+        check_location_allowed(self.user, family.location_id)
         if existing_family:
             return self._update(existing_family, family)
         else:

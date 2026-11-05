@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.dispatch import Signal
 from graphene_django.filter import DjangoFilterConnectionField
 import graphene_django_optimizer as gql_optimizer
-from location.models import LocationManager
+from location.models import LocationManager, OfficerVillage
 
 from insuree.apps import InsureeConfig
 from insuree.services import validate_insuree_number
@@ -24,6 +24,7 @@ from .models import (
     Insuree,
     InsureeMutation,
     InsureePolicy,
+    InsureeStatusReason,
     Profession,
     Relation,
 )
@@ -190,17 +191,49 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
                 )
         return warnings
 
+    # `insureeStatusReasons` was the module's only entry point with no check at all:
+    # neither a `resolve_*` nor a `get_queryset` on the type. A reference table, so
+    # the stakes are low, but R8 admits no implicit exception. The right chosen is
+    # that of the other insuree nomenclatures (`resolve_insuree_genders` just below),
+    # the object describing an insuree status.
+    #
+    # The `str` argument declared on the field (`schema.py:126`) stays without effect
+    # - it already had none, no resolver reading it; the filtering goes through the
+    # type's `filterset`.
+    def resolve_insuree_status_reasons(self, info, **kwargs):
+        if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
+            raise PermissionDenied(_("unauthorized"))
+        return InsureeStatusReason.objects.all()
+
     def resolve_insuree_genders(self, info, **kwargs):
         if not info.context.user.has_perms(InsureeConfig.gql_query_insuree_perms):
             raise PermissionDenied(_("unauthorized"))
         return Gender.objects.order_by('sort_order').all()
 
     def resolve_insurees(self, info, **kwargs):
-        if not info.context.user.has_perms(InsureeConfig.gql_query_insurees_perms):
+        user = info.context.user
+        # Two ways in, and they do not buy the same thing.
+        #
+        # 101101 is the insuree register: browsing it, paging through it, opening the
+        # insuree page. 101105 is the enquiry - resolving one identifier, anywhere in
+        # the country - which is what the claim form's CHFID picker does
+        # (insuree.InsureeChfIdPicker -> fetchInsuree, `chfId` plus `ignoreLocation`)
+        # and what the enquiry dialog does. Gating this resolver on 101101 alone made
+        # "let a clerk pick an insuree" and "let them read the register" the same
+        # grant, which is why the picker could not be given away on its own.
+        register_reader = user.has_perms(InsureeConfig.gql_query_insurees_perms)
+        enquirer = user.has_perms(InsureeConfig.gql_query_insuree_inquire_perms)
+        if not register_reader and not enquirer:
             raise PermissionDenied(_("unauthorized"))
         filters = []
         additional_filter = kwargs.get('additional_filters', None)
         chf_id = kwargs.get('chf_id')
+
+        if not register_reader and chf_id is None and kwargs.get('uuid') is None:
+            # 101105 on its own resolves an identifier the caller already holds. It
+            # does not enumerate: without chfId or uuid this would be a nationwide
+            # listing of the register, which is exactly what 101101 is for.
+            raise PermissionDenied(_("unauthorized"))
 
         if chf_id is not None:
             # new=False: this is a lookup, so the number is expected to exist and
@@ -236,17 +269,30 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
             filters += [(Q(current_village__isnull=False) & Q(**{current_village: parent_location}))
                         | (Q(current_village__isnull=True) & Q(**{family_location: parent_location}))]
 
-        if (not info.context.user._u.is_imis_admin
-                and (kwargs.get('ignore_location') is False or kwargs.get('ignore_location') is None)
+        # `ignoreLocation` is the client asking to leave the caller's districts, and
+        # it used to be granted by the asking: any holder of 101101 could read the
+        # whole country by setting a flag. It is now honoured only for the enquiry
+        # right, which is what that reach is called. Without 101105 the scope simply
+        # stays applied - no error, an out-of-district identifier just resolves to
+        # nothing - so the picker and the enquiry dialog keep working for the
+        # districts a role is entitled to.
+        ignore_location = bool(kwargs.get('ignore_location')) and enquirer
+        if ignore_location:
+            # `InsureeGQLType.get_queryset` -> `Insuree.get_queryset` runs after this
+            # resolver and re-applies the same district filter, so dropping it here
+            # was never enough on its own. The flag carries the decision to it.
+            Insuree.lift_scope(info)
+        if (not user._u.is_imis_admin
+                and not ignore_location
                 and not LocationConfig.no_location_check):
             # Limit the list by the logged in user location mapping
             filters += [
                 Q(
                     LocationManager().build_user_location_filter_query(
-                        info.context.user._u, prefix='current_village__parent__parent', loc_types=['D']
+                        user._u, prefix='current_village__parent__parent', loc_types=['D']
                     )
                     | LocationManager().build_user_location_filter_query(
-                        info.context.user._u, prefix='family__location__parent__parent', loc_types=['D']
+                        user._u, prefix='family__location__parent__parent', loc_types=['D']
                     )
                 )
             ]
@@ -336,8 +382,13 @@ class Query(ExportableQueryMixin, graphene.ObjectType):
 
         # Limit the list by the logged in user location mapping
         if not info.context.user._u.is_imis_admin and not LocationConfig.no_location_check:
-            filters += [LocationManager().build_user_location_filter_query(info.context.user._u,
-                                                                           prefix='location__parent__parent', loc_types=['D'])]
+            filters += [
+                LocationManager().build_user_location_filter_query(
+                    info.context.user._u,
+                    prefix='location__parent__parent',
+                    loc_types=['D'],
+                )
+            ]
 
         # Duplicates cannot be removed with distinct, as TEXT field is not comparable
         ids = Family.objects.filter(*filters).values_list('id')
@@ -520,8 +571,18 @@ def _get_contextual_insuree_officers(info, location_id=None, **kwargs):
         # If the user is an Enrolment Officer (EO)
         # Non-EO user
         if location_id:
+            # One filter() call, so the conditions apply to the *same*
+            # officer_villages row: a link to this village that is still
+            # current. Without the link's own validity an officer removed from
+            # a village keeps appearing for it.
+            # distinct() guards the reverse join - create_or_update_officer_villages
+            # keeps one row per (officer, village) today, so it changes nothing
+            # now, but a join like this should not depend on that.
             officers = Officer.objects.filter(
-                officer_villages__location__id=location_id, *Officer.filter_validity())
+                *Officer.filter_validity(),
+                officer_villages__location__id=location_id,
+                *OfficerVillage.filter_validity(prefix="officer_villages__"),
+            ).distinct()
 
             if officers.exists():
                 return officers
