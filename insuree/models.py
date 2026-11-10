@@ -174,6 +174,9 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     class Meta:
         managed = True
         db_table = 'tblFamilies'
+        indexes = [
+            models.Index(fields=['legacy_id', 'validity_from', 'validity_to'])
+        ]
 
 
 class Profession(models.Model):
@@ -417,6 +420,9 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
     class Meta:
         managed = True
         db_table = 'tblInsuree'
+        indexes = [
+            models.Index(fields=['legacy_id', 'validity_from', 'validity_to', 'chf_id'])
+        ]
 
 
 class InsureePolicy(core_models.VersionedModel):
