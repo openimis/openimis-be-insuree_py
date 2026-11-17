@@ -24,6 +24,7 @@ setup(
         'django-db-signals',
         'djangorestframework',
         'openimis-be-location',
+        'openimis-be-individual',
     ],
     classifiers=[
         'Environment :: Web Environment',
