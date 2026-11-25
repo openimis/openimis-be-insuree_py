@@ -149,6 +149,26 @@ class InsureeConfig(AppConfig):
         cfg = ModuleConfiguration.get_or_default(MODULE_NAME, DEFAULT_CFG)
         self.__load_config(cfg)
         self._configure_photo_root(cfg)
+        self._register_max_length_fields()
+
+    @staticmethod
+    def _register_max_length_fields():
+        from core.gql.max_length_constraints import register_max_length_fields
+        register_max_length_fields("insuree", {
+            "insuree": {
+                "uuid": ("insuree.Insuree", "uuid"),
+                "chfId": ("insuree.Insuree", "chf_id"),
+                "lastName": ("insuree.Insuree", "last_name"),
+                "otherNames": ("insuree.Insuree", "other_names"),
+                "marital": ("insuree.Insuree", "marital"),
+                "passport": ("insuree.Insuree", "passport"),
+                "phone": ("insuree.Insuree", "phone"),
+                "email": ("insuree.Insuree", "email"),
+                "currentAddress": ("insuree.Insuree", "current_address"),
+                "geolocation": ("insuree.Insuree", "geolocation"),
+                "status": ("insuree.Insuree", "status"),
+            },
+        })
 
     def set_dataloaders(self, dataloaders):
         from .dataloaders import InsureeLoader, FamilyLoader
