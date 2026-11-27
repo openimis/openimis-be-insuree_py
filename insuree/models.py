@@ -6,7 +6,7 @@ from core import models as core_models
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from graphql import ResolveInfo
+from graphql import GraphQLResolveInfo
 from insuree.apps import InsureeConfig
 from location import models as location_models
 from location.models import LocationManager
@@ -154,7 +154,7 @@ class Family(core_models.VersionedModel, core_models.ExtendableModel):
     def get_queryset(cls, queryset, user, *, validity=None, audits=None):
         queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
-        if isinstance(user, ResolveInfo):
+        if isinstance(user, GraphQLResolveInfo):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return cls.no_rows(queryset)
@@ -383,7 +383,7 @@ class Insuree(core_models.VersionedModel, core_models.ExtendableModel):
         queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
         scope_lifted = False
-        if isinstance(user, ResolveInfo):
+        if isinstance(user, GraphQLResolveInfo):
             scope_lifted = tuple(user.path or ()) in getattr(
                 user.context, cls.SCOPE_LIFTED, ()
             )
@@ -449,7 +449,7 @@ class InsureePolicy(core_models.VersionedModel):
     def get_queryset(cls, queryset, user, *, validity=None, audits=None):
         queryset = cls.apply_row_filters(queryset, validity, audits, default=cls.filter_queryset)
         # GraphQL calls with an info object while Rest calls with the user itself
-        if isinstance(user, ResolveInfo):
+        if isinstance(user, GraphQLResolveInfo):
             user = user.context.user
         if settings.ROW_SECURITY and user.is_anonymous:
             return cls.no_rows(queryset)
